@@ -1,0 +1,13 @@
+{
+  "name": "codex-discord-presence",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Native Discord Rich Presence for the ChatGPT Codex desktop app on Windows.",
+  "license": "MIT",
+  "scripts": {
+    "check": "node --check src/daemon.js && node --check src/hook.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
