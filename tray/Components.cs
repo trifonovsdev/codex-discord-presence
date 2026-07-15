@@ -50,7 +50,8 @@ public sealed class ModernButton : Button
         var text = string.IsNullOrWhiteSpace(IconGlyph) ? Text : $"{IconGlyph}   {Text}";
         TextRenderer.DrawText(e.Graphics, text, Font, Rectangle.Round(bounds), foreground,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(Rectangle.Round(bounds), -4, -4), foreground, background);
+        if (Focused && ShowFocusCues)
+            ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(Rectangle.Round(bounds), -4, -4), foreground, background);
     }
 
     private (Color Background, Color Foreground, Color Border) Colors() => Kind switch
@@ -71,14 +72,29 @@ public class RoundedPanel : Panel
     public RoundedPanel()
     {
         BackColor = Visuals.Surface;
+        Margin = Padding.Empty;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+    }
+
+    protected override void OnSizeChanged(EventArgs e)
+    {
+        base.OnSizeChanged(e);
+        var previous = Region;
+        if (Width > 0 && Height > 0)
+        {
+            using var path = Visuals.RoundedPath(new RectangleF(0, 0, Width, Height), Radius);
+            Region = new Region(path);
+        }
+        previous?.Dispose();
+        Invalidate();
     }
 
     protected override void OnPaintBackground(PaintEventArgs e)
     {
+        e.Graphics.Clear(Parent?.BackColor ?? Visuals.Background);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
         using var brush = new SolidBrush(BackColor);
-        e.Graphics.FillRoundedRectangle(brush, new RectangleF(0, 0, Width - 1, Height - 1), Radius);
+        e.Graphics.FillRoundedRectangle(brush, new RectangleF(0, 0, Width, Height), Radius);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -131,6 +147,7 @@ public sealed class ToggleSwitch : Control
 public sealed class ModernSelect : Control
 {
     private readonly List<string> options;
+    private readonly ContextMenuStrip menu;
     private string selected = "";
     private bool hovered;
     public IReadOnlyList<string> Options => options;
@@ -160,22 +177,14 @@ public sealed class ModernSelect : Control
         TabStop = true;
         AccessibleRole = AccessibleRole.ComboBox;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.Selectable, true);
-    }
 
-    protected override void OnMouseEnter(EventArgs e) { hovered = true; Invalidate(); base.OnMouseEnter(e); }
-    protected override void OnMouseLeave(EventArgs e) { hovered = false; Invalidate(); base.OnMouseLeave(e); }
-    protected override void OnClick(EventArgs e)
-    {
-        base.OnClick(e);
-        var menu = new ContextMenuStrip
+        menu = new ContextMenuStrip
         {
             BackColor = Visuals.SurfaceRaised,
             ForeColor = Visuals.Text,
             Renderer = new ToolStripProfessionalRenderer(new SelectMenuColors()),
             ShowImageMargin = false,
             AutoSize = false,
-            Width = Width,
-            Height = options.Count * 36 + 4,
             Padding = new Padding(2),
         };
         foreach (var option in options)
@@ -183,17 +192,34 @@ public sealed class ModernSelect : Control
             var item = new ToolStripMenuItem(option)
             {
                 AutoSize = false,
-                Width = Width - 4,
                 Height = 36,
                 Font = Visuals.Font(9),
-                Checked = option == selected,
                 CheckOnClick = false,
             };
             item.Click += (_, _) => Text = option;
             menu.Items.Add(item);
         }
-        menu.Closed += (_, _) => menu.Dispose();
+    }
+
+    protected override void OnMouseEnter(EventArgs e) { hovered = true; Invalidate(); base.OnMouseEnter(e); }
+    protected override void OnMouseLeave(EventArgs e) { hovered = false; Invalidate(); base.OnMouseLeave(e); }
+    protected override void OnClick(EventArgs e)
+    {
+        base.OnClick(e);
+        menu.Width = Width;
+        menu.Height = options.Count * 36 + 4;
+        foreach (ToolStripMenuItem item in menu.Items)
+        {
+            item.Width = Width - 4;
+            item.Checked = string.Equals(item.Text, selected, StringComparison.Ordinal);
+        }
         menu.Show(this, new Point(0, Height + 4));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) menu.Dispose();
+        base.Dispose(disposing);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

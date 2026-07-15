@@ -3,9 +3,9 @@ namespace CodexPresence;
 public sealed class DashboardForm : ModernForm
 {
     private readonly StatusPill connection = new() { Text = "Connecting" };
-    private readonly Label project = Visuals.Label("Waiting for Codex", 21, false, FontStyle.Bold);
+    private readonly Label project = Visuals.Label("Waiting for Codex", 19, false, FontStyle.Bold);
     private readonly Label file = Visuals.Label("No activity yet", 10, true);
-    private readonly Label elapsed = Visuals.Label("00:00:00", 11, false, FontStyle.Bold);
+    private readonly Label elapsed = Visuals.Label("00:00:00", 10, false, FontStyle.Bold);
     private readonly Label source = Visuals.Label("Local", 9, false, FontStyle.Bold);
     private readonly Label workspace = Visuals.Label("Desktop", 9, false, FontStyle.Bold);
     private readonly ModernButton pause = Visuals.Button("Pause", ButtonKind.Primary, "Ⅱ");
@@ -14,52 +14,70 @@ public sealed class DashboardForm : ModernForm
     public event EventHandler? SettingsRequested;
     public event EventHandler? DiagnosticsRequested;
 
-    public DashboardForm() : base("Codex Presence", new Size(620, 456))
+    public DashboardForm() : base("Codex Presence", new Size(620, 420))
     {
-        MaximumSize = new Size(620, 456);
+        MaximumSize = new Size(620, 420);
 
-        var heading = Visuals.Label("Presence", 18, false, FontStyle.Bold);
-        heading.Location = new Point(28, 23);
-        var subtitle = Visuals.Label("Your current Codex workspace on Discord", 9, true);
-        subtitle.Location = new Point(29, 53);
-        connection.Location = new Point(448, 28);
+        var heading = Visuals.Label("Presence", 17, false, FontStyle.Bold);
+        heading.Location = new Point(28, 21);
+        var subtitle = Visuals.Label("Current Codex activity shared with Discord", 9, true);
+        subtitle.Location = new Point(29, 49);
+        connection.Location = new Point(448, 24);
 
         var activity = new RoundedPanel
         {
-            Location = new Point(28, 88),
-            Size = new Size(562, 166),
-            Radius = 16,
+            Location = new Point(28, 78),
+            Size = new Size(562, 214),
+            Radius = 14,
             BackColor = Visuals.Surface,
+            BorderColor = Visuals.Border,
         };
-        var eyebrow = Visuals.Eyebrow("Current activity");
+
+        var eyebrow = Visuals.Eyebrow("Now editing");
         eyebrow.Location = new Point(20, 18);
-        project.Location = new Point(18, 44);
-        project.MaximumSize = new Size(515, 34);
-        file.Location = new Point(20, 82);
-        file.MaximumSize = new Size(515, 38);
-        var divider = new Panel { Location = new Point(20, 118), Size = new Size(522, 1), BackColor = Visuals.BorderSoft };
-        var clockIcon = Visuals.Label("◷", 11, true);
-        clockIcon.Location = new Point(20, 132);
-        elapsed.Location = new Point(44, 132);
-        activity.Controls.AddRange([eyebrow, project, file, divider, clockIcon, elapsed]);
+        project.Location = new Point(19, 45);
+        project.MaximumSize = new Size(515, 32);
+        file.Location = new Point(20, 79);
+        file.MaximumSize = new Size(515, 34);
 
-        var sourceCard = MetricCard("Signal", source, "Selected task");
-        sourceCard.Location = new Point(28, 270);
-        var workspaceCard = MetricCard("Workspace", workspace, "Local or SSH");
-        workspaceCard.Location = new Point(310, 270);
+        var divider = new Panel { Location = new Point(20, 119), Size = new Size(522, 1), BackColor = Visuals.BorderSoft };
+        var signalCaption = Visuals.Eyebrow("Signal"); signalCaption.Location = new Point(20, 139);
+        source.Location = new Point(20, 163);
+        var workspaceCaption = Visuals.Eyebrow("Workspace"); workspaceCaption.Location = new Point(196, 139);
+        workspace.Location = new Point(196, 163);
+        var timeCaption = Visuals.Eyebrow("Codex session"); timeCaption.Location = new Point(392, 139);
+        elapsed.Location = new Point(392, 162);
 
-        pause.SetBounds(28, 358, 164, 44);
+        activity.Controls.AddRange([
+            eyebrow, project, file, divider,
+            signalCaption, source, workspaceCaption, workspace, timeCaption, elapsed,
+        ]);
+
+        var footer = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 76,
+            BackColor = Visuals.Canvas,
+        };
+        footer.Paint += (_, e) =>
+        {
+            using var pen = new Pen(Visuals.BorderSoft);
+            e.Graphics.DrawLine(pen, 0, 0, footer.Width, 0);
+        };
+
+        pause.SetBounds(28, 17, 164, 42);
         pause.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
         var settings = Visuals.Button("Settings", ButtonKind.Secondary, "⚙");
-        settings.SetBounds(204, 358, 154, 44);
+        settings.SetBounds(204, 17, 148, 42);
         settings.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        var doctor = Visuals.Button("Doctor", ButtonKind.Ghost, "＋");
-        doctor.SetBounds(370, 358, 132, 44);
+        var doctor = Visuals.Button("Doctor", ButtonKind.Ghost, "+");
+        doctor.SetBounds(362, 17, 124, 42);
         doctor.Click += (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
-        var version = Visuals.Label("v2.1.0", 8, true);
-        version.Location = new Point(542, 374);
+        var version = Visuals.Label("2.1.0", 8, true);
+        version.Location = new Point(548, 31);
+        footer.Controls.AddRange([pause, settings, doctor, version]);
 
-        ContentHost.Controls.AddRange([heading, subtitle, connection, activity, sourceCard, workspaceCard, pause, settings, doctor, version]);
+        ContentHost.Controls.AddRange([heading, subtitle, connection, activity, footer]);
         FormClosing += (_, eventArgs) =>
         {
             if (eventArgs.CloseReason != CloseReason.UserClosing) return;
@@ -98,16 +116,6 @@ public sealed class DashboardForm : ModernForm
         pause.IconGlyph = health.PresenceEnabled ? "Ⅱ" : "▶";
         pause.Enabled = true;
         pause.Invalidate();
-    }
-
-    private static RoundedPanel MetricCard(string caption, Label value, string hint)
-    {
-        var panel = new RoundedPanel { Size = new Size(280, 70), Radius = 12, BackColor = Visuals.Surface };
-        var heading = Visuals.Eyebrow(caption); heading.Location = new Point(15, 12);
-        value.Location = new Point(15, 34);
-        var helper = Visuals.Label(hint, 8, true); helper.Location = new Point(154, 36);
-        panel.Controls.AddRange([heading, value, helper]);
-        return panel;
     }
 
     private static string FriendlySource(string? value) => value switch
