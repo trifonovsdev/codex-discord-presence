@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without the v prefix
+        required: true
+        default: '2.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    env:
+      SIGNING_AVAILABLE: ${{ secrets.CODE_SIGN_PFX_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Inno Setup
+        shell: pwsh
+        run: winget install --id JRSoftware.InnoSetup --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+      - name: Import optional code-signing certificate
+        if: env.SIGNING_AVAILABLE == 'true'
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.CODE_SIGN_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.CODE_SIGN_PFX_PASSWORD }}
+        run: |
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'codex-presence-signing.pfx'
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+          $secure = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+          "CODE_SIGN_THUMBPRINT=$($certificate.Thumbprint)" >> $env:GITHUB_ENV
+      - name: Build release
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          .\build-release.ps1 -Version $version
+      - name: Smoke-test installer lifecycle
+        shell: pwsh
+        run: .\tests\installer-smoke.ps1
+      - name: Verify Authenticode when signing is configured
+        if: env.SIGNING_AVAILABLE == 'true'
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature .\artifacts\CodexPresenceSetup.exe
+          if ($signature.Status -ne 'Valid') { throw "Invalid installer signature: $($signature.Status)" }
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { "v${{ inputs.version }}" } else { '${{ github.ref_name }}' }
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag .\artifacts\CodexPresenceSetup.exe .\artifacts\CodexPresence-*-portable.zip .\artifacts\SHA256SUMS.txt --clobber
+          } else {
+            gh release create $tag .\artifacts\CodexPresenceSetup.exe .\artifacts\CodexPresence-*-portable.zip .\artifacts\SHA256SUMS.txt --generate-notes --latest --title "Codex Presence $tag"
+          }
+      - name: Remove signing certificate
+        if: ${{ always() && env.CODE_SIGN_THUMBPRINT != '' }}
+        shell: pwsh
+        run: Remove-Item "Cert:\CurrentUser\My\$env:CODE_SIGN_THUMBPRINT" -Force

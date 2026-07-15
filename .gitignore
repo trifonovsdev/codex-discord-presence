@@ -1,6 +1,11 @@
 config.json
 *.log
 *.zip
+artifacts/
+.build-cache/
+tray/bin/
+tray/obj/
+tray/*.user
 node_modules/
 __pycache__/
 *.pyc
