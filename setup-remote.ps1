@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory)][string]$HostName,
-  [string]$InstallDir = "$env:LOCALAPPDATA\OpenAI\CodexDiscordPresence"
+  [string]$InstallDir = "$env:LOCALAPPDATA\OpenAI\CodexDiscordPresence",
+  [string]$Name = 'Remote',
+  [string[]]$Roots = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,8 +24,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Remote Python validation failed.' }
 $configPath = Join-Path ([IO.Path]::GetFullPath($InstallDir)) 'config.json'
 if (-not (Test-Path -LiteralPath $configPath)) { throw 'Install the presence first.' }
 $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-$config.remote.host = $HostName
-$config.remote.monitorPath = $remoteFile
+if (-not $config.remote.PSObject.Properties['hosts']) { $config.remote | Add-Member -NotePropertyName hosts -NotePropertyValue @() }
+$existing = @($config.remote.hosts | Where-Object { $_.host -ne $HostName })
+$entry = [pscustomobject]@{ name = $Name; host = $HostName; roots = @($Roots); monitorPath = $remoteFile }
+$config.remote.host = ''
+$config.remote.hosts = @($existing) + @($entry)
 [IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
-Write-Host "Remote support configured for $HostName." -ForegroundColor Green
+Write-Host "Remote support configured for $Name ($HostName)." -ForegroundColor Green
 Write-Host 'Restart the presence daemon or rerun install.ps1 to apply the config.'

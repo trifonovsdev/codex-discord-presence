@@ -4,18 +4,32 @@ const http = require('http');
 const net = require('net');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { execFile } = require('child_process');
 const { randomUUID } = require('crypto');
+const { configuredRemotes, remoteForCwd: selectRemoteForCwd } = require('./remotes');
 
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const VERSION = '2.0.0';
+
+const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
+const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
 const DEFAULT_CONFIG = {
   clientId: '1526968377048956938',
   port: 37642,
   largeImageKey: 'codex',
   largeImageText: 'OpenAI Codex',
   appProcess: 'ChatGPT',
+  presenceEnabled: true,
+  privacy: {
+    preset: 'standard',
+    showProject: true,
+    showFile: true,
+    showTimer: true,
+    fileMode: 'relative',
+  },
   remote: {
     host: '',
+    hosts: [],
     monitorPath: '~/.local/share/CodexDiscordPresence/remote-monitor.py',
     pollIntervalMs: 7000,
   },
@@ -31,6 +45,7 @@ function loadConfig() {
   return {
     ...DEFAULT_CONFIG,
     ...userConfig,
+    privacy: { ...DEFAULT_CONFIG.privacy, ...(userConfig.privacy || {}) },
     remote: { ...DEFAULT_CONFIG.remote, ...(userConfig.remote || {}) },
   };
 }
@@ -40,11 +55,10 @@ const CLIENT_ID = String(CONFIG.clientId || DEFAULT_CONFIG.clientId);
 const PORT = Number.isInteger(Number(CONFIG.port)) ? Number(CONFIG.port) : DEFAULT_CONFIG.port;
 const HOST = '127.0.0.1';
 const LOG_PATH = path.join(__dirname, 'presence.log');
-const CODEX_HOME = process.env.CODEX_HOME || path.join(process.env.USERPROFILE || 'C:\\Users\\root', '.codex');
+const USER_HOME = process.env.USERPROFILE || os.homedir();
+const CODEX_HOME = process.env.CODEX_HOME || path.join(USER_HOME, '.codex');
 const SESSIONS_DIR = path.join(CODEX_HOME, 'sessions');
-const PACKAGES_DIR = path.join(process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || 'C:\\Users\\root', 'AppData', 'Local'), 'Packages');
-const REMOTE_HOST = String(CONFIG.remote.host || '').trim();
-const REMOTE_MONITOR = String(CONFIG.remote.monitorPath || DEFAULT_CONFIG.remote.monitorPath);
+const PACKAGES_DIR = path.join(process.env.LOCALAPPDATA || path.join(USER_HOME, 'AppData', 'Local'), 'Packages');
 const REMOTE_POLL_INTERVAL = Math.max(3000, Number(CONFIG.remote.pollIntervalMs) || DEFAULT_CONFIG.remote.pollIntervalMs);
 const APP_PROCESS = /^[A-Za-z0-9_.-]+$/.test(String(CONFIG.appProcess || ''))
   ? String(CONFIG.appProcess).replace(/\.exe$/i, '')
@@ -63,6 +77,7 @@ let currentProject = 'Локальная задача';
 let currentFile = '—';
 let appIsRunning = true;
 let codexStartedAt = null;
+let presenceEnabled = CONFIG.presenceEnabled !== false;
 let activeSessionPath = null;
 let presenceSource = 'startup';
 const sessionStates = new Map();
@@ -76,6 +91,24 @@ let remotePollRunning = false;
 let lastRemotePollAt = null;
 let lastRemoteError = null;
 let lastLoggedRemoteError = null;
+let selectedRemoteName = null;
+
+const PRIVACY_PRESETS = {
+  minimal: { showProject: true, showFile: false, showTimer: true, fileMode: 'name' },
+  standard: { showProject: true, showFile: true, showTimer: true, fileMode: 'relative' },
+  detailed: { showProject: true, showFile: true, showTimer: true, fileMode: 'relative' },
+};
+
+function privacySettings() {
+  const preset = PRIVACY_PRESETS[String(CONFIG.privacy.preset || '').toLowerCase()] || PRIVACY_PRESETS.standard;
+  return { ...preset, ...CONFIG.privacy };
+}
+
+const REMOTE_HOSTS = configuredRemotes(CONFIG, DEFAULT_CONFIG.remote.monitorPath);
+
+function remoteForCwd(cwd) {
+  return selectRemoteForCwd(cwd, REMOTE_HOSTS);
+}
 
 function log(message) {
   const line = `${new Date().toISOString()} ${message}\n`;
@@ -119,7 +152,8 @@ function handleRpcData(chunk) {
       if (message.evt === 'READY') {
         rpcReady = true;
         log('Discord RPC ready');
-        flushPresence(true);
+        if (presenceEnabled) flushPresence(true);
+        else clearPresence();
       } else if (message.evt === 'ERROR') {
         log(`Discord RPC error: ${raw}`);
       } else if (message.cmd === 'SET_ACTIVITY') {
@@ -173,9 +207,14 @@ function scheduleReconnect() {
 }
 
 function currentActivity() {
+  const privacy = privacySettings();
+  const visibleProject = privacy.showProject ? currentProject : 'Codex Desktop';
+  let visibleFile = currentFile;
+  if (!privacy.showFile) visibleFile = 'Working in Codex';
+  else if (privacy.fileMode === 'name') visibleFile = String(currentFile).replaceAll('\\', '/').split('/').at(-1) || currentFile;
   const activity = {
-    details: `Проект: ${currentProject}`,
-    state: `Файл: ${currentFile}`,
+    details: privacy.preset === 'detailed' ? `Project: ${visibleProject}` : `Проект: ${visibleProject}`,
+    state: privacy.preset === 'detailed' ? `Editing: ${visibleFile}` : `Файл: ${visibleFile}`,
     instance: false,
   };
   if (CONFIG.largeImageKey) {
@@ -184,7 +223,7 @@ function currentActivity() {
       large_text: String(CONFIG.largeImageText || 'OpenAI Codex'),
     };
   }
-  if (codexStartedAt) activity.timestamps = { start: codexStartedAt };
+  if (codexStartedAt && privacy.showTimer) activity.timestamps = { start: codexStartedAt };
   return activity;
 }
 
@@ -195,7 +234,7 @@ function queuePresence() {
 }
 
 function flushPresence(force) {
-  if (!rpcReady || !pendingPresence || !appIsRunning) return;
+  if (!rpcReady || !pendingPresence || !appIsRunning || !presenceEnabled) return;
   const json = JSON.stringify(pendingPresence);
   if (!force && json === lastPresenceJson) return;
 
@@ -215,6 +254,27 @@ function clearPresence() {
     nonce: randomUUID(),
   });
   lastPresenceJson = '';
+}
+
+function persistPresenceEnabled(enabled) {
+  try {
+    let document = {};
+    try { document = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch {}
+    document.presenceEnabled = enabled;
+    const temporaryPath = `${CONFIG_PATH}.tmp`;
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
+    fs.renameSync(temporaryPath, CONFIG_PATH);
+  } catch (error) {
+    log(`Could not persist presence state: ${error.message}`);
+  }
+}
+
+function setPresenceEnabled(enabled) {
+  presenceEnabled = Boolean(enabled);
+  persistPresenceEnabled(presenceEnabled);
+  if (presenceEnabled) queuePresence();
+  else clearPresence();
+  log(`Presence ${presenceEnabled ? 'enabled' : 'paused'} by local control`);
 }
 
 function projectFrom(payload) {
@@ -488,10 +548,20 @@ function syncDesktopSelection() {
 }
 
 function syncRemoteFile() {
-  if (!REMOTE_HOST || remotePollRunning || !selectedThreadId || !/^[0-9a-f-]{20,64}$/i.test(selectedThreadId)) return;
+  if (remotePollRunning || !selectedThreadId || !/^[0-9a-f-]{20,64}$/i.test(selectedThreadId)) return;
   const requestedThreadId = selectedThreadId;
   const desktopState = threadDesktopStates.get(requestedThreadId);
-  if (!desktopState?.cwd || !desktopState.cwd.startsWith('/')) return;
+  if (!desktopState?.cwd || !desktopState.cwd.startsWith('/')) {
+    selectedRemoteName = null;
+    return;
+  }
+  const remote = remoteForCwd(desktopState.cwd);
+  if (!remote) {
+    selectedRemoteName = null;
+    if (REMOTE_HOSTS.length > 1) lastRemoteError = 'No remote host matches the selected workspace root';
+    return;
+  }
+  selectedRemoteName = remote.name;
 
   remotePollRunning = true;
   execFile(
@@ -500,8 +570,8 @@ function syncRemoteFile() {
       '-T',
       '-o', 'BatchMode=yes',
       '-o', 'ConnectTimeout=6',
-      REMOTE_HOST,
-      'python3', REMOTE_MONITOR, requestedThreadId,
+      remote.host,
+      'python3', remote.monitorPath, requestedThreadId,
     ],
     { windowsHide: true, timeout: 10_000, maxBuffer: 1024 * 1024 },
     (error, stdout, stderr) => {
@@ -733,7 +803,9 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
       ok: true,
+      version: VERSION,
       rpcReady,
+      presenceEnabled,
       project: currentProject,
       file: currentFile,
       source: presenceSource,
@@ -745,7 +817,9 @@ const server = http.createServer((req, res) => {
       remotePollRunning,
       lastRemotePollAt,
       lastRemoteError,
-      remoteConfigured: Boolean(REMOTE_HOST),
+      remoteConfigured: REMOTE_HOSTS.length > 0,
+      remoteHosts: REMOTE_HOSTS.map((remote) => remote.name),
+      selectedRemote: selectedRemoteName,
       knownThreadProjects: Object.fromEntries(
         [...threadDesktopStates.entries()]
           .filter(([, state]) => state.project)
@@ -754,6 +828,38 @@ const server = http.createServer((req, res) => {
       details: pendingPresence?.details || null,
       lastRpcAck,
     }));
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/control') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+      if (body.length < 16_384) body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        const action = String(JSON.parse(body || '{}').action || '').toLowerCase();
+        if (action === 'pause') setPresenceEnabled(false);
+        else if (action === 'resume') setPresenceEnabled(true);
+        else if (action === 'toggle') setPresenceEnabled(!presenceEnabled);
+        else if (action === 'shutdown') {
+          res.writeHead(202, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, action }));
+          shutdown();
+          return;
+        } else {
+          res.writeHead(400, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'unknown-action' }));
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, action, presenceEnabled }));
+      } catch (error) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: error.message }));
+      }
+    });
     return;
   }
 
@@ -788,15 +894,17 @@ server.on('error', (error) => {
 
 server.listen(PORT, HOST, () => {
   log(`Presence daemon started on ${HOST}:${PORT}`);
-  syncDesktopSelection();
-  syncActiveSession();
   queuePresence();
-  tryPipe();
-  checkCodexApp();
-  setInterval(checkCodexApp, 15_000).unref();
-  setInterval(syncDesktopSelection, 2000).unref();
-  setInterval(syncActiveSession, 2500).unref();
-  setInterval(syncRemoteFile, REMOTE_POLL_INTERVAL).unref();
+  if (!TEST_MODE) {
+    syncDesktopSelection();
+    syncActiveSession();
+    tryPipe();
+    checkCodexApp();
+    setInterval(checkCodexApp, 15_000).unref();
+    setInterval(syncDesktopSelection, 2000).unref();
+    setInterval(syncActiveSession, 2500).unref();
+    setInterval(syncRemoteFile, REMOTE_POLL_INTERVAL).unref();
+  }
 });
 
 function shutdown() {

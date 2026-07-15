@@ -26,10 +26,17 @@ jobs:
         shell: pwsh
         run: |
           $errors = @()
-          Get-ChildItem -Filter *.ps1 | ForEach-Object {
+          git ls-files '*.ps1' | ForEach-Object {
             $tokens = $null
             $fileErrors = $null
-            [void][Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$fileErrors)
+            [void][Management.Automation.Language.Parser]::ParseFile((Resolve-Path $_), [ref]$tokens, [ref]$fileErrors)
             $errors += $fileErrors
           }
           if ($errors.Count) { $errors | Format-List; exit 1 }
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build tray application
+        run: dotnet build tray/CodexPresence.Tray.csproj -c Release
+      - name: Verify C# formatting
+        run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore

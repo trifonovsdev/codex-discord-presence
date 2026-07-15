@@ -4,9 +4,23 @@
   "largeImageKey": "codex",
   "largeImageText": "OpenAI Codex",
   "appProcess": "ChatGPT",
+  "presenceEnabled": true,
+  "privacy": {
+    "preset": "standard",
+    "showProject": true,
+    "showFile": true,
+    "showTimer": true,
+    "fileMode": "relative"
+  },
   "remote": {
     "host": "",
+    "hosts": [],
     "monitorPath": "~/.local/share/CodexDiscordPresence/remote-monitor.py",
     "pollIntervalMs": 7000
+  },
+  "updates": {
+    "enabled": true,
+    "repository": "trifonovsdev/codex-discord-presence",
+    "checkIntervalHours": 24
   }
 }

@@ -1,135 +1,178 @@
 <div align="center">
 
-# Codex Discord Presence
+![Codex Presence hero](assets/hero.svg)
 
-**Native Discord Rich Presence for the ChatGPT Codex desktop app on Windows.**
+# Codex Presence
 
-[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows)](https://github.com/trifonovsdev/codex-discord-presence)
-[![No dependencies](https://img.shields.io/badge/runtime-Node.js%2018+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![CI](https://github.com/trifonovsdev/codex-discord-presence/actions/workflows/ci.yml/badge.svg)](https://github.com/trifonovsdev/codex-discord-presence/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+**The Discord status that follows the task you are actually viewing in Codex Desktop.**
 
-![Discord Rich Presence preview](assets/preview.png)
+[![Latest release](https://img.shields.io/github/v/release/trifonovsdev/codex-discord-presence?style=flat-square&color=766fff)](https://github.com/trifonovsdev/codex-discord-presence/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/trifonovsdev/codex-discord-presence/.github/workflows/ci.yml?branch=main&style=flat-square)](https://github.com/trifonovsdev/codex-discord-presence/actions/workflows/ci.yml)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows)](https://github.com/trifonovsdev/codex-discord-presence/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT-4cd98e?style=flat-square)](LICENSE)
+
+[Download Setup](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe) · [Portable build](https://github.com/trifonovsdev/codex-discord-presence/releases/latest) · [Report a bug](https://github.com/trifonovsdev/codex-discord-presence/issues)
 
 </div>
 
-Shows the **currently selected Codex project**, the **last edited file**, and one stable timer for the entire ChatGPT/Codex desktop session. Switching tasks, projects, or files does not reset the timer.
+Codex Presence is a local-first Windows tray application for Discord Rich Presence. It identifies the task selected in ChatGPT/Codex Desktop, shows its project and last edited file, and keeps one stable timer for the entire desktop session. Background tasks cannot silently replace the card.
 
-## Highlights
+## Why this one
 
-- Uses the real task selected in Codex Desktop instead of the most recently active background task.
-- Tracks edited files from Codex transcripts and lifecycle hooks.
-- Keeps one elapsed timer from the moment the desktop app was launched.
-- Supports local Windows workspaces and optional SSH/remote workspaces.
-- Runs quietly in the background and reconnects to Discord automatically.
-- Zero npm dependencies, no bot token, no Discord account token, and no telemetry.
-- Installs and uninstalls without replacing unrelated Codex hooks.
+- **Selected-task accurate** — follows the task visible in Codex Desktop, not simply the latest JSONL file.
+- **One-click Windows setup** — the release bundles its own .NET UI and Node runtime; users install no dependencies.
+- **Stable timer** — changing a file, project, or task never resets elapsed time.
+- **Remote-aware** — maps multiple SSH servers to workspace roots and reads only the selected remote transcript.
+- **Private by default** — no telemetry, cloud service, bot token, Discord token, prompt upload, or transcript upload.
+- **Product UI** — dashboard, tray controls, settings, privacy presets, diagnostics, and verified updates.
 
-## Requirements
+## Install
 
-- Windows 10 or 11
-- [Discord Desktop](https://discord.com/download)
-- ChatGPT/Codex Desktop
-- [Node.js 18+](https://nodejs.org)
-- PowerShell 5.1 or newer
+1. Download [`CodexPresenceSetup.exe`](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe).
+2. Run the installer and leave **Start with Windows** enabled.
+3. Restart ChatGPT/Codex once so it reloads its hooks.
+4. Keep Discord Desktop open and enable **Activity Privacy → Share your detected activities**.
 
-## Quick start
+The application ships with the shared Discord Application ID `1526968377048956938`. Friends do not need the Discord Developer Portal or their own application.
+
+> Unsigned community builds can trigger Windows SmartScreen. The release pipeline supports Authenticode signing as soon as a code-signing certificate is configured by the maintainer.
+
+## Dashboard and tray
+
+<div align="center">
+  <img src="assets/demo.gif" alt="Codex Presence dashboard, SSH settings, and doctor" width="720">
+</div>
+
+Double-click the tray icon to see live state:
+
+```text
+● Discord connected
+
+ACTIVE PROJECT
+vetements-app
+apps/client/src/Customization.tsx
+Session 03:42:18 · production
+
+[ Pause presence ] [ Settings ] [ Run doctor ]
+```
+
+The tray menu provides pause/resume, settings, diagnostics, update checks, service restart, and clean shutdown. Closing the dashboard keeps the tray service running.
+
+## Privacy presets
+
+| Preset | Project | File | Timer | Recommended for |
+|---|:---:|:---:|:---:|---|
+| `minimal` | ✓ | hidden | ✓ | Streaming and maximum privacy |
+| `standard` | ✓ | relative path | ✓ | Everyday use |
+| `detailed` | ✓ | relative path | ✓ | A more descriptive English card |
+
+Every field can be overridden. File display supports filename-only or a project-relative path.
+
+## Multiple SSH workspaces
+
+Open **Settings → Remote workspaces** and add one row per server:
+
+| Name | Host | Workspace roots |
+|---|---|---|
+| Production | `dev@example.com` | `/srv/store; /srv/api` |
+| Homelab | `root@10.0.0.5` | `/root/projects` |
+
+Press **Test SSH**, then **Install helper**. Key-based authentication and Python 3 are required remotely. When multiple entries exist, the longest matching workspace root selects the server.
+
+The helper:
+
+- lives at `~/.local/share/CodexDiscordPresence/remote-monitor.py`;
+- reads only the transcript belonging to the selected task;
+- stores an incremental byte offset under `~/.local/state`;
+- returns project, cwd, and the latest edited file over the existing SSH connection.
+
+## Doctor
+
+**Run doctor** checks:
+
+- configuration validity;
+- bundled runtime and daemon files;
+- localhost daemon health and version;
+- Discord IPC connectivity;
+- ChatGPT/Codex process detection;
+- Codex hook registration;
+- optional Windows startup;
+- every configured SSH host and its Python runtime.
+
+The report is copyable, but review project paths and hostnames before posting it publicly.
+
+## Updates and integrity
+
+The tray client checks GitHub Releases using the public GitHub API. It downloads `CodexPresenceSetup.exe`, verifies it against `SHA256SUMS.txt`, and only then starts the silent upgrade. Automatic checks can be disabled in Settings.
+
+Every release contains:
+
+- `CodexPresenceSetup.exe` — one-click Windows installer;
+- `CodexPresence-<version>-portable.zip` — no-install bundle;
+- `SHA256SUMS.txt` — release integrity manifest.
+
+## Architecture
+
+```text
+Codex Desktop route logs ─┐
+Codex lifecycle hooks ────┼──> local daemon ──> Discord IPC
+Local session JSONL ──────┘         ▲
+                                    │ localhost only
+Windows tray UI ─ settings/doctor/control/update
+                                    │
+Selected remote task ───────── system OpenSSH ──> incremental Python helper
+```
+
+The local server binds only to `127.0.0.1`. The Discord Application ID is public by design and is not a credential.
+
+## Configuration
+
+Installed configuration:
+
+```text
+%LOCALAPPDATA%\Programs\CodexPresence\app\config.json
+```
+
+Advanced users can edit it manually and restart the service from the tray menu. The UI manages the same file atomically.
+
+<details>
+<summary><strong>Кратко на русском</strong></summary>
+
+Скачай `CodexPresenceSetup.exe`, установи и один раз перезапусти ChatGPT/Codex. Программа появится в трее и сама запустит Discord Presence.
+
+- `minimal` скрывает файл;
+- `standard` показывает проект и относительный путь;
+- общий таймер не сбрасывается при переключении задач;
+- для SSH добавь сервер и корни проектов в Settings, затем нажми `Test SSH` и `Install helper`;
+- `Run doctor` проверяет установку и объясняет, что именно не работает.
+
+</details>
+
+## Development
+
+Requirements for contributors: Windows, .NET 8 SDK, Node.js 18+, Python 3, and Inno Setup 6.
 
 ```powershell
 git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+npm run check
+dotnet build .\tray\CodexPresence.Tray.csproj -c Release
+.\build-release.ps1 -Version 2.0.0
 ```
 
-Restart ChatGPT/Codex once after installation so it reloads `hooks.json`. Keep Discord Desktop open and make sure **Activity Privacy → Share your detected activities with others** is enabled.
+The build script downloads the pinned official Node distribution, publishes a self-contained tray executable, compiles the Inno installer, and emits SHA-256 checksums.
 
-The included Discord Application ID is shared by every installation, so friends do **not** need to create their own Discord Developer application.
+### Release signing
 
-## Remote workspaces over SSH
+The release workflow signs the tray executable, uninstaller, and setup automatically when these GitHub Actions secrets are configured:
 
-Remote file tracking is opt-in. It reads only the transcript for the selected task and keeps an incremental offset cache on the remote machine.
+- `CODE_SIGN_PFX_BASE64`
+- `CODE_SIGN_PFX_PASSWORD`
 
-```powershell
-.\setup-remote.ps1 -HostName user@your-server
-```
+The certificate is imported into the ephemeral runner and removed in the final workflow step.
 
-SSH key authentication and Python 3 are required on the remote host. You can also configure remote support during installation:
+## Security and contributing
 
-```powershell
-.\install.ps1 -RemoteHost user@your-server
-```
+Read [SECURITY.md](SECURITY.md) before reporting a vulnerability. Issues and focused pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Configuration
-
-Configuration is stored at:
-
-```text
-%LOCALAPPDATA%\OpenAI\CodexDiscordPresence\config.json
-```
-
-| Field | Default | Purpose |
-|---|---:|---|
-| `clientId` | `1526968377048956938` | Shared Discord application |
-| `port` | `37642` | Localhost health and hook server |
-| `largeImageKey` | `codex` | Discord Developer Portal asset key |
-| `appProcess` | `ChatGPT` | Process used for app lifetime and timer |
-| `remote.host` | empty | Optional SSH destination |
-| `remote.pollIntervalMs` | `7000` | Remote transcript refresh interval |
-
-After editing the configuration, rerun `install.ps1` or sign out and back into Windows.
-
-## Useful commands
-
-```powershell
-# Inspect the live state
-.\status.ps1
-
-# Update an existing installation after pulling changes
-.\install.ps1
-
-# Remove the daemon, startup entry, and only this project's hooks
-.\uninstall.ps1
-```
-
-The local health endpoint is `http://127.0.0.1:37642/health`. Logs are stored beside the installed daemon in `presence.log`.
-
-## How it works
-
-```text
-Codex Desktop logs ─┐
-Codex hooks ────────┼─> local daemon ─> Discord IPC ─> Rich Presence
-Task transcripts ──┘        │
-                            └─ optional SSH helper for remote tasks
-```
-
-The daemon binds only to `127.0.0.1`. It never uploads source code, prompts, transcripts, Discord credentials, or telemetry. The Discord Application ID is public by design and is not a secret.
-
-<details>
-<summary><strong>Краткая инструкция на русском</strong></summary>
-
-1. Установи Node.js 18+, Discord Desktop и ChatGPT/Codex Desktop.
-2. Клонируй репозиторий и запусти `install.ps1` из PowerShell.
-3. Один раз перезапусти ChatGPT/Codex.
-4. Для удалённого проекта выполни `setup-remote.ps1 -HostName user@server`.
-
-Presence показывает выбранный проект, последний изменённый файл и общее время текущего запуска Codex. При переключении проекта таймер не сбрасывается.
-
-</details>
-
-## Troubleshooting
-
-- **No presence:** open Discord Desktop before Codex and check Discord Activity Privacy.
-- **Image is missing:** the shared application must contain an asset with the `codex` key; leave the default config unchanged.
-- **Project is correct but file is blank:** edit a file through a Codex tool once; read-only tasks have no edited file.
-- **Remote files are missing:** run `setup-remote.ps1`, verify `ssh -T user@server`, and check `status.ps1` for `lastRemoteError`.
-- **Port is busy:** choose another port in `config.json`; the hook reads the same config automatically.
-
-## Contributing
-
-Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
-
-## Disclaimer
-
-This is an unofficial community project and is not affiliated with or endorsed by OpenAI or Discord. Codex, ChatGPT, OpenAI, and Discord are trademarks of their respective owners.
-
-Released under the [MIT License](LICENSE).
+This is an unofficial community project and is not affiliated with or endorsed by OpenAI or Discord. Released under the [MIT License](LICENSE).
