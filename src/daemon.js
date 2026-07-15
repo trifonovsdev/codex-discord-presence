@@ -9,7 +9,7 @@ const { execFile } = require('child_process');
 const { randomUUID } = require('crypto');
 const { configuredRemotes, remoteForCwd: selectRemoteForCwd } = require('./remotes');
 
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
@@ -291,16 +291,46 @@ function isFilesystemRoot(value) {
   return resolved === path.parse(resolved).root;
 }
 
+function isWorkspaceContainer(name) {
+  return /^(?:projects?|repos?|repositories|workspace|workspaces|code|dev|development|source|desktop|documents|github|gitlab|bitbucket)$/i.test(String(name || ''));
+}
+
+function repositoryProjectFromFile(filePath, cwd) {
+  if (!filePath || !cwd) return null;
+  let candidate = path.isAbsolute(filePath) ? filePath : path.resolve(cwd, filePath);
+  try {
+    if (!fs.existsSync(candidate)) candidate = path.dirname(candidate);
+    else if (!fs.statSync(candidate).isDirectory()) candidate = path.dirname(candidate);
+  } catch {
+    candidate = path.dirname(candidate);
+  }
+
+  while (candidate && candidate !== path.parse(candidate).root) {
+    if (fs.existsSync(path.join(candidate, '.git'))) return path.basename(candidate).slice(0, 60);
+    candidate = path.dirname(candidate);
+  }
+  return null;
+}
+
 function projectFromSession(state) {
+  const repositoryProject = repositoryProjectFromFile(state.lastFile, state.cwd);
+  if (repositoryProject) return repositoryProject;
+
   const roots = [...(state.workspaceRoots || []), state.cwd]
-    .filter((value) => typeof value === 'string' && value.trim() && !isFilesystemRoot(value));
+    .filter((value) => typeof value === 'string' && value.trim() && !isFilesystemRoot(value))
+    .sort((left, right) => String(right).length - String(left).length);
   if (roots.length) {
     const clean = roots[0].replace(/[\\/]+$/, '');
-    return path.basename(clean).slice(0, 60) || 'Локальная задача';
+    const rootName = path.basename(clean);
+    const relativeParts = String(state.lastFile || '').replaceAll('\\', '/').split('/').filter(Boolean);
+    if (isWorkspaceContainer(rootName) && relativeParts.length > 1 && !isWorkspaceContainer(relativeParts[0])) {
+      return relativeParts[0].slice(0, 60);
+    }
+    return rootName.slice(0, 60) || 'Локальная задача';
   }
 
   const parts = String(state.lastFile || '').replaceAll('\\', '/').split('/').filter(Boolean);
-  const containerIndex = parts.findLastIndex((part) => /^(?:projects?|repos?|repositories|workspace|workspaces|code|dev|development|source|desktop|documents)$/i.test(part));
+  const containerIndex = parts.findLastIndex(isWorkspaceContainer);
   if (containerIndex >= 0 && parts[containerIndex + 1]) return parts[containerIndex + 1].slice(0, 60);
 
   const openAiIndex = parts.findIndex((part, index) => /^openai$/i.test(part) && /^local$/i.test(parts[index - 1] || ''));

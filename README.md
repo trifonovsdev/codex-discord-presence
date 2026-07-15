@@ -157,7 +157,7 @@ git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.0.0
+.\build-release.ps1 -Version 2.0.1
 ```
 
 The build script downloads the pinned official Node distribution, publishes a self-contained tray executable, compiles the Inno installer, and emits SHA-256 checksums.

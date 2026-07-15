@@ -43,7 +43,7 @@ test('daemon exposes v2 health, hooks, remotes, and pause control', async () => 
   try {
     const initial = await waitForHealth(port);
     assert.equal(initial.ok, true);
-    assert.equal(initial.version, '2.0.0');
+    assert.equal(initial.version, '2.0.1');
     assert.deepEqual(initial.remoteHosts, ['server-a', 'server-b']);
 
     const hookResponse = await fetch(`http://127.0.0.1:${port}/hook`, {
@@ -61,6 +61,22 @@ test('daemon exposes v2 health, hooks, remotes, and pause control', async () => 
     const afterHook = await waitForHealth(port);
     assert.equal(afterHook.project, 'demo');
     assert.equal(afterHook.file, 'src/demo.js');
+
+    const nestedHookResponse = await fetch(`http://127.0.0.1:${port}/hook`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        hook_event_name: 'PostToolUse',
+        session_id: '00000000-0000-0000-0000-000000000000',
+        cwd: 'C:\\Users\\dev\\Documents\\GitHub',
+        tool_name: 'apply_patch',
+        tool_input: '*** Update File: codex-discord-presence/tray/Program.cs\n',
+      }),
+    });
+    assert.equal(nestedHookResponse.status, 204);
+    const afterNestedHook = await waitForHealth(port);
+    assert.equal(afterNestedHook.project, 'codex-discord-presence');
+    assert.equal(afterNestedHook.file, 'tray/Program.cs');
 
     const pause = await fetch(`http://127.0.0.1:${port}/control`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'pause' }),
