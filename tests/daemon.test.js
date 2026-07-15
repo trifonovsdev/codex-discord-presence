@@ -43,7 +43,7 @@ test('daemon exposes v2 health, hooks, remotes, and pause control', async () => 
   try {
     const initial = await waitForHealth(port);
     assert.equal(initial.ok, true);
-    assert.equal(initial.version, '2.0.1');
+    assert.equal(initial.version, '2.1.0');
     assert.deepEqual(initial.remoteHosts, ['server-a', 'server-b']);
 
     const hookResponse = await fetch(`http://127.0.0.1:${port}/hook`, {

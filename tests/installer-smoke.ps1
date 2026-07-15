@@ -57,7 +57,7 @@ try {
     Start-Sleep -Milliseconds 250
     try { $health = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1; if ($health.ok) { break } } catch {}
   }
-  if ($health.version -ne '2.0.1') { throw 'Installed daemon did not become healthy.' }
+  if ($health.version -ne '2.1.0') { throw 'Installed daemon did not become healthy.' }
   $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}'
   $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'
   if ($pause.presenceEnabled -ne $false -or $resume.presenceEnabled -ne $true) { throw 'Pause/resume control failed.' }

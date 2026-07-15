@@ -1,10 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Codex Presence icon">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#a093ff"/>
-      <stop offset="1" stop-color="#5c5aee"/>
-    </linearGradient>
-  </defs>
-  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#g)"/>
-  <path d="M62 86l36 42-36 42M120 171h70" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="#121212"/>
+  <rect x="9" y="9" width="238" height="238" rx="57" fill="none" stroke="#343434" stroke-width="2"/>
+  <path d="M58 82l42 46-42 46M122 174h72" fill="none" stroke="#f4f4f4" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="201" cy="55" r="22" fill="#121212"/>
+  <circle cx="201" cy="55" r="14" fill="#2ecf91"/>
 </svg>

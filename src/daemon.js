@@ -9,7 +9,7 @@ const { execFile } = require('child_process');
 const { randomUUID } = require('crypto');
 const { configuredRemotes, remoteForCwd: selectRemoteForCwd } = require('./remotes');
 
-const VERSION = '2.0.1';
+const VERSION = '2.1.0';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
