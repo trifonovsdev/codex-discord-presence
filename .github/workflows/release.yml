@@ -16,6 +16,8 @@ permissions:
 jobs:
   windows-release:
     runs-on: windows-latest
+    env:
+      SIGNING_AVAILABLE: ${{ secrets.CODE_SIGN_PFX_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
@@ -25,7 +27,7 @@ jobs:
         shell: pwsh
         run: winget install --id JRSoftware.InnoSetup --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
       - name: Import optional code-signing certificate
-        if: ${{ secrets.CODE_SIGN_PFX_BASE64 != '' }}
+        if: env.SIGNING_AVAILABLE == 'true'
         shell: pwsh
         env:
           PFX_BASE64: ${{ secrets.CODE_SIGN_PFX_BASE64 }}
@@ -45,7 +47,7 @@ jobs:
         shell: pwsh
         run: .\tests\installer-smoke.ps1
       - name: Verify Authenticode when signing is configured
-        if: ${{ secrets.CODE_SIGN_PFX_BASE64 != '' }}
+        if: env.SIGNING_AVAILABLE == 'true'
         shell: pwsh
         run: |
           $signature = Get-AuthenticodeSignature .\artifacts\CodexPresenceSetup.exe

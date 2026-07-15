@@ -5,7 +5,7 @@
   "description": "Native Discord Rich Presence for the ChatGPT Codex desktop app on Windows.",
   "license": "MIT",
   "scripts": {
-    "check": "node --check src/daemon.js && node --check src/hook.js && node --test tests/*.test.js"
+    "check": "node --check src/daemon.js && node --check src/hook.js && node --test"
   },
   "engines": {
     "node": ">=18"
