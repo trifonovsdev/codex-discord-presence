@@ -10,7 +10,7 @@ public sealed class UpdateService : IDisposable
     private readonly HttpClient http = new();
     public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 0, 1);
 
-    public UpdateService() => http.DefaultRequestHeaders.UserAgent.ParseAdd("CodexPresence/2.0.1");
+    public UpdateService() => http.DefaultRequestHeaders.UserAgent.ParseAdd("CodexPresence/2.1.0");
 
     public async Task<ReleaseInfo?> CheckAsync(string repository, CancellationToken cancellationToken = default)
     {

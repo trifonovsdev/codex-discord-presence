@@ -24,7 +24,15 @@ public sealed class TrayApplicationContext : ApplicationContext
         this.showOnStart = showOnStart;
         daemon = new DaemonService(configStore);
         if (!File.Exists(AppPaths.ConfigPath)) configStore.Save(new PresenceConfig());
-        var menu = new ContextMenuStrip { BackColor = Visuals.Surface, ForeColor = Visuals.Text, Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()) };
+        var menu = new ContextMenuStrip
+        {
+            BackColor = Visuals.Surface,
+            ForeColor = Visuals.Text,
+            Font = Visuals.Font(9.5f),
+            Padding = new Padding(6),
+            ShowImageMargin = false,
+            Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
+        };
         var open = new ToolStripMenuItem("Open Codex Presence") { Font = new Font("Segoe UI", 9f, FontStyle.Bold) };
         open.Click += (_, _) => ShowDashboard();
         pauseItem.Click += async (_, _) => await TogglePresenceAsync();

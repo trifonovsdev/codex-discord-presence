@@ -5,67 +5,116 @@ namespace CodexPresence;
 
 public static class Visuals
 {
-    public static readonly Color Background = Color.FromArgb(20, 20, 25);
-    public static readonly Color Surface = Color.FromArgb(30, 30, 38);
-    public static readonly Color SurfaceRaised = Color.FromArgb(39, 39, 49);
-    public static readonly Color Accent = Color.FromArgb(126, 111, 255);
-    public static readonly Color AccentBright = Color.FromArgb(160, 147, 255);
-    public static readonly Color Text = Color.FromArgb(244, 244, 248);
-    public static readonly Color Muted = Color.FromArgb(165, 165, 178);
-    public static readonly Color Success = Color.FromArgb(76, 217, 142);
-    public static readonly Color Danger = Color.FromArgb(255, 105, 120);
+    public static readonly Color Canvas = Color.FromArgb(13, 13, 13);
+    public static readonly Color Background = Color.FromArgb(18, 18, 18);
+    public static readonly Color Surface = Color.FromArgb(24, 24, 24);
+    public static readonly Color SurfaceRaised = Color.FromArgb(31, 31, 31);
+    public static readonly Color SurfaceHover = Color.FromArgb(39, 39, 39);
+    public static readonly Color Border = Color.FromArgb(48, 48, 48);
+    public static readonly Color BorderSoft = Color.FromArgb(38, 38, 38);
+    public static readonly Color Accent = Color.FromArgb(238, 238, 238);
+    public static readonly Color AccentText = Color.FromArgb(14, 14, 14);
+    public static readonly Color Text = Color.FromArgb(242, 242, 242);
+    public static readonly Color TextSecondary = Color.FromArgb(183, 183, 183);
+    public static readonly Color Muted = Color.FromArgb(132, 132, 132);
+    public static readonly Color Success = Color.FromArgb(54, 211, 153);
+    public static readonly Color SuccessSurface = Color.FromArgb(20, 55, 45);
+    public static readonly Color Danger = Color.FromArgb(248, 113, 113);
+    public static readonly Color DangerSurface = Color.FromArgb(64, 31, 31);
+
+    public static Font Font(float size, FontStyle style = FontStyle.Regular) => new("Segoe UI Variable Text", size, style);
+    public static Font DisplayFont(float size, FontStyle style = FontStyle.Regular) => new("Segoe UI Variable Display", size, style);
 
     public static Icon CreateIcon(int size = 64)
     {
         using var bitmap = new Bitmap(size, size);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var background = new LinearGradientBrush(new Rectangle(0, 0, size, size), AccentBright, Color.FromArgb(92, 90, 238), 135f);
-        graphics.FillRoundedRectangle(background, new RectangleF(1, 1, size - 2, size - 2), size * .24f);
-        using var pen = new Pen(Color.White, Math.Max(2, size / 15f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
-        graphics.DrawLines(pen, [new PointF(size * .25f, size * .35f), new PointF(size * .39f, size * .5f), new PointF(size * .25f, size * .65f)]);
-        graphics.DrawLine(pen, size * .48f, size * .65f, size * .73f, size * .65f);
+        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        graphics.Clear(Color.Transparent);
+
+        var inset = Math.Max(1f, size * .035f);
+        using var tile = new SolidBrush(Color.FromArgb(17, 17, 17));
+        using var outline = new Pen(Color.FromArgb(238, 238, 238), Math.Max(1.4f, size * .035f));
+        using var glyph = new Pen(Color.FromArgb(238, 238, 238), Math.Max(2f, size * .065f))
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round,
+        };
+        graphics.FillRoundedRectangle(tile, new RectangleF(inset, inset, size - inset * 2, size - inset * 2), size * .22f);
+        graphics.DrawRoundedRectangle(outline, new RectangleF(inset + 1, inset + 1, size - inset * 2 - 2, size - inset * 2 - 2), size * .2f);
+        graphics.DrawLines(glyph, new PointF[] { new(size * .27f, size * .34f), new(size * .41f, size * .5f), new(size * .27f, size * .66f) });
+        graphics.DrawLine(glyph, size * .5f, size * .66f, size * .72f, size * .66f);
+        using var live = new SolidBrush(Success);
+        graphics.FillEllipse(live, size * .69f, size * .21f, size * .11f, size * .11f);
+
         var handle = bitmap.GetHicon();
         try { return (Icon)Icon.FromHandle(handle).Clone(); }
         finally { DestroyIcon(handle); }
     }
 
-    public static Button Button(string text, bool primary = false)
+    public static ModernButton Button(string text, ButtonKind kind = ButtonKind.Secondary, string? icon = null) => new()
     {
-        var button = new Button
-        {
-            Text = text,
-            AutoSize = false,
-            Height = 38,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = primary ? Accent : SurfaceRaised,
-            ForeColor = Text,
-            Cursor = Cursors.Hand,
-            Padding = new Padding(12, 0, 12, 0),
-        };
-        button.FlatAppearance.BorderSize = 0;
-        return button;
-    }
+        Text = text,
+        Kind = kind,
+        IconGlyph = icon,
+        Height = 40,
+    };
 
     public static Label Label(string text, float size = 9f, bool muted = false, FontStyle style = FontStyle.Regular) => new()
     {
         Text = text,
-        ForeColor = muted ? Muted : Text,
-        Font = new Font("Segoe UI", size, style),
+        ForeColor = muted ? TextSecondary : Text,
+        Font = Font(size, style),
         AutoSize = true,
+        BackColor = Color.Transparent,
     };
 
-    private static void FillRoundedRectangle(this Graphics graphics, Brush brush, RectangleF rectangle, float radius)
+    public static Label Eyebrow(string text) => new()
     {
-        using var path = new GraphicsPath();
-        var diameter = radius * 2;
+        Text = text.ToUpperInvariant(),
+        ForeColor = Muted,
+        Font = Font(8.5f, FontStyle.Bold),
+        AutoSize = true,
+        BackColor = Color.Transparent,
+    };
+
+    public static ModernSelect Select(IEnumerable<string> values, int width = 210) => new(values) { Width = width };
+
+    public static GraphicsPath RoundedPath(RectangleF rectangle, float radius)
+    {
+        var path = new GraphicsPath();
+        var diameter = Math.Min(radius * 2, Math.Min(rectangle.Width, rectangle.Height));
         path.AddArc(rectangle.X, rectangle.Y, diameter, diameter, 180, 90);
         path.AddArc(rectangle.Right - diameter, rectangle.Y, diameter, diameter, 270, 90);
         path.AddArc(rectangle.Right - diameter, rectangle.Bottom - diameter, diameter, diameter, 0, 90);
         path.AddArc(rectangle.X, rectangle.Bottom - diameter, diameter, diameter, 90, 90);
         path.CloseFigure();
+        return path;
+    }
+
+    public static void FillRoundedRectangle(this Graphics graphics, Brush brush, RectangleF rectangle, float radius)
+    {
+        using var path = RoundedPath(rectangle, radius);
         graphics.FillPath(brush, path);
     }
 
+    public static void DrawRoundedRectangle(this Graphics graphics, Pen pen, RectangleF rectangle, float radius)
+    {
+        using var path = RoundedPath(rectangle, radius);
+        graphics.DrawPath(pen, path);
+    }
+
+    public static void ApplyWindowStyle(Form form)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var dark = 1;
+        var corner = 2;
+        _ = DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int));
+        _ = DwmSetWindowAttribute(form.Handle, 33, ref corner, sizeof(int));
+    }
+
+    [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
     [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern bool DestroyIcon(IntPtr handle);
 }
