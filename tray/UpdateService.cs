@@ -8,9 +8,9 @@ namespace CodexPresence;
 public sealed class UpdateService : IDisposable
 {
     private readonly HttpClient http = new();
-    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 0, 0);
+    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 0, 1);
 
-    public UpdateService() => http.DefaultRequestHeaders.UserAgent.ParseAdd("CodexPresence/2.0");
+    public UpdateService() => http.DefaultRequestHeaders.UserAgent.ParseAdd("CodexPresence/2.0.1");
 
     public async Task<ReleaseInfo?> CheckAsync(string repository, CancellationToken cancellationToken = default)
     {
