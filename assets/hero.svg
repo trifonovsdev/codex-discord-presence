@@ -19,30 +19,51 @@
       <circle cx="70" cy="352" r="5" fill="#2ecf91"/><text x="88" y="358" fill="#d8d8d8">One stable timer for the whole Codex session</text>
       <circle cx="70" cy="392" r="5" fill="#2ecf91"/><text x="88" y="398" fill="#d8d8d8">Local-first privacy with optional SSH workspaces</text>
     </g>
-    <g transform="translate(600 44)" filter="url(#shadow)">
-      <rect width="540" height="432" rx="18" fill="#121212" stroke="#333"/>
-      <rect width="540" height="50" rx="18" fill="#0f0f0f"/>
-      <rect y="32" width="540" height="18" fill="#0f0f0f"/>
-      <rect x="16" y="14" width="22" height="22" rx="6" fill="#171717" stroke="#555"/>
-      <path d="M22 21l5 4-5 5m9 0h3" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      <text x="48" y="30" fill="#ededed" font-size="13" font-weight="600">Codex Presence</text>
-      <text x="30" y="94" fill="#f4f4f4" font-size="25" font-weight="700">Presence</text>
-      <text x="30" y="117" fill="#9b9b9b" font-size="12">Your current Codex workspace on Discord</text>
-      <rect x="387" y="79" width="122" height="30" rx="15" fill="#123a2d"/>
-      <circle cx="404" cy="94" r="4" fill="#2ecf91"/><text x="416" y="99" fill="#62dbae" font-size="11">Live on Discord</text>
-      <rect x="28" y="141" width="484" height="145" rx="14" fill="url(#fade)" stroke="#303030"/>
-      <text x="48" y="170" fill="#858585" font-size="10" font-weight="700" letter-spacing="1">CURRENT ACTIVITY</text>
-      <text x="48" y="211" fill="#f4f4f4" font-size="25" font-weight="700">codex-discord-presence</text>
-      <text x="48" y="238" fill="#aaa" font-size="13">tray/Components.cs</text>
-      <line x1="48" y1="253" x2="492" y2="253" stroke="#303030"/>
-      <text x="48" y="274" fill="#c9c9c9" font-size="12">◷  03:42:18</text>
-      <rect x="28" y="302" width="237" height="66" rx="12" fill="#181818" stroke="#303030"/>
-      <text x="45" y="324" fill="#777" font-size="9" font-weight="700">SIGNAL</text><text x="45" y="349" fill="#eee" font-size="12" font-weight="600">Desktop task</text>
-      <rect x="275" y="302" width="237" height="66" rx="12" fill="#181818" stroke="#303030"/>
-      <text x="292" y="324" fill="#777" font-size="9" font-weight="700">WORKSPACE</text><text x="292" y="349" fill="#eee" font-size="12" font-weight="600">Local desktop</text>
-      <rect x="28" y="386" width="148" height="31" rx="8" fill="#f1f1f1"/><text x="60" y="406" fill="#111" font-size="11" font-weight="700">Pause presence</text>
-      <rect x="187" y="386" width="118" height="31" rx="8" fill="#202020"/><text x="218" y="406" fill="#eee" font-size="11" font-weight="600">Settings</text>
-      <rect x="316" y="386" width="104" height="31" rx="8" fill="#202020"/><text x="348" y="406" fill="#eee" font-size="11" font-weight="600">Doctor</text>
+    <g transform="translate(600 40)" filter="url(#shadow)">
+      <rect width="540" height="440" rx="18" fill="#121212" stroke="#303030"/>
+      <rect width="540" height="42" rx="18" fill="#0d0d0d"/>
+      <rect y="24" width="540" height="18" fill="#0d0d0d"/>
+      <rect x="14" y="10" width="22" height="22" rx="6" fill="none" stroke="#f2f2f2" stroke-width="1.3"/>
+      <path d="M20 16l4 4-4 4m8 0h4" fill="none" stroke="#f2f2f2" stroke-width="1.7" stroke-linecap="round"/>
+      <circle cx="35" cy="14" r="2" fill="#2ecf91"/>
+      <text x="46" y="26" fill="#ededed" font-size="13" font-weight="600">Codex Presence</text>
+      <g stroke="#b7b7b7" stroke-width="1.1" stroke-linecap="round">
+        <path d="M462 21h10"/>
+        <path d="M502 16l10 10m0-10l-10 10"/>
+      </g>
+
+      <text x="26" y="86" fill="#f4f4f4" font-size="24" font-weight="700">Presence</text>
+      <text x="27" y="110" fill="#9b9b9b" font-size="12">Current Codex activity shared with Discord</text>
+      <rect x="392" y="66" width="122" height="26" rx="13" fill="#14372d"/>
+      <circle cx="408" cy="79" r="4" fill="#36d399"/><text x="420" y="83" fill="#36d399" font-size="11" font-weight="700">Live on Discord</text>
+
+      <rect x="24" y="126" width="492" height="236" rx="14" fill="url(#fade)" stroke="#303030"/>
+      <text x="42" y="153" fill="#848484" font-size="10" font-weight="700" letter-spacing="1">NOW EDITING</text>
+      <text x="41" y="188" fill="#f4f4f4" font-size="23" font-weight="700">codex-discord-presence</text>
+      <text x="42" y="212" fill="#b7b7b7" font-size="12">src/discord-ipc.js</text>
+      <line x1="42" y1="235" x2="498" y2="235" stroke="#262626"/>
+      <g font-size="9" font-weight="700" letter-spacing="1" fill="#848484">
+        <text x="42" y="262">SIGNAL</text>
+        <text x="200" y="262">WORKSPACE</text>
+        <text x="356" y="262">CODEX SESSION</text>
+      </g>
+      <g font-size="12" font-weight="600" fill="#f2f2f2">
+        <text x="42" y="286">Desktop task</text>
+        <text x="200" y="286">Local desktop</text>
+        <text x="356" y="286">03:42:18</text>
+      </g>
+      <rect x="42" y="308" width="456" height="30" rx="10" fill="#181818" stroke="#262626"/>
+      <text x="56" y="327" fill="#9b9b9b" font-size="11">◇  No prompt content or tokens leave this device</text>
+
+      <line x1="0" y1="374" x2="540" y2="374" stroke="#262626"/>
+      <rect y="375" width="540" height="65" fill="#0d0d0d"/>
+      <rect x="24" y="390" width="152" height="36" rx="9" fill="#eee"/>
+      <text x="52" y="413" fill="#0e0e0e" font-size="11" font-weight="700">Ⅱ   Pause presence</text>
+      <rect x="188" y="390" width="128" height="36" rx="9" fill="#1f1f1f" stroke="#303030"/>
+      <text x="214" y="413" fill="#f2f2f2" font-size="11" font-weight="700">⚙   Settings</text>
+      <rect x="328" y="390" width="106" height="36" rx="9" fill="#141414"/>
+      <text x="352" y="413" fill="#b7b7b7" font-size="11" font-weight="700">✚   Doctor</text>
+      <text x="514" y="412" fill="#848484" font-size="10" text-anchor="end">2.2.0</text>
     </g>
   </g>
 </svg>
