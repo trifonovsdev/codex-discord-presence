@@ -128,7 +128,7 @@ def main():
     roots = state.get("roots") or []
     project_root = next((item for item in roots if isinstance(item, str) and item not in ("/", "/root")), cwd)
     project = Path(project_root).name if project_root else None
-    emit({"ok": True, "threadId": thread_id, "project": project, "cwd": cwd, "file": state.get("file") or "—"})
+    emit({"ok": True, "threadId": thread_id, "project": project, "cwd": cwd, "file": state.get("file")})
     return 0
 
 

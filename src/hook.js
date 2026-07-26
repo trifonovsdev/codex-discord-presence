@@ -3,38 +3,35 @@
 const http = require('http');
 const path = require('path');
 const { spawn } = require('child_process');
+const { readConfig } = require('./config');
 
 const HOST = '127.0.0.1';
-const PORT = 37642;
 const DAEMON = path.join(__dirname, 'daemon.js');
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
+const REQUEST_TIMEOUT_MS = 800;
+const RETRY_ATTEMPTS = 8;
+const RETRY_DELAY_MS = 250;
 
-function configuredPort() {
-  try {
-    const config = JSON.parse(require('fs').readFileSync(CONFIG_PATH, 'utf8'));
-    const value = Number(config.port);
-    return Number.isInteger(value) && value > 0 && value < 65536 ? value : PORT;
-  } catch {
-    return PORT;
-  }
-}
+// Codex spawns this script once per hook event, so the port is resolved a
+// single time per process instead of on every retry.
+const PORT = readConfig(CONFIG_PATH).config.port;
 
 function post(payload) {
   return new Promise((resolve, reject) => {
     const body = Buffer.from(JSON.stringify(payload), 'utf8');
     const request = http.request({
       host: HOST,
-      port: configuredPort(),
+      port: PORT,
       path: '/hook',
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'content-length': body.length,
       },
-      timeout: 800,
+      timeout: REQUEST_TIMEOUT_MS,
     }, (response) => {
       response.resume();
-      response.on('end', () => response.statusCode === 204 ? resolve() : reject(new Error('Bad status')));
+      response.on('end', () => (response.statusCode === 204 ? resolve() : reject(new Error(`Unexpected status ${response.statusCode}`))));
     });
     request.on('timeout', () => request.destroy(new Error('Timeout')));
     request.on('error', reject);
@@ -52,6 +49,8 @@ function startDaemon() {
   child.unref();
 }
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function main() {
   let raw = '';
   process.stdin.setEncoding('utf8');
@@ -63,15 +62,17 @@ async function main() {
 
   try {
     await post(payload);
+    return;
   } catch {
     startDaemon();
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      try {
-        await post(payload);
-        return;
-      } catch {}
-    }
+  }
+
+  for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt += 1) {
+    await delay(RETRY_DELAY_MS);
+    try {
+      await post(payload);
+      return;
+    } catch {}
   }
 }
 

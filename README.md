@@ -23,8 +23,9 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **One-click setup** — the installer includes the Windows UI, daemon, and Node runtime.
 - **Stable session timer** — project, file, and task changes do not reset elapsed time.
 - **Remote-aware** — maps multiple SSH servers to workspace roots.
-- **Private by default** — no telemetry, tokens, prompt uploads, or cloud relay.
+- **Private by default** — no telemetry, tokens, prompt uploads, or cloud relay. The local service refuses any request a web page could send.
 - **Native product UI** — dark dashboard, custom controls, privacy presets, diagnostics, and verified updates.
+- **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
 ## Install
 
@@ -47,13 +48,13 @@ Double-click the tray icon to open the dashboard. The tray menu offers pause/res
 
 ## Privacy presets
 
-| Preset | Project | File | Timer | Best for |
-|---|:---:|:---:|:---:|---|
-| `minimal` | ✓ | hidden | ✓ | Streaming and maximum privacy |
-| `standard` | ✓ | relative path | ✓ | Everyday use |
-| `detailed` | ✓ | relative path | ✓ | A more descriptive card |
+| Preset | Project | File | Timer | Tooltip | Best for |
+|---|:---:|:---:|:---:|:---:|---|
+| `minimal` | ✓ | hidden | ✓ | app name | Streaming and maximum privacy |
+| `standard` | ✓ | relative path | ✓ | app name | Everyday use |
+| `detailed` | ✓ | relative path | ✓ | app name + workspace | A more descriptive card |
 
-Every field can be overridden. File display supports filename-only or a repository-relative path.
+A preset sets the baseline; every individual field can still be overridden, in the UI or by hand in `config.json`. File display supports filename-only or a repository-relative path.
 
 ## SSH workspaces
 
@@ -94,7 +95,14 @@ Windows tray UI ── settings / doctor / controls / updates
 Selected remote task ── system OpenSSH ──> incremental Python helper
 ```
 
-The local server binds only to `127.0.0.1`. The Discord Application ID is public by design and is not a credential.
+The daemon is split into focused modules under `src/`: `config.js` (validation and atomic writes),
+`discord-ipc.js` (framing, keepalive, reconnect and rate limiting), `codex-paths.js` (project and file
+heuristics), `desktop-selection.js` (which task is selected), `presence.js` (card text) and `logger.js`
+(rotating log). `daemon.js` wires them to the HTTP control surface.
+
+The local server binds only to `127.0.0.1`, requires a loopback `Host` header, and rejects any request
+carrying browser `Origin`/`Sec-Fetch-Site` metadata — so no web page can read your activity or pause the
+service. The Discord Application ID is public by design and is not a credential.
 
 ## Configuration
 
@@ -104,7 +112,9 @@ Installed configuration:
 %LOCALAPPDATA%\Programs\CodexPresence\app\config.json
 ```
 
-The Settings UI writes this file atomically. Advanced users may edit it manually and restart the service from the tray menu.
+The Settings UI writes this file atomically. Advanced users may edit it manually and restart the service from
+the tray menu — see [`config.example.json`](config.example.json) for every key. Invalid values are replaced by
+their default and reported in **Doctor** instead of preventing the service from starting.
 
 <details>
 <summary><strong>Кратко на русском</strong></summary>
@@ -114,6 +124,7 @@ The Settings UI writes this file atomically. Advanced users may edit it manually
 - `minimal` скрывает имя файла;
 - `standard` показывает проект и относительный путь;
 - общий таймер не сбрасывается при переключении задач;
+- язык карточки в Discord переключается в **Settings → General → Card language** (English / Русский);
 - SSH-серверы настраиваются в **Settings → SSH workspaces**;
 - **Doctor** проверяет установку и объясняет, что именно не работает.
 
@@ -128,10 +139,14 @@ git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.1.0
+.\build-release.ps1 -Version 2.2.0
 ```
 
 The build downloads the pinned official Node distribution, publishes a self-contained UI, compiles the installer, and emits SHA-256 checksums.
+
+`npm run check` runs the whole JavaScript suite — the path heuristics are pinned to Windows semantics, so the
+tests give identical results on Linux and macOS. The tray project sets `EnableWindowsTargeting`, so
+`dotnet build` compile-checks the UI on any platform; running it still requires Windows.
 
 ### Release signing
 

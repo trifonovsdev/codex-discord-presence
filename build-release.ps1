@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [string]$Version = '2.1.0',
+  [string]$Version = '2.2.0',
   [string]$NodeVersion = '24.17.0',
   [switch]$SkipInstaller
 )
@@ -20,7 +20,8 @@ New-Item -ItemType Directory -Path (Join-Path $stage 'app'),(Join-Path $stage 'r
 dotnet publish (Join-Path $root 'tray\CodexPresence.Tray.csproj') -c Release -r win-x64 --self-contained true -p:Version=$Version -p:PublishSingleFile=true -p:PublishReadyToRun=true -o (Join-Path $artifacts 'tray-publish')
 if ($LASTEXITCODE -ne 0) { throw 'Tray publish failed.' }
 Copy-Item -LiteralPath (Join-Path $artifacts 'tray-publish\CodexPresence.exe') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $root 'src\daemon.js'),(Join-Path $root 'src\hook.js'),(Join-Path $root 'src\remotes.js'),(Join-Path $root 'src\remote-monitor.py') -Destination (Join-Path $stage 'app')
+# Wildcards keep the payload in sync with src/ instead of a list that has to be edited by hand.
+Copy-Item -Path (Join-Path $root 'src\*.js'),(Join-Path $root 'src\remote-monitor.py') -Destination (Join-Path $stage 'app')
 Copy-Item -LiteralPath (Join-Path $root 'config.example.json') -Destination (Join-Path $stage 'app\config.default.json')
 
 $nodeArchive = Join-Path $cache "node-v$NodeVersion-win-x64.zip"

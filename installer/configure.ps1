@@ -78,7 +78,7 @@ if (-not $Uninstall) {
 [IO.File]::WriteAllText($hooksPath, ($document | ConvertTo-Json -Depth 16), [Text.UTF8Encoding]::new($false))
 $installedConfig = Join-Path $appDir 'config.json'
 if ($Uninstall) {
-  foreach ($generatedFile in @($installedConfig, "$installedConfig.tmp", (Join-Path $appDir 'presence.log'))) {
+  foreach ($generatedFile in @($installedConfig, "$installedConfig.tmp", (Join-Path $appDir 'presence.log'), (Join-Path $appDir 'presence.log.1'))) {
     if (Test-Path -LiteralPath $generatedFile) { Remove-Item -LiteralPath $generatedFile -Force }
   }
   $stateDirectory = Join-Path $env:LOCALAPPDATA 'OpenAI\CodexPresence'

@@ -1,6 +1,6 @@
 #define MyAppName "Codex Presence"
 #ifndef MyAppVersion
-#define MyAppVersion "2.1.0"
+#define MyAppVersion "2.2.0"
 #endif
 #define MyAppPublisher "trifonovsdev"
 #define MyAppURL "https://github.com/trifonovsdev/codex-discord-presence"
@@ -53,9 +53,7 @@ Source: "..\artifacts\stage\CodexPresence.exe"; DestDir: "{app}"; Flags: ignorev
 #endif
 Source: "..\artifacts\stage\runtime\node.exe"; DestDir: "{app}\runtime"; Flags: ignoreversion
 Source: "..\artifacts\stage\runtime\NODE_LICENSE"; DestDir: "{app}\runtime"; Flags: ignoreversion
-Source: "..\artifacts\stage\app\daemon.js"; DestDir: "{app}\app"; Flags: ignoreversion
-Source: "..\artifacts\stage\app\hook.js"; DestDir: "{app}\app"; Flags: ignoreversion
-Source: "..\artifacts\stage\app\remotes.js"; DestDir: "{app}\app"; Flags: ignoreversion
+Source: "..\artifacts\stage\app\*.js"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\remote-monitor.py"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\config.default.json"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "configure.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion

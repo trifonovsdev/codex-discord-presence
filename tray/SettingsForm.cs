@@ -1,36 +1,45 @@
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 
 namespace CodexPresence;
 
-public sealed class SettingsForm : ModernForm
+public sealed partial class SettingsForm : ModernForm
 {
+    [GeneratedRegex("^[A-Za-z0-9._@:-]+$")] private static partial Regex HostPattern();
+    [GeneratedRegex(@"^[A-Za-z0-9_./~-]+$")] private static partial Regex RootPattern();
+
+    private static readonly (string Label, string Value)[] Languages = [("English", "en"), ("Русский", "ru")];
+
     private readonly ConfigStore store;
     private readonly RemoteService remoteService;
     private readonly PresenceConfig config;
     private readonly ToggleRow enabled = new("Discord presence", "Publish activity while Codex is open");
     private readonly ToggleRow startup = new("Launch at sign in", "Keep presence available after Windows starts");
     private readonly ToggleRow updates = new("Automatic updates", "Check verified GitHub releases once a day");
+    private readonly ModernSelect language = Visuals.Select(Languages.Select(item => item.Label), 170);
     private readonly ModernSelect preset = Visuals.Select(["minimal", "standard", "detailed"]);
     private readonly ToggleRow showProject = new("Project name", "Show the active workspace on your Discord card");
     private readonly ToggleRow showFile = new("Edited file", "Show the latest file touched in the selected task");
     private readonly ToggleRow showTimer = new("Session timer", "Use one stable timer for the whole Codex session");
     private readonly ModernSelect fileMode = Visuals.Select(["name", "relative"]);
-    private readonly ModernSelect pollInterval = Visuals.Select(["3 seconds", "5 seconds", "7 seconds", "10 seconds", "15 seconds", "30 seconds"], 150);
+    private readonly ModernSelect pollInterval = Visuals.Select(["3 seconds", "5 seconds", "7 seconds", "10 seconds", "15 seconds", "30 seconds"], 170);
     private readonly BindingList<RemoteRow> remoteRows = [];
     private readonly DataGridView remotes = new();
     private readonly Panel pageHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
     private readonly List<ModernButton> navigation = [];
+    private readonly List<ModernButton> remoteActions = [];
 
     public bool Saved { get; private set; }
 
-    public SettingsForm(ConfigStore store, RemoteService remoteService) : base("Settings", new Size(920, 660))
+    public SettingsForm(ConfigStore store, RemoteService remoteService) : base("Settings", new Size(920, 660), resizable: true)
     {
         this.store = store;
         this.remoteService = remoteService;
         config = store.Load();
-        MaximumSize = new Size(1100, 760);
+        MinimumSize = new Size(820, 580);
+        CloseOnEscape = true;
 
-        var sidebar = new Panel { Dock = DockStyle.Left, Width = 214, BackColor = Visuals.Canvas, Padding = new Padding(14, 22, 14, 16) };
+        var sidebar = new Panel { Dock = DockStyle.Left, Width = 214, BackColor = Visuals.Canvas };
         var section = Visuals.Eyebrow("Preferences");
         section.Location = new Point(20, 18);
         sidebar.Controls.Add(section);
@@ -38,20 +47,23 @@ public sealed class SettingsForm : ModernForm
         AddNavigation(sidebar, "Privacy", "○", 100, BuildPrivacyPage);
         AddNavigation(sidebar, "SSH workspaces", "↗", 148, BuildRemotePage);
 
-        var localNote = new RoundedPanel { Location = new Point(14, 500), Size = new Size(186, 82), Anchor = AnchorStyles.Left | AnchorStyles.Bottom, Radius = 12, BackColor = Visuals.Surface };
-        var shield = Visuals.Label("◇  Local-first", 9, false, FontStyle.Bold); shield.Location = new Point(14, 13);
-        var note = Visuals.Label("No prompt content or tokens\nleave this device.", 8, true); note.Location = new Point(14, 39);
+        var localNote = new RoundedPanel { Size = new Size(186, 82), Anchor = AnchorStyles.Left | AnchorStyles.Bottom, Radius = 12, BackColor = Visuals.Surface };
+        var shield = Visuals.Label("◇  Local-first", 9, false, FontStyle.Bold);
+        shield.Location = new Point(14, 13);
+        var note = Visuals.Label("No prompt content or tokens\nleave this device.", 8, true);
+        note.Location = new Point(14, 39);
         localNote.Controls.AddRange([shield, note]);
         sidebar.Controls.Add(localNote);
+        sidebar.Resize += (_, _) => localNote.Location = new Point(14, sidebar.Height - localNote.Height - 20);
 
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 72, BackColor = Visuals.Canvas };
         var divider = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = Visuals.BorderSoft };
         var save = Visuals.Button("Save changes", ButtonKind.Primary);
-        save.SetBounds(0, 15, 142, 42);
+        save.SetBounds(0, 15, 148, 42);
         save.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         save.Click += SaveClicked;
         var cancel = Visuals.Button("Cancel", ButtonKind.Ghost);
-        cancel.SetBounds(0, 15, 92, 42);
+        cancel.SetBounds(0, 15, 96, 42);
         cancel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         cancel.Click += (_, _) => Close();
         footer.Controls.AddRange([divider, cancel, save]);
@@ -76,7 +88,7 @@ public sealed class SettingsForm : ModernForm
 
     private void ShowPage(ModernButton selected, Func<Control> pageFactory)
     {
-        foreach (var item in navigation) { item.Kind = item == selected ? ButtonKind.Secondary : ButtonKind.Ghost; item.Invalidate(); }
+        foreach (var item in navigation) item.Kind = item == selected ? ButtonKind.Secondary : ButtonKind.Ghost;
         pageHost.Controls.Clear();
         var page = pageFactory();
         page.Dock = DockStyle.Fill;
@@ -86,26 +98,22 @@ public sealed class SettingsForm : ModernForm
     private Control BuildGeneralPage()
     {
         var page = Page("General", "Control how Codex Presence starts and stays up to date.");
-        enabled.SetBounds(34, 102, 620, 72);
-        startup.SetBounds(34, 186, 620, 72);
-        updates.SetBounds(34, 270, 620, 72);
-        AnchorRows(page, enabled, startup, updates);
+        Stack(page, enabled, startup, updates, FieldCard("Card language", "Language of the text published to Discord", language));
         return page;
     }
 
     private Control BuildPrivacyPage()
     {
         var page = Page("Privacy", "Choose what friends can see. Every signal stays local.");
-        var presetCard = FieldCard("Privacy preset", "A quick baseline for your Discord card", preset);
-        presetCard.SetBounds(34, 102, 620, 82);
         preset.SelectedIndexChanged -= PresetChanged;
         preset.SelectedIndexChanged += PresetChanged;
-        showProject.SetBounds(34, 196, 620, 72);
-        showFile.SetBounds(34, 280, 620, 72);
-        showTimer.SetBounds(34, 364, 620, 72);
-        var fileCard = FieldCard("File display", "Filename only or repository-relative path", fileMode);
-        fileCard.SetBounds(34, 448, 620, 82);
-        AnchorRows(page, presetCard, showProject, showFile, showTimer, fileCard);
+        Stack(
+            page,
+            FieldCard("Privacy preset", "A quick baseline for your Discord card", preset),
+            showProject,
+            showFile,
+            showTimer,
+            FieldCard("File display", "Filename only or repository-relative path", fileMode));
         return page;
     }
 
@@ -113,58 +121,90 @@ public sealed class SettingsForm : ModernForm
     {
         var page = Page("SSH workspaces", "Map remote roots to servers. The most specific root wins.");
         ConfigureGrid();
-        remotes.SetBounds(34, 102, 620, 262);
-        remotes.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
-        var add = Visuals.Button("Add workspace", ButtonKind.Secondary, "+");
-        add.SetBounds(34, 378, 140, 40);
-        add.Click += (_, _) => remoteRows.Add(new RemoteRow());
-        var remove = Visuals.Button("Remove", ButtonKind.Ghost, "−");
-        remove.SetBounds(182, 378, 108, 40);
-        remove.Click += (_, _) => { if (remotes.CurrentRow?.DataBoundItem is RemoteRow row) remoteRows.Remove(row); };
-        var test = Visuals.Button("Test SSH", ButtonKind.Secondary, "↗");
-        test.SetBounds(302, 378, 116, 40);
-        test.Click += async (_, _) => await RunRemoteAction(false);
-        var install = Visuals.Button("Install helper", ButtonKind.Primary);
-        install.SetBounds(430, 378, 132, 40);
-        install.Click += async (_, _) => await RunRemoteAction(true);
-        var pollCard = FieldCard("Refresh interval", "How often the selected remote task is checked", pollInterval);
-        pollCard.SetBounds(34, 438, 620, 82);
-        AnchorRows(page, remotes, add, remove, test, install, pollCard);
+        var grid = new Panel { Height = 262, BackColor = Visuals.Background };
+        remotes.Dock = DockStyle.Fill;
+        grid.Controls.Add(remotes);
+
+        var actions = new Panel { Height = 56, BackColor = Visuals.Background };
+        remoteActions.Clear();
+        AddRemoteAction(actions, "Add workspace", ButtonKind.Secondary, "+", 0, 148, (_, _) => remoteRows.Add(new RemoteRow()));
+        AddRemoteAction(actions, "Remove", ButtonKind.Ghost, "−", 156, 108, (_, _) =>
+        {
+            if (remotes.CurrentRow?.DataBoundItem is RemoteRow row) remoteRows.Remove(row);
+        });
+        AddRemoteAction(actions, "Test SSH", ButtonKind.Secondary, "↗", 272, 120, async (_, _) => await RunRemoteAction(false));
+        AddRemoteAction(actions, "Install helper", ButtonKind.Primary, null, 400, 140, async (_, _) => await RunRemoteAction(true));
+
+        Stack(page, grid, actions, FieldCard("Refresh interval", "How often the selected remote task is checked", pollInterval));
         return page;
+    }
+
+    private void AddRemoteAction(Control parent, string text, ButtonKind kind, string? icon, int x, int width, EventHandler onClick)
+    {
+        var button = Visuals.Button(text, kind, icon);
+        button.SetBounds(x, 8, width, 40);
+        button.Click += onClick;
+        remoteActions.Add(button);
+        parent.Controls.Add(button);
     }
 
     private static Panel Page(string titleText, string subtitleText)
     {
-        var page = new Panel { BackColor = Visuals.Background, Padding = new Padding(34) };
-        var title = Visuals.Label(titleText, 20, false, FontStyle.Bold); title.Location = new Point(34, 26);
-        var subtitle = Visuals.Label(subtitleText, 9, true); subtitle.Location = new Point(35, 61);
-        page.Controls.AddRange([title, subtitle]);
+        var page = new Panel { BackColor = Visuals.Background };
+        var header = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Visuals.Background };
+        var title = Visuals.Label(titleText, 20, false, FontStyle.Bold);
+        title.Location = new Point(34, 26);
+        var subtitle = Visuals.Label(subtitleText, 9, true);
+        subtitle.Location = new Point(35, 61);
+        header.Controls.AddRange([title, subtitle]);
+        page.Controls.Add(header);
         return page;
+    }
+
+    /// <summary>
+    /// Lays cards out in a scrollable column. The previous build positioned
+    /// every row with hard-coded pixel bounds, which broke as soon as the
+    /// window or the system scaling changed.
+    /// </summary>
+    private static void Stack(Control page, params Control[] cards)
+    {
+        var column = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = Visuals.Background,
+            Padding = new Padding(34, 0, 24, 24),
+        };
+        foreach (var card in cards)
+        {
+            card.Margin = new Padding(0, 0, 0, 12);
+            column.Controls.Add(card);
+        }
+        column.Resize += (_, _) =>
+        {
+            var width = Math.Max(420, column.ClientSize.Width - column.Padding.Horizontal);
+            foreach (Control card in column.Controls) card.Width = width;
+        };
+        page.Controls.Add(column);
+        column.BringToFront();
     }
 
     private static RoundedPanel FieldCard(string titleText, string descriptionText, Control input)
     {
-        var card = new RoundedPanel { Radius = 12, BackColor = Visuals.Surface };
-        var title = Visuals.Label(titleText, 10, false, FontStyle.Bold); title.Location = new Point(16, 15);
-        var description = Visuals.Label(descriptionText, 8.5f, true); description.Location = new Point(16, 43);
+        var card = new RoundedPanel { Radius = 12, BackColor = Visuals.Surface, Height = 82 };
+        var title = Visuals.Label(titleText, 10, false, FontStyle.Bold);
+        title.Location = new Point(16, 15);
+        var description = Visuals.Label(descriptionText, 8.5f, true);
+        description.Location = new Point(16, 43);
+        input.AccessibleName = titleText;
+        input.AccessibleDescription = descriptionText;
         input.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         card.Controls.AddRange([title, description, input]);
-        card.Resize += (_, _) => input.Location = new Point(card.Width - input.Width - 16, 22);
+        card.Resize += (_, _) => input.Location = new Point(card.Width - input.Width - 16, (card.Height - input.Height) / 2);
         return card;
-    }
-
-    private static void AnchorRows(Control page, params Control[] controls)
-    {
-        foreach (var control in controls)
-        {
-            if (control.Width >= 500) control.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            page.Controls.Add(control);
-        }
-        page.Resize += (_, _) =>
-        {
-            foreach (var control in controls.Where(item => item.Anchor.HasFlag(AnchorStyles.Right))) control.Width = Math.Max(480, page.ClientSize.Width - 68);
-        };
     }
 
     private void ConfigureGrid()
@@ -176,6 +216,8 @@ public sealed class SettingsForm : ModernForm
         remotes.EnableHeadersVisualStyles = false;
         remotes.ColumnHeadersHeight = 40;
         remotes.RowTemplate.Height = 42;
+        remotes.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+        remotes.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         remotes.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
         {
             BackColor = Visuals.SurfaceRaised,
@@ -201,7 +243,7 @@ public sealed class SettingsForm : ModernForm
         remotes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         remotes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(RemoteRow.Name), HeaderText = "NAME", Width = 135 });
         remotes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(RemoteRow.Host), HeaderText = "USER@HOST", Width = 180 });
-        remotes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(RemoteRow.Roots), HeaderText = "WORKSPACE ROOTS", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+        remotes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(RemoteRow.Roots), HeaderText = "WORKSPACE ROOTS (SEPARATED BY ;)", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
         remotes.DataSource = remoteRows;
         remotes.EditingControlShowing += (_, args) => { args.Control.BackColor = Visuals.SurfaceRaised; args.Control.ForeColor = Visuals.Text; };
     }
@@ -209,11 +251,34 @@ public sealed class SettingsForm : ModernForm
     private async Task RunRemoteAction(bool install)
     {
         remotes.EndEdit();
-        if (remotes.CurrentRow?.DataBoundItem is not RemoteRow row || string.IsNullOrWhiteSpace(row.Host)) return;
+        if (remotes.CurrentRow?.DataBoundItem is not RemoteRow row || string.IsNullOrWhiteSpace(row.Host))
+        {
+            ModernDialog.Show(this, "Select a workspace", "Add a row and fill in user@host before testing the connection.", false);
+            return;
+        }
+        if (Validate(row) is { } problem)
+        {
+            ModernDialog.Show(this, "Check the workspace", problem, false);
+            return;
+        }
+
+        SetRemoteActionsEnabled(false);
         UseWaitCursor = true;
-        var result = install ? await remoteService.InstallHelperAsync(row.ToConfig()) : await remoteService.TestAsync(row.ToConfig());
-        UseWaitCursor = false;
-        ModernDialog.Show(this, result.Ok ? "Connection ready" : "SSH failed", result.Output, result.Ok);
+        try
+        {
+            var result = install ? await remoteService.InstallHelperAsync(row.ToConfig()) : await remoteService.TestAsync(row.ToConfig());
+            ModernDialog.Show(this, result.Ok ? "Connection ready" : "SSH failed", result.Output, result.Ok);
+        }
+        finally
+        {
+            UseWaitCursor = false;
+            SetRemoteActionsEnabled(true);
+        }
+    }
+
+    private void SetRemoteActionsEnabled(bool value)
+    {
+        foreach (var button in remoteActions) button.Enabled = value;
     }
 
     private void LoadValues()
@@ -221,6 +286,7 @@ public sealed class SettingsForm : ModernForm
         enabled.Checked = config.PresenceEnabled;
         startup.Checked = store.StartsWithWindows;
         updates.Checked = config.Updates.Enabled;
+        language.Text = Languages.FirstOrDefault(item => item.Value == config.Language).Label ?? Languages[0].Label;
         preset.Text = config.Privacy.Preset;
         showProject.Checked = config.Privacy.ShowProject;
         showFile.Checked = config.Privacy.ShowFile;
@@ -232,28 +298,60 @@ public sealed class SettingsForm : ModernForm
         if (!config.Remote.Hosts.Any() && !string.IsNullOrWhiteSpace(config.Remote.Host)) remoteRows.Add(new RemoteRow { Name = config.Remote.Host, Host = config.Remote.Host });
     }
 
+    private static string? Validate(RemoteRow row)
+    {
+        if (!HostPattern().IsMatch(row.Host.Trim()))
+            return $"“{row.Host}” is not a valid SSH host.\n\nUse only letters, numbers, dots, colons, dashes, underscores and @, for example dev@example.com.";
+        var roots = row.Roots.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var badRoot = roots.FirstOrDefault(root => !RootPattern().IsMatch(root));
+        if (badRoot is not null)
+            return $"“{badRoot}” is not a valid workspace root.\n\nUse absolute POSIX paths such as /srv/store, separated by semicolons.";
+        return null;
+    }
+
     private void SaveClicked(object? sender, EventArgs eventArgs)
     {
         remotes.EndEdit();
-        if (remoteRows.Any(row => !string.IsNullOrWhiteSpace(row.Host) && !System.Text.RegularExpressions.Regex.IsMatch(row.Host, "^[A-Za-z0-9._@:-]+$")))
+        var filled = remoteRows.Where(row => !string.IsNullOrWhiteSpace(row.Host)).ToList();
+        if (filled.Select(Validate).FirstOrDefault(problem => problem is not null) is { } invalid)
         {
-            ModernDialog.Show(this, "Invalid SSH host", "Use only letters, numbers, dots, colons, dashes, underscores, and @.", false);
+            ModernDialog.Show(this, "Check the SSH workspaces", invalid, false);
             return;
         }
+
         config.PresenceEnabled = enabled.Checked;
         config.Updates.Enabled = updates.Checked;
-        config.Privacy = new PrivacyConfig { Preset = preset.Text, ShowProject = showProject.Checked, ShowFile = showFile.Checked, ShowTimer = showTimer.Checked, FileMode = fileMode.Text };
+        config.Language = Languages.FirstOrDefault(item => item.Label == language.Text).Value ?? "en";
+        config.Privacy = new PrivacyConfig
+        {
+            Preset = preset.Text,
+            ShowProject = showProject.Checked,
+            ShowFile = showFile.Checked,
+            ShowTimer = showTimer.Checked,
+            FileMode = fileMode.Text,
+        };
         config.Remote.Host = "";
-        config.Remote.Hosts = remoteRows.Where(row => !string.IsNullOrWhiteSpace(row.Host)).Select(row => row.ToConfig()).ToList();
+        config.Remote.Hosts = filled.Select(row => row.ToConfig()).ToList();
         config.Remote.PollIntervalMs = ParseSeconds(pollInterval.Text) * 1000;
-        store.Save(config);
-        store.StartsWithWindows = startup.Checked;
+
+        try
+        {
+            store.Save(config);
+            store.StartsWithWindows = startup.Checked;
+        }
+        catch (Exception error)
+        {
+            ModernDialog.Show(this, "Settings were not saved", error.Message, false);
+            return;
+        }
+
         Saved = true;
         DialogResult = DialogResult.OK;
         Close();
     }
 
     private void PresetChanged(object? sender, EventArgs eventArgs) => ApplyPreset(preset.Text);
+
     private void ApplyPreset(string value)
     {
         showProject.Checked = true;
@@ -269,35 +367,19 @@ public sealed class SettingsForm : ModernForm
         public string Name { get; set; } = "Remote";
         public string Host { get; set; } = "";
         public string Roots { get; set; } = "";
-        public RemoteHostConfig ToConfig() => new() { Name = Name.Trim(), Host = Host.Trim(), Roots = Roots.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() };
-        public static RemoteRow FromConfig(RemoteHostConfig value) => new() { Name = value.Name, Host = value.Host, Roots = string.Join("; ", value.Roots) };
-    }
-}
 
-public sealed class ModernDialog : ModernForm
-{
-    private ModernDialog(string titleText, string body, bool success) : base(titleText, new Size(440, 240))
-    {
-        MaximumSize = new Size(440, 240);
-        var badge = new StatusPill
+        public RemoteHostConfig ToConfig() => new()
         {
-            Text = success ? "Ready" : "Needs attention",
-            DotColor = success ? Visuals.Success : Visuals.Danger,
-            FillColor = success ? Visuals.SuccessSurface : Visuals.DangerSurface,
-            Location = new Point(24, 22),
+            Name = Name.Trim(),
+            Host = Host.Trim(),
+            Roots = Roots.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
         };
-        var message = Visuals.Label(body, 9.5f, true);
-        message.Location = new Point(25, 67);
-        message.MaximumSize = new Size(388, 78);
-        var close = Visuals.Button("Done", ButtonKind.Primary);
-        close.SetBounds(292, 148, 120, 42);
-        close.Click += (_, _) => Close();
-        ContentHost.Controls.AddRange([badge, message, close]);
-    }
 
-    public static void Show(IWin32Window owner, string title, string body, bool success)
-    {
-        using var dialog = new ModernDialog(title, body, success);
-        dialog.ShowDialog(owner);
+        public static RemoteRow FromConfig(RemoteHostConfig value) => new()
+        {
+            Name = value.Name,
+            Host = value.Host,
+            Roots = string.Join("; ", value.Roots),
+        };
     }
 }

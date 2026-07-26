@@ -7,29 +7,47 @@ namespace CodexPresence;
 
 public sealed class UpdateService : IDisposable
 {
-    private readonly HttpClient http = new();
-    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 0, 1);
+    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 2, 0);
 
-    public UpdateService() => http.DefaultRequestHeaders.UserAgent.ParseAdd("CodexPresence/2.1.0");
+    public UpdateService()
+    {
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"CodexPresence/{CurrentVersion}");
+        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+    }
 
+    /// <summary>
+    /// Reads the latest published release. Every field is probed rather than
+    /// demanded: a release without assets or without a name used to throw a
+    /// <see cref="KeyNotFoundException"/> out of the periodic update check.
+    /// </summary>
     public async Task<ReleaseInfo?> CheckAsync(string repository, CancellationToken cancellationToken = default)
     {
         using var response = await http.GetAsync($"https://api.github.com/repos/{repository}/releases/latest", cancellationToken);
         if (!response.IsSuccessStatusCode) return null;
+
         using var document = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(cancellationToken));
         var root = document.RootElement;
-        var tag = root.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "0.0.0";
-        if (!Version.TryParse(tag, out var version)) return null;
+        if (!root.TryGetProperty("tag_name", out var tagElement)) return null;
+        if (!Version.TryParse(tagElement.GetString()?.TrimStart('v', 'V'), out var version)) return null;
+
         string? installer = null;
         string? checksums = null;
-        foreach (var asset in root.GetProperty("assets").EnumerateArray())
+        if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
         {
-            var name = asset.GetProperty("name").GetString() ?? "";
-            var url = asset.GetProperty("browser_download_url").GetString();
-            if (name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase)) installer = url;
-            if (name.Equals("SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase)) checksums = url;
+            foreach (var asset in assets.EnumerateArray())
+            {
+                var name = asset.TryGetProperty("name", out var nameElement) ? nameElement.GetString() ?? "" : "";
+                var url = asset.TryGetProperty("browser_download_url", out var urlElement) ? urlElement.GetString() : null;
+                if (name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase)) installer = url;
+                if (name.Equals("SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase)) checksums = url;
+            }
         }
-        return new ReleaseInfo(version, root.GetProperty("name").GetString() ?? $"v{version}", root.GetProperty("html_url").GetString()!, installer, checksums);
+
+        var pageUrl = root.TryGetProperty("html_url", out var page) ? page.GetString() : null;
+        if (pageUrl is null) return null;
+        var name0 = root.TryGetProperty("name", out var nameProperty) ? nameProperty.GetString() : null;
+        return new ReleaseInfo(version, string.IsNullOrWhiteSpace(name0) ? $"v{version}" : name0, pageUrl, installer, checksums);
     }
 
     public async Task DownloadAndInstallAsync(ReleaseInfo release, CancellationToken cancellationToken = default)

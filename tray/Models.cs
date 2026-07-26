@@ -6,6 +6,7 @@ public sealed class PresenceConfig
 {
     [JsonPropertyName("clientId")] public string ClientId { get; set; } = "1526968377048956938";
     [JsonPropertyName("port")] public int Port { get; set; } = 37642;
+    [JsonPropertyName("language")] public string Language { get; set; } = "en";
     [JsonPropertyName("largeImageKey")] public string LargeImageKey { get; set; } = "codex";
     [JsonPropertyName("largeImageText")] public string LargeImageText { get; set; } = "OpenAI Codex";
     [JsonPropertyName("appProcess")] public string AppProcess { get; set; } = "ChatGPT";
@@ -51,7 +52,10 @@ public sealed class HealthSnapshot
 {
     [JsonPropertyName("ok")] public bool Ok { get; set; }
     [JsonPropertyName("version")] public string? Version { get; set; }
+    [JsonPropertyName("language")] public string? Language { get; set; }
     [JsonPropertyName("rpcReady")] public bool RpcReady { get; set; }
+    [JsonPropertyName("codexRunning")] public bool CodexRunning { get; set; }
+    [JsonPropertyName("configWarnings")] public List<string> ConfigWarnings { get; set; } = [];
     [JsonPropertyName("presenceEnabled")] public bool PresenceEnabled { get; set; }
     [JsonPropertyName("project")] public string? Project { get; set; }
     [JsonPropertyName("file")] public string? File { get; set; }

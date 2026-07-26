@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
 namespace CodexPresence;
@@ -21,11 +23,40 @@ public static class Visuals
     public static readonly Color SuccessSurface = Color.FromArgb(20, 55, 45);
     public static readonly Color Danger = Color.FromArgb(248, 113, 113);
     public static readonly Color DangerSurface = Color.FromArgb(64, 31, 31);
+    public static readonly Color FocusRing = Color.FromArgb(120, 214, 214, 214);
 
-    public static Font Font(float size, FontStyle style = FontStyle.Regular) => new("Segoe UI Variable Text", size, style);
-    public static Font DisplayFont(float size, FontStyle style = FontStyle.Regular) => new("Segoe UI Variable Display", size, style);
+    private static readonly ConcurrentDictionary<(string Family, float Size, FontStyle Style), Font> FontCache = new();
+    private static readonly Lazy<string> TextFamily = new(() => ResolveFamily("Segoe UI Variable Text", "Segoe UI"));
+    private static readonly Lazy<string> DisplayFamily = new(() => ResolveFamily("Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI"));
+    private static readonly Lazy<Icon> SharedIcon = new(() => RenderIcon(64));
 
-    public static Icon CreateIcon(int size = 64)
+    /// <summary>
+    /// Picks the first font family that is actually installed. The variable
+    /// Segoe families only ship with Windows 11: without this probe, a
+    /// Windows 10 machine silently falls back to Microsoft Sans Serif and the
+    /// whole UI loses its typography.
+    /// </summary>
+    private static string ResolveFamily(params string[] candidates)
+    {
+        using var installed = new InstalledFontCollection();
+        var available = installed.Families.Select(family => family.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return candidates.FirstOrDefault(available.Contains) ?? SystemFonts.MessageBoxFont?.FontFamily.Name ?? "Segoe UI";
+    }
+
+    /// <summary>Fonts are cached and shared: every call used to allocate a GDI handle that was never released.</summary>
+    private static Font Cached(string family, float size, FontStyle style) =>
+        FontCache.GetOrAdd((family, size, style), key => new Font(key.Family, key.Size, key.Style, GraphicsUnit.Point));
+
+    public static Font Font(float size, FontStyle style = FontStyle.Regular) => Cached(TextFamily.Value, size, style);
+    public static Font DisplayFont(float size, FontStyle style = FontStyle.Regular) => Cached(DisplayFamily.Value, size, style);
+
+    /// <summary>Device pixels per layout unit, so custom painting stays correct above 100% scaling.</summary>
+    public static float Scale(this Control control) => control.DeviceDpi / 96f;
+    public static int Dp(this Control control, float value) => (int)Math.Round(value * control.Scale());
+
+    public static Icon AppIcon => SharedIcon.Value;
+
+    private static Icon RenderIcon(int size)
     {
         using var bitmap = new Bitmap(size, size);
         using var graphics = Graphics.FromImage(bitmap);
@@ -69,6 +100,7 @@ public static class Visuals
         Font = Font(size, style),
         AutoSize = true,
         BackColor = Color.Transparent,
+        UseMnemonic = false,
     };
 
     public static Label Eyebrow(string text) => new()
@@ -78,6 +110,7 @@ public static class Visuals
         Font = Font(8.5f, FontStyle.Bold),
         AutoSize = true,
         BackColor = Color.Transparent,
+        UseMnemonic = false,
     };
 
     public static ModernSelect Select(IEnumerable<string> values, int width = 210) => new(values) { Width = width };
@@ -86,6 +119,11 @@ public static class Visuals
     {
         var path = new GraphicsPath();
         var diameter = Math.Min(radius * 2, Math.Min(rectangle.Width, rectangle.Height));
+        if (diameter <= 0)
+        {
+            path.AddRectangle(rectangle);
+            return path;
+        }
         path.AddArc(rectangle.X, rectangle.Y, diameter, diameter, 180, 90);
         path.AddArc(rectangle.Right - diameter, rectangle.Y, diameter, diameter, 270, 90);
         path.AddArc(rectangle.Right - diameter, rectangle.Bottom - diameter, diameter, diameter, 0, 90);
@@ -106,14 +144,19 @@ public static class Visuals
         graphics.DrawPath(pen, path);
     }
 
+    /// <summary>Applies the Windows 11 dark, rounded, dark-bordered window frame.</summary>
     public static void ApplyWindowStyle(Form form)
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows() || !form.IsHandleCreated) return;
         var dark = 1;
         var corner = 2;
+        var border = ColorRef(Border);
         _ = DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int));
         _ = DwmSetWindowAttribute(form.Handle, 33, ref corner, sizeof(int));
+        _ = DwmSetWindowAttribute(form.Handle, 34, ref border, sizeof(int));
     }
+
+    private static int ColorRef(Color color) => color.R | (color.G << 8) | (color.B << 16);
 
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
     [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern bool DestroyIcon(IntPtr handle);

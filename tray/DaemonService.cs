@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace CodexPresence;
 
@@ -9,13 +8,21 @@ public sealed class DaemonService : IDisposable
     private readonly ConfigStore configStore;
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(3) };
     private Process? ownedProcess;
+    private int? cachedPort;
 
     public DaemonService(ConfigStore configStore) => this.configStore = configStore;
 
+    /// <summary>Forces the port to be re-read after the settings were saved.</summary>
+    public void InvalidateEndpoint() => cachedPort = null;
+
+    /// <summary>
+    /// The port used to be re-read and re-parsed from disk on every health
+    /// poll — twice a second, forever. It only changes when settings are saved.
+    /// </summary>
     private Uri Endpoint(string path)
     {
-        var port = configStore.Load().Port;
-        return new Uri($"http://127.0.0.1:{port}{path}");
+        cachedPort ??= configStore.Load().Port;
+        return new Uri($"http://127.0.0.1:{cachedPort}{path}");
     }
 
     public async Task<HealthSnapshot?> HealthAsync(CancellationToken cancellationToken = default)
@@ -28,6 +35,7 @@ public sealed class DaemonService : IDisposable
     {
         if (await HealthAsync() is not null) return;
         if (!File.Exists(AppPaths.DaemonPath)) throw new FileNotFoundException("daemon.js was not found", AppPaths.DaemonPath);
+
         var start = new ProcessStartInfo
         {
             FileName = AppPaths.NodePath,
@@ -37,11 +45,18 @@ public sealed class DaemonService : IDisposable
             WindowStyle = ProcessWindowStyle.Hidden,
         };
         start.ArgumentList.Add(AppPaths.DaemonPath);
+
+        ownedProcess?.Dispose();
         ownedProcess = Process.Start(start);
+
         for (var attempt = 0; attempt < 15; attempt++)
         {
             await Task.Delay(200);
             if (await HealthAsync() is not null) return;
+            if (ownedProcess is { HasExited: true })
+            {
+                throw new InvalidOperationException($"The presence daemon exited immediately (code {ownedProcess.ExitCode}). Check presence.log next to daemon.js.");
+            }
         }
         throw new InvalidOperationException("Presence daemon did not become healthy.");
     }
