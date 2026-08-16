@@ -159,16 +159,23 @@ public static class Visuals
         graphics.DrawPath(pen, path);
     }
 
-    /// <summary>Applies the Windows 11 dark, rounded, dark-bordered window frame.</summary>
+    /// <summary>Applies a dark native caption while Windows retains ownership of the frame.</summary>
     public static void ApplyWindowStyle(Form form)
     {
         if (!OperatingSystem.IsWindows() || !form.IsHandleCreated) return;
         var dark = 1;
         var corner = 2;
         var border = ColorRef(Border);
-        _ = DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int));
+        var caption = ColorRef(Canvas);
+        var captionText = ColorRef(Text);
+        if (DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int)) != 0)
+        {
+            _ = DwmSetWindowAttribute(form.Handle, 19, ref dark, sizeof(int));
+        }
         _ = DwmSetWindowAttribute(form.Handle, 33, ref corner, sizeof(int));
         _ = DwmSetWindowAttribute(form.Handle, 34, ref border, sizeof(int));
+        _ = DwmSetWindowAttribute(form.Handle, 35, ref caption, sizeof(int));
+        _ = DwmSetWindowAttribute(form.Handle, 36, ref captionText, sizeof(int));
     }
 
     private static int ColorRef(Color color) => color.R | (color.G << 8) | (color.B << 16);

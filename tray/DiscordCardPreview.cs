@@ -37,10 +37,10 @@ public sealed class DiscordCardPreview : RoundedPanel
 
     public DiscordCardPreview()
     {
-        Height = 188;
-        Radius = 14;
-        BackColor = Visuals.Surface;
-        BorderColor = Visuals.BorderSoft;
+        Height = 132;
+        Radius = 8;
+        BackColor = Color.FromArgb(39, 42, 49);
+        BorderColor = Color.FromArgb(57, 61, 70);
         AccessibleRole = AccessibleRole.Grouping;
         AccessibleName = "Discord card preview";
         SetStyle(ControlStyles.ResizeRedraw, true);
@@ -52,17 +52,7 @@ public sealed class DiscordCardPreview : RoundedPanel
         base.OnPaint(e);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-        var padding = this.Dp(16);
-        TextRenderer.DrawText(e.Graphics, "Discord preview", Visuals.Font(8.5f, FontStyle.Bold),
-            new Rectangle(padding, this.Dp(12), Width - padding * 2, this.Dp(22)), Visuals.Muted,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
-
-        var cardHeight = Math.Min(this.Dp(128), Math.Max(this.Dp(102), Height - this.Dp(58)));
-        var card = new RectangleF(padding, this.Dp(42), Math.Max(80, Width - padding * 2), cardHeight);
-        using var cardFill = new SolidBrush(Color.FromArgb(39, 42, 49));
-        using var cardBorder = new Pen(Color.FromArgb(57, 61, 70));
-        e.Graphics.FillRoundedRectangle(cardFill, card, this.Dp(11));
-        e.Graphics.DrawRoundedRectangle(cardBorder, RectangleF.Inflate(card, -.5f, -.5f), this.Dp(11));
+        var card = new RectangleF(.5f, .5f, Math.Max(80, Width - 1.5f), Math.Max(this.Dp(96), Height - 1.5f));
 
         if (!published)
         {
@@ -73,20 +63,20 @@ public sealed class DiscordCardPreview : RoundedPanel
                 : connected
                 ? "Waiting for Discord to acknowledge the current presence update."
                 : "Discord receives no activity while presence is paused or unavailable.";
-            var statusIcon = new RectangleF(card.X + this.Dp(14), card.Y + this.Dp(18), this.Dp(22), this.Dp(22));
+            var statusIcon = new RectangleF(card.X + this.Dp(16), card.Y + this.Dp(20), this.Dp(22), this.Dp(22));
             UiIcons.Draw(e.Graphics, failed ? UiIcon.Warning : UiIcon.Info, statusIcon, failed ? Visuals.Danger : Visuals.Muted);
             var statusLeft = (int)statusIcon.Right + this.Dp(11);
             TextRenderer.DrawText(e.Graphics, statusTitle, Visuals.Font(9.25f, FontStyle.Bold),
-                new Rectangle(statusLeft, (int)card.Y + this.Dp(14), (int)card.Right - statusLeft - this.Dp(12), this.Dp(22)),
+                new Rectangle(statusLeft, (int)card.Y + this.Dp(16), (int)card.Right - statusLeft - this.Dp(16), this.Dp(22)),
                 failed ? Visuals.Danger : Visuals.TextSecondary, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
             TextRenderer.DrawText(e.Graphics, statusDetail, Visuals.Font(8f),
-                new Rectangle(statusLeft, (int)card.Y + this.Dp(39), (int)card.Right - statusLeft - this.Dp(12), this.Dp(52)),
+                new Rectangle(statusLeft, (int)card.Y + this.Dp(42), (int)card.Right - statusLeft - this.Dp(16), this.Dp(52)),
                 Visuals.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             return;
         }
 
-        var iconSize = Math.Min(this.Dp(50), (int)card.Height - this.Dp(28));
-        var iconBounds = new RectangleF(card.X + this.Dp(12), card.Y + this.Dp(13), iconSize, iconSize);
+        var iconSize = Math.Min(this.Dp(50), (int)card.Height - this.Dp(32));
+        var iconBounds = new RectangleF(card.X + this.Dp(14), card.Y + this.Dp(14), iconSize, iconSize);
         using var iconFill = new SolidBrush(Visuals.Canvas);
         e.Graphics.FillRoundedRectangle(iconFill, iconBounds, this.Dp(12));
         var brandBounds = RectangleF.Inflate(iconBounds, -this.Dp(9), -this.Dp(9));
@@ -125,14 +115,6 @@ public sealed class DiscordCardPreview : RoundedPanel
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
         }
 
-        if (Height - card.Bottom >= this.Dp(48))
-        {
-            var noteTop = (int)card.Bottom + this.Dp(17);
-            UiIcons.Draw(e.Graphics, UiIcon.Info, new RectangleF(padding, noteTop, this.Dp(17), this.Dp(17)), Visuals.Muted);
-            TextRenderer.DrawText(e.Graphics, "Mirrors the exact text and visibility sent by the local service.", Visuals.Font(8f),
-                new Rectangle(padding + this.Dp(27), noteTop - this.Dp(2), Width - padding * 2 - this.Dp(27), this.Dp(40)),
-                Visuals.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
-        }
     }
 
     private string PrimaryLine()

@@ -131,6 +131,9 @@ try {
   if (([regex]::Matches($normalizedHooks, [regex]::Escape($newHookPath))).Count -ne 16) { throw 'Expected eight dual-platform hook registrations.' }
   if ($normalizedHooks.IndexOf((Join-Path $legacyDir 'hook.js'), [StringComparison]::OrdinalIgnoreCase) -ge 0) { throw 'Legacy hook registration remains.' }
 
+  $uiSmoke = Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
+  if ($uiSmoke.ExitCode -ne 0) { throw "Desktop UI smoke test returned $($uiSmoke.ExitCode)." }
+
   $trayProcess = Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--background' -PassThru
   $health = $null
   $lastHealthError = $null
@@ -163,7 +166,7 @@ try {
   if (@(Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" }).Count) { throw 'Tray process survived uninstall.' }
   try { $null = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1; throw 'Daemon survived uninstall.' } catch { if ($_.Exception.Message -eq 'Daemon survived uninstall.') { throw } }
 
-  [pscustomobject]@{ Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; Daemon = $health.version; Control = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
+  [pscustomobject]@{ Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; UI = 'PASS'; Daemon = $health.version; Control = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
 }
 finally {
   Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" } | Stop-Process -Force -ErrorAction SilentlyContinue

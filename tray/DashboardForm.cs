@@ -1,105 +1,101 @@
 namespace CodexPresence;
 
 /// <summary>
-/// The dashboard is a live controller, not a collection of metrics. Its
-/// composition follows the thing this product actually does: selected Codex
-/// activity enters on the left, crosses the local relay, and becomes the
-/// Discord card on the right.
+/// Compact controller for the one job this app performs: publish the selected
+/// Codex activity to Discord. Privacy details stay in Settings instead of being
+/// duplicated as dashboard furniture.
 /// </summary>
 public sealed class DashboardForm : ModernForm
 {
     private readonly StatusPill connection = new()
     {
         Text = "Connecting",
-        FillColor = Visuals.Canvas,
+        FillColor = Color.Transparent,
         DotColor = Visuals.Muted,
     };
     private readonly AnimatedText project = new()
     {
         Text = "Waiting for Codex",
-        Font = Visuals.DisplayFont(27, FontStyle.Bold),
+        Font = Visuals.DisplayFont(22, FontStyle.Bold),
         TextColor = Visuals.Text,
-        Height = 46,
+        Height = 40,
+        TravelDp = 2,
     };
     private readonly AnimatedText file = new()
     {
         Text = "No activity yet",
-        Font = Visuals.MonoFont(9.5f),
+        Font = Visuals.MonoFont(9.25f),
         TextColor = Visuals.TextSecondary,
         Height = 28,
-        TravelDp = 4,
+        TravelDp = 2,
     };
-    private readonly Label activityContext = Visuals.Label("Selected task · Local desktop", 9, true);
-    private readonly Label footerContext = Visuals.Label("Session monitor · Local desktop", 8.75f, true);
+    private readonly Label activityContext = Visuals.Label("Selected task · Local desktop", 8.5f, true);
+    private readonly Label SharingSummary = Visuals.Label("Sharing: project · file · timer", 8.25f, true);
     private readonly Label elapsed = Visuals.Label("00:00:00", 9.25f, false, FontStyle.Bold);
-    private readonly Label versionLabel;
-    private readonly Label privacyProject = PrivacyValue("Shared");
-    private readonly Label privacyTask = PrivacyValue("Private");
-    private readonly Label privacyFile = PrivacyValue("Relative path");
-    private readonly Label privacyTimer = PrivacyValue("Visible");
-    private readonly ModernButton pause = Visuals.Button("Pause presence", ButtonKind.Primary, UiIcon.Pause);
-    private readonly ModernButton copyPath = Visuals.Button("", ButtonKind.Ghost, UiIcon.Copy);
-    private readonly ModernButton settings = Visuals.Button("", ButtonKind.Ghost, UiIcon.Settings);
-    private readonly ModernButton doctor = Visuals.Button("", ButtonKind.Ghost, UiIcon.Diagnostics);
-    private readonly SignalRelayControl relay = new() { Status = SignalRelayStatus.Offline };
+    private readonly ModernButton pause = Visuals.Button("Pause", ButtonKind.Primary, UiIcon.Pause);
+    private readonly ModernButton copyPath = Visuals.Button("Copy", ButtonKind.Ghost, UiIcon.Copy);
+    private readonly ModernButton settings = Visuals.Button("Settings", ButtonKind.Ghost, UiIcon.Settings);
+    private readonly ModernButton doctor = Visuals.Button("Doctor", ButtonKind.Ghost, UiIcon.Diagnostics);
     private readonly RoundedPanel alert = new()
     {
         Radius = 5,
         BorderWidth = 0,
         BackColor = Visuals.DangerSurface,
+        Height = 38,
         Visible = false,
     };
-    private readonly IconView alertIcon = new(UiIcon.Warning) { IconColor = Visuals.Danger, Size = new Size(18, 18) };
+    private readonly IconView alertIcon = new(UiIcon.Warning) { IconColor = Visuals.Danger, Size = new Size(17, 17) };
     private readonly Label alertText = Visuals.Label("", 8.5f);
-    private readonly DiscordCardPreview preview = new()
-    {
-        Height = 190,
-        Radius = 0,
-        BorderWidth = 0,
-        BackColor = Visuals.Canvas,
-        Published = false,
-    };
+    private readonly ModernButton alertAction = Visuals.Button("Doctor", ButtonKind.Ghost, UiIcon.Diagnostics);
+    private readonly DiscordCardPreview preview = new() { Height = 132, Published = false };
     private readonly System.Windows.Forms.Timer ticker = new() { Interval = 1000 };
     private readonly ToolTip tooltip = new();
-    private readonly List<Panel> privacyRows = [];
+    private readonly FlowLayoutPanel content = new()
+    {
+        Dock = DockStyle.Fill,
+        FlowDirection = FlowDirection.TopDown,
+        WrapContents = false,
+        AutoScroll = true,
+        BackColor = Visuals.Background,
+        Padding = new Padding(28, 18, 28, 18),
+    };
 
     private DateTimeOffset? startedAt;
     private string? pathToCopy;
     private string? lastAlertMessage;
     private string? lastAnnouncedAlert;
-    private DateTimeOffset lastRelayAnimationAt;
-    private bool? lastPublishedState;
 
     public event EventHandler? PauseRequested;
     public event EventHandler? SettingsRequested;
     public event EventHandler? DiagnosticsRequested;
 
-    public DashboardForm(string version) : base("Codex Presence", new Size(920, 560), resizable: true)
+    public DashboardForm(string version) : base("Codex Presence", new Size(740, 470), resizable: true)
     {
-        MinimumSize = new Size(780, 548);
-        versionLabel = Visuals.Label(version, 8, true);
-        versionLabel.Font = Visuals.MonoFont(8);
+        MinimumSize = SizeFromClientSize(new Size(660, 430));
+        AccessibleDescription = $"Codex Presence {version}";
 
-        ConfigureTitleCommands();
-
+        var toolbar = BuildToolbar();
+        var fileLine = BuildFileLine();
+        var divider = Divider();
+        var previewHeader = BuildPreviewHeader();
         var footer = BuildFooter();
-        var split = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            BackColor = Visuals.Background,
-            Margin = Padding.Empty,
-            Padding = Padding.Empty,
-        };
-        split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
-        split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
-        split.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        ConfigureAlert();
 
-        split.Controls.Add(BuildActivityPane(), 0, 0);
-        split.Controls.Add(BuildOutputPane(), 1, 0);
-        ContentHost.Controls.Add(split);
-        ContentHost.Controls.Add(footer);
+        activityContext.AutoSize = false;
+        activityContext.AutoEllipsis = true;
+        activityContext.Height = 18;
+        project.Margin = new Padding(0, 0, 0, 1);
+        fileLine.Margin = new Padding(0, 0, 0, 4);
+        alert.Margin = new Padding(0, 4, 0, 8);
+        divider.Margin = new Padding(0, 8, 0, 11);
+        previewHeader.Margin = new Padding(0, 0, 0, 7);
+        preview.Margin = new Padding(0, 0, 0, 13);
+        footer.Margin = Padding.Empty;
+
+        content.Controls.AddRange([toolbar, activityContext, project, fileLine, alert, divider, previewHeader, preview, footer]);
+        content.Resize += (_, _) => LayoutContent(toolbar, fileLine, divider, previewHeader, footer);
+        ContentHost.Controls.Add(content);
+        LayoutContent(toolbar, fileLine, divider, previewHeader, footer);
 
         ticker.Tick += (_, _) => RenderElapsed();
         VisibleChanged += (_, _) => { if (Visible) ticker.Start(); else ticker.Stop(); };
@@ -112,47 +108,59 @@ public sealed class DashboardForm : ModernForm
         };
     }
 
-    private void ConfigureTitleCommands()
+    private Panel BuildToolbar()
     {
+        var toolbar = new Panel { Height = 36, BackColor = Visuals.Background, Margin = new Padding(0, 0, 0, 14) };
         connection.Height = 28;
         connection.IsLive = false;
+        connection.Location = new Point(0, 4);
 
-        foreach (var command in new[] { doctor, settings })
-        {
-            command.Size = new Size(36, 34);
-            command.Radius = 5;
-            command.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        }
-        doctor.AccessibleName = "Run diagnostics";
-        doctor.AccessibleDescription = "Checks the local service, Discord, Codex hooks, and SSH workspaces";
-        settings.AccessibleName = "Open settings";
+        ConfigureCommand(doctor, "Run diagnostics", "Checks the service, Discord, Codex hooks, and SSH workspaces");
+        ConfigureCommand(settings, "Open settings", "Changes privacy, startup, language, and SSH workspaces");
+        doctor.Width = 102;
+        settings.Width = 112;
         doctor.Click += (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
         settings.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        tooltip.SetToolTip(doctor, "Doctor");
-        tooltip.SetToolTip(settings, "Settings");
-
-        TitleBar.Controls.AddRange([connection, doctor, settings, versionLabel]);
-        TitleBar.Resize += (_, _) => LayoutTitleCommands();
-        LayoutTitleCommands();
+        toolbar.Controls.AddRange([connection, doctor, settings]);
+        toolbar.Resize += (_, _) =>
+        {
+            settings.Location = new Point(toolbar.Width - settings.Width, 0);
+            doctor.Location = new Point(settings.Left - doctor.Width - toolbar.Dp(4), 0);
+        };
+        return toolbar;
     }
 
-    private Control BuildActivityPane()
+    private void ConfigureCommand(ModernButton command, string name, string description)
     {
-        var pane = new Panel { Dock = DockStyle.Fill, BackColor = Visuals.Background, Margin = Padding.Empty };
-        activityContext.AutoEllipsis = true;
-        activityContext.AutoSize = false;
-        project.AccessibleDescription = "Current project";
-        file.AccessibleDescription = "Current file";
+        command.Height = 34;
+        command.Radius = 5;
+        command.AccessibleName = name;
+        command.AccessibleDescription = description;
+        tooltip.SetToolTip(command, name);
+    }
 
-        copyPath.Size = new Size(34, 34);
-        copyPath.Radius = 5;
+    private Panel BuildFileLine()
+    {
+        var row = new Panel { Height = 32, BackColor = Visuals.Background };
+        file.AccessibleDescription = "Current repository-relative file";
+        copyPath.Size = new Size(82, 32);
         copyPath.Enabled = false;
         copyPath.AccessibleName = "Copy current path";
         copyPath.AccessibleDescription = "Copies the repository-relative file path";
         copyPath.Click += (_, _) => CopyCurrentPath();
         tooltip.SetToolTip(copyPath, "Copy repository-relative path");
+        row.Controls.AddRange([file, copyPath]);
+        row.Resize += (_, _) =>
+        {
+            copyPath.Location = new Point(row.Width - copyPath.Width, 0);
+            file.SetBounds(0, 2, Math.Max(row.Dp(160), copyPath.Left - row.Dp(12)), row.Dp(28));
+        };
+        return row;
+    }
 
-        alertIcon.Location = new Point(12, 12);
+    private void ConfigureAlert()
+    {
+        alertIcon.Location = new Point(12, 10);
         alertText.ForeColor = Visuals.Danger;
         alertText.AutoSize = false;
         alertText.AutoEllipsis = true;
@@ -163,141 +171,62 @@ public sealed class DashboardForm : ModernForm
             target.Cursor = Cursors.Hand;
             target.Click += (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
         }
-        alert.Controls.AddRange([alertIcon, alertText]);
-
-        pane.Controls.AddRange([activityContext, project, file, copyPath, alert, relay]);
-        pane.Resize += (_, _) => LayoutActivityPane(pane);
-        return pane;
+        alertAction.Size = new Size(96, 32);
+        alertAction.AccessibleName = "Open Doctor for this warning";
+        alertAction.Click += (_, _) => DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+        alert.Controls.AddRange([alertIcon, alertText, alertAction]);
+        alert.Resize += (_, _) =>
+        {
+            alertAction.Location = new Point(alert.Width - alertAction.Width - alert.Dp(3), alert.Dp(3));
+            alertText.SetBounds(alert.Dp(40), 0, Math.Max(alert.Dp(100), alertAction.Left - alert.Dp(48)), alert.Height);
+        };
     }
 
-    private Control BuildOutputPane()
+    private Panel BuildPreviewHeader()
     {
-        var pane = new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = Visuals.Canvas,
-            Margin = Padding.Empty,
-            Padding = new Padding(24, 20, 24, 20),
-        };
-        pane.Paint += (_, e) =>
-        {
-            using var rule = new Pen(Visuals.BorderSoft);
-            e.Graphics.DrawLine(rule, 0, 0, 0, pane.Height);
-        };
-
-        var privacyHeading = Visuals.Label("What Discord can see", 9.25f, false, FontStyle.Bold);
-        privacyHeading.AutoSize = false;
-        privacyHeading.Height = 24;
-        privacyHeading.AccessibleRole = AccessibleRole.StaticText;
-        privacyHeading.AccessibleName = "Discord visibility";
-
-        privacyRows.Add(PrivacyRow("Project", privacyProject));
-        privacyRows.Add(PrivacyRow("Task title", privacyTask));
-        privacyRows.Add(PrivacyRow("File", privacyFile));
-        privacyRows.Add(PrivacyRow("Timer", privacyTimer));
-
-        pane.Controls.Add(preview);
-        pane.Controls.Add(privacyHeading);
-        foreach (var row in privacyRows) pane.Controls.Add(row);
-        pane.Resize += (_, _) => LayoutOutputPane(pane, privacyHeading);
-        return pane;
-    }
-
-    private Panel BuildFooter()
-    {
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 64, BackColor = Visuals.Canvas };
-        footer.Paint += (_, e) =>
-        {
-            using var rule = new Pen(Visuals.BorderSoft);
-            e.Graphics.DrawLine(rule, 0, 0, footer.Width, 0);
-        };
-
-        footerContext.AutoSize = false;
-        footerContext.AutoEllipsis = true;
-        footerContext.TextAlign = ContentAlignment.MiddleLeft;
-        elapsed.Font = Visuals.MonoFont(9.25f, FontStyle.Bold);
-        elapsed.AutoSize = false;
-        elapsed.TextAlign = ContentAlignment.MiddleRight;
-        elapsed.AccessibleDescription = "Codex session duration";
-
-        pause.Height = 38;
-        pause.Width = 158;
-        pause.Radius = 5;
-        pause.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
-        footer.Controls.AddRange([footerContext, elapsed, pause]);
-        footer.Resize += (_, _) =>
-        {
-            pause.Location = new Point(footer.Width - pause.Width - footer.Dp(22), footer.Dp(13));
-            elapsed.SetBounds(pause.Left - footer.Dp(126), footer.Dp(13), footer.Dp(110), footer.Dp(38));
-            footerContext.SetBounds(footer.Dp(32), footer.Dp(13), Math.Max(footer.Dp(160), elapsed.Left - footer.Dp(54)), footer.Dp(38));
-        };
-        return footer;
-    }
-
-    private static Panel PrivacyRow(string name, Label value)
-    {
-        var row = new Panel { Height = 38, BackColor = Visuals.Canvas, Margin = Padding.Empty };
-        var label = Visuals.Label(name, 8.5f, true);
-        label.AutoSize = false;
-        label.TextAlign = ContentAlignment.MiddleLeft;
-        value.AutoSize = false;
-        value.TextAlign = ContentAlignment.MiddleRight;
-        value.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        row.Controls.AddRange([label, value]);
-        row.Paint += (_, e) =>
-        {
-            using var rule = new Pen(Visuals.BorderSoft);
-            e.Graphics.DrawLine(rule, 0, row.Height - 1, row.Width, row.Height - 1);
-        };
+        var row = new Panel { Height = 24, BackColor = Visuals.Background };
+        var heading = Visuals.Label("Discord now", 9.25f, false, FontStyle.Bold);
+        heading.AutoSize = false;
+        heading.TextAlign = ContentAlignment.MiddleLeft;
+        SharingSummary.AutoSize = false;
+        SharingSummary.TextAlign = ContentAlignment.MiddleRight;
+        row.Controls.AddRange([heading, SharingSummary]);
         row.Resize += (_, _) =>
         {
-            label.SetBounds(0, 0, Math.Max(row.Dp(70), row.Width / 2), row.Height - 1);
-            value.SetBounds(row.Width / 2, 0, row.Width - row.Width / 2, row.Height - 1);
+            heading.SetBounds(0, 0, row.Width / 2, row.Height);
+            SharingSummary.SetBounds(row.Width / 2, 0, row.Width - row.Width / 2, row.Height);
         };
         return row;
     }
 
-    private static Label PrivacyValue(string text) => Visuals.Label(text, 8.5f, false, FontStyle.Bold);
-
-    private void LayoutTitleCommands()
+    private Panel BuildFooter()
     {
-        if (TitleBar.Width <= 0) return;
-        var captionReserve = TitleBar.Dp(146);
-        settings.Location = new Point(TitleBar.Width - captionReserve - settings.Width - TitleBar.Dp(8), TitleBar.Dp(7));
-        doctor.Location = new Point(settings.Left - doctor.Width - TitleBar.Dp(4), TitleBar.Dp(7));
-        connection.Location = new Point(Math.Max(TitleBar.Dp(190), doctor.Left - connection.Width - TitleBar.Dp(12)), TitleBar.Dp(10));
-        versionLabel.Location = new Point(TitleBar.Dp(166), TitleBar.Dp(16));
-    }
-
-    private void LayoutActivityPane(Control pane)
-    {
-        var left = pane.Dp(38);
-        var right = pane.Dp(34);
-        var innerWidth = Math.Max(pane.Dp(260), pane.Width - left - right);
-        activityContext.SetBounds(left, pane.Dp(30), innerWidth, pane.Dp(24));
-        project.SetBounds(left, pane.Dp(57), innerWidth, pane.Dp(48));
-        copyPath.Location = new Point(pane.Width - right - copyPath.Width, pane.Dp(105));
-        file.SetBounds(left, pane.Dp(108), Math.Max(pane.Dp(160), copyPath.Left - left - pane.Dp(10)), pane.Dp(30));
-
-        alert.SetBounds(left, pane.Dp(150), innerWidth, pane.Dp(42));
-        alertText.SetBounds(pane.Dp(42), 0, Math.Max(pane.Dp(100), alert.Width - pane.Dp(54)), alert.Height);
-
-        var relayHeight = Math.Clamp(pane.Dp(118), pane.Dp(92), Math.Max(pane.Dp(92), pane.Height - pane.Dp(190)));
-        relay.SetBounds(pane.Dp(22), pane.Height - relayHeight - pane.Dp(18), Math.Max(pane.Dp(360), pane.Width - pane.Dp(44)), relayHeight);
-    }
-
-    private void LayoutOutputPane(Control pane, Control privacyHeading)
-    {
-        var left = pane.Padding.Left;
-        var width = Math.Max(pane.Dp(220), pane.ClientSize.Width - pane.Padding.Horizontal);
-        preview.SetBounds(left, pane.Padding.Top, width, pane.Dp(190));
-        privacyHeading.SetBounds(left, preview.Bottom + pane.Dp(18), width, pane.Dp(24));
-        var top = privacyHeading.Bottom + pane.Dp(5);
-        foreach (var row in privacyRows)
+        var footer = new Panel { Height = 44, BackColor = Visuals.Background };
+        elapsed.Font = Visuals.MonoFont(9.25f, FontStyle.Bold);
+        elapsed.AutoSize = false;
+        elapsed.TextAlign = ContentAlignment.MiddleLeft;
+        elapsed.AccessibleDescription = "Codex session duration";
+        pause.Size = new Size(124, 38);
+        pause.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
+        footer.Controls.AddRange([elapsed, pause]);
+        footer.Resize += (_, _) =>
         {
-            row.SetBounds(left, top, width, pane.Dp(38));
-            top += row.Height;
-        }
+            elapsed.SetBounds(0, 3, Math.Max(footer.Dp(140), footer.Width - pause.Width - footer.Dp(18)), 38);
+            pause.Location = new Point(footer.Width - pause.Width, 3);
+        };
+        return footer;
+    }
+
+    private static Panel Divider() => new() { Height = 1, BackColor = Visuals.BorderSoft };
+
+    private void LayoutContent(params Control[] fullWidthControls)
+    {
+        var width = Math.Max(this.Dp(440), content.ClientSize.Width - content.Padding.Horizontal - (content.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0));
+        activityContext.Width = width;
+        project.Width = width;
+        alert.Width = width;
+        preview.Width = width;
+        foreach (var control in fullWidthControls) control.Width = width;
     }
 
     public void UpdateSnapshot(HealthSnapshot? health)
@@ -308,14 +237,11 @@ public sealed class DashboardForm : ModernForm
             pathToCopy = null;
             SetConnection("Service offline", Visuals.Danger, live: false);
             activityContext.Text = "Local service unavailable";
-            footerContext.Text = "Run Doctor to inspect the local service";
             project.Text = "Service not connected";
             file.Text = "No activity is being published";
             elapsed.Text = "--:--:--";
             pause.Enabled = false;
             copyPath.Enabled = false;
-            relay.Status = SignalRelayStatus.Offline;
-            lastPublishedState = false;
             preview.ProjectName = null;
             preview.TaskTitle = null;
             preview.FileName = null;
@@ -341,7 +267,6 @@ public sealed class DashboardForm : ModernForm
         var source = FriendlySource(health.Source);
         var workspace = health.SelectedRemote is { Length: > 0 } remote ? remote : "Local desktop";
         activityContext.Text = $"{source} · {workspace}";
-        footerContext.Text = "Local relay · Prompts stay private";
 
         var hasProject = !string.IsNullOrWhiteSpace(health.Project);
         project.Text = hasProject ? health.Project! : health.CodexRunning ? "Working in Codex" : "Waiting for Codex";
@@ -351,15 +276,9 @@ public sealed class DashboardForm : ModernForm
         pathToCopy = string.IsNullOrWhiteSpace(health.File) ? null : health.File;
         copyPath.Enabled = pathToCopy is not null;
         startedAt = health.CodexStartedAt;
-        pause.Text = health.PresenceEnabled ? "Pause presence" : "Resume presence";
+        pause.Text = health.PresenceEnabled ? "Pause" : "Resume";
         pause.Icon = health.PresenceEnabled ? UiIcon.Pause : UiIcon.Play;
         pause.Enabled = true;
-
-        relay.Status = !health.PresenceEnabled
-            ? SignalRelayStatus.Paused
-            : !live ? SignalRelayStatus.Offline
-            : publishFailed ? SignalRelayStatus.Failed
-            : published ? SignalRelayStatus.Live : SignalRelayStatus.Pending;
 
         preview.ProjectName = health.Project;
         preview.TaskTitle = health.Task;
@@ -374,17 +293,6 @@ public sealed class DashboardForm : ModernForm
         ShowAlert(!string.IsNullOrWhiteSpace(health.RpcError)
             ? $"Discord: {health.RpcError}"
             : string.IsNullOrWhiteSpace(health.LastRemoteError) ? null : $"SSH workspace: {health.LastRemoteError}");
-
-        if (lastPublishedState is false && published)
-        {
-            var now = DateTimeOffset.UtcNow;
-            if (Visible && now - lastRelayAnimationAt >= TimeSpan.FromSeconds(8))
-            {
-                lastRelayAnimationAt = now;
-                relay.Publish();
-            }
-        }
-        lastPublishedState = published;
     }
 
     public void UpdatePrivacy(PrivacyConfig privacy)
@@ -394,21 +302,21 @@ public sealed class DashboardForm : ModernForm
         preview.ShowFile = privacy.ShowFile;
         preview.ShowTimer = privacy.ShowTimer;
         preview.FileMode = privacy.FileMode;
-        privacyProject.Text = privacy.ShowProject ? "Shared" : "Hidden";
-        privacyTask.Text = privacy.ShowTaskTitle ? "Shared" : "Private";
-        privacyFile.Text = !privacy.ShowFile
-            ? "Hidden"
-            : string.Equals(privacy.FileMode, "name", StringComparison.OrdinalIgnoreCase) ? "Filename" : "Relative path";
-        privacyTimer.Text = privacy.ShowTimer ? "Visible" : "Hidden";
+
+        var shared = new List<string>();
+        if (privacy.ShowProject) shared.Add("project");
+        if (privacy.ShowTaskTitle) shared.Add("task");
+        if (privacy.ShowFile) shared.Add("file");
+        if (privacy.ShowTimer) shared.Add("timer");
+        SharingSummary.Text = shared.Count == 0 ? "Sharing: nothing" : $"Sharing: {string.Join(" · ", shared)}";
     }
 
     private void SetConnection(string text, Color dot, bool live)
     {
         connection.Text = text;
         connection.DotColor = dot;
-        connection.FillColor = Visuals.Canvas;
+        connection.FillColor = Color.Transparent;
         connection.IsLive = live;
-        LayoutTitleCommands();
     }
 
     private void ShowAlert(string? message)
@@ -423,7 +331,8 @@ public sealed class DashboardForm : ModernForm
             tooltip.SetToolTip(alert, alertText.Text);
             tooltip.SetToolTip(alertIcon, alertText.Text);
             tooltip.SetToolTip(alertText, visible ? $"{alertText.Text}\nClick to open Doctor." : string.Empty);
-            AccessibleDescription = visible ? alertText.Text : null;
+            AccessibleDescription = visible ? alertText.Text : AccessibleDescription;
+            content.PerformLayout();
         }
         AnnounceAlertIfNeeded();
     }
