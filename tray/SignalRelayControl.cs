@@ -47,12 +47,6 @@ public sealed class SignalRelayControl : Control
 
     public SignalRelayControl()
     {
-        Size = new Size(540, 104);
-        MinimumSize = new Size(360, 88);
-        BackColor = Color.Transparent;
-        TabStop = false;
-        AccessibleRole = AccessibleRole.Grouping;
-        AccessibleName = "Presence signal route";
         SetStyle(
             ControlStyles.AllPaintingInWmPaint |
             ControlStyles.OptimizedDoubleBuffer |
@@ -60,6 +54,12 @@ public sealed class SignalRelayControl : Control
             ControlStyles.SupportsTransparentBackColor |
             ControlStyles.UserPaint,
             true);
+        Size = new Size(540, 104);
+        MinimumSize = new Size(360, 88);
+        BackColor = Color.Transparent;
+        TabStop = false;
+        AccessibleRole = AccessibleRole.Grouping;
+        AccessibleName = "Presence signal route";
         UpdateAccessibility();
     }
 
