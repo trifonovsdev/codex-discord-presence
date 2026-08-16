@@ -646,6 +646,8 @@ function healthSnapshot() {
     version: VERSION,
     language: CONFIG.language,
     rpcReady: ipc.ready,
+    rpcPublished: ipc.published,
+    rpcError: ipc.lastError,
     presenceEnabled,
     project: currentProject,
     task: CONFIG.privacy.showTaskTitle ? currentTaskTitle : null,

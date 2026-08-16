@@ -55,6 +55,8 @@ public sealed class HealthSnapshot
     [JsonPropertyName("version")] public string? Version { get; set; }
     [JsonPropertyName("language")] public string? Language { get; set; }
     [JsonPropertyName("rpcReady")] public bool RpcReady { get; set; }
+    [JsonPropertyName("rpcPublished")] public bool RpcPublished { get; set; }
+    [JsonPropertyName("rpcError")] public string? RpcError { get; set; }
     [JsonPropertyName("codexRunning")] public bool CodexRunning { get; set; }
     [JsonPropertyName("configWarnings")] public List<string> ConfigWarnings { get; set; } = [];
     [JsonPropertyName("presenceEnabled")] public bool PresenceEnabled { get; set; }

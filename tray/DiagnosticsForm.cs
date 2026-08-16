@@ -3,7 +3,7 @@ namespace CodexPresence;
 public sealed class DiagnosticsForm : ModernForm
 {
     private readonly DiagnosticsService diagnostics;
-    private readonly StatusPill summary = new() { Text = "Running checks", DotColor = Visuals.Muted, FillColor = Visuals.SurfaceRaised };
+    private readonly StatusPill summary = new() { Text = "Running checks", DotColor = Visuals.Muted, FillColor = Visuals.Background };
     private readonly FlowLayoutPanel rows = new()
     {
         Dock = DockStyle.Fill,
@@ -23,39 +23,75 @@ public sealed class DiagnosticsForm : ModernForm
     public DiagnosticsForm(DiagnosticsService diagnostics) : base("Doctor", new Size(860, 760), resizable: true)
     {
         this.diagnostics = diagnostics;
-        MinimumSize = new Size(700, 520);
         CloseOnEscape = true;
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Visuals.Background };
+        var header = new Panel { Dock = DockStyle.Top, BackColor = Visuals.Background };
         var title = Visuals.Heading("System health", 20);
-        title.Location = new Point(28, 22);
         var subtitle = Visuals.Label("A local readiness check for Codex, Discord, hooks, and SSH.", 9, true);
-        subtitle.Location = new Point(29, 58);
+        subtitle.AutoSize = false;
+        subtitle.AutoEllipsis = true;
         summary.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         header.Controls.AddRange([title, subtitle, summary]);
-        header.Resize += (_, _) => summary.Location = new Point(header.Width - summary.Width - 28, 34);
 
         rows.Resize += (_, _) => ResizeRows();
 
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 72, BackColor = Visuals.Canvas };
-        var divider = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = Visuals.BorderSoft };
-        rerun.SetBounds(24, 15, 138, 42);
+        var footer = new Panel { Dock = DockStyle.Bottom, BackColor = Visuals.Canvas };
+        var divider = new Panel { Dock = DockStyle.Top, BackColor = Visuals.BorderSoft };
         rerun.Click += async (_, _) => await RunAsync();
-        copy.SetBounds(172, 15, 146, 42);
         copy.Enabled = false;
         copy.Click += (_, _) => CopyReport();
         var close = Visuals.Button("Close", ButtonKind.Ghost);
-        close.SetBounds(0, 15, 96, 42);
         close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         close.Click += (_, _) => Close();
         footer.Controls.AddRange([divider, rerun, copy, close]);
-        footer.Resize += (_, _) => close.Left = footer.Width - close.Width - 24;
 
-        var body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(28, 0, 28, 16), BackColor = Visuals.Background };
+        var body = new Panel { Dock = DockStyle.Fill, BackColor = Visuals.Background };
         body.Controls.Add(rows);
         ContentHost.Controls.Add(body);
         ContentHost.Controls.Add(footer);
         ContentHost.Controls.Add(header);
+
+        void LayoutHeader()
+        {
+            var horizontalInset = header.Dp(28);
+            title.Location = new Point(horizontalInset, header.Dp(22));
+            summary.Location = new Point(header.Width - summary.Width - horizontalInset, header.Dp(34));
+            subtitle.SetBounds(
+                horizontalInset + header.Dp(1),
+                header.Dp(56),
+                Math.Max(header.Dp(220), summary.Left - horizontalInset * 2),
+                header.Dp(24));
+        }
+
+        void LayoutFooter()
+        {
+            var horizontalInset = footer.Dp(24);
+            var buttonTop = footer.Dp(15);
+            var buttonHeight = footer.Dp(42);
+            rerun.SetBounds(horizontalInset, buttonTop, footer.Dp(138), buttonHeight);
+            copy.SetBounds(rerun.Right + footer.Dp(10), buttonTop, footer.Dp(146), buttonHeight);
+            close.SetBounds(footer.Width - footer.Dp(96) - horizontalInset, buttonTop, footer.Dp(96), buttonHeight);
+        }
+
+        void ApplyDpiMetrics()
+        {
+            MinimumSize = new Size(this.Dp(700), this.Dp(520));
+            header.Height = this.Dp(100);
+            footer.Height = this.Dp(72);
+            divider.Height = Math.Max(1, this.Dp(1));
+            summary.Height = this.Dp(28);
+            body.Padding = new Padding(this.Dp(28), 0, this.Dp(28), this.Dp(16));
+            rows.Padding = new Padding(0, 0, this.Dp(8), 0);
+            LayoutHeader();
+            LayoutFooter();
+            ResizeRows();
+        }
+
+        header.Resize += (_, _) => LayoutHeader();
+        footer.Resize += (_, _) => LayoutFooter();
+        HandleCreated += (_, _) => ApplyDpiMetrics();
+        DpiChanged += (_, _) => ApplyDpiMetrics();
+        ApplyDpiMetrics();
         FormClosing += (_, _) => runCancellation?.Cancel();
         Shown += async (_, _) => await RunAsync();
     }
@@ -68,7 +104,7 @@ public sealed class DiagnosticsForm : ModernForm
         copy.Enabled = false;
         summary.Text = "Running checks";
         summary.DotColor = Visuals.Muted;
-        summary.FillColor = Visuals.SurfaceRaised;
+        summary.FillColor = Visuals.Background;
         summary.IsLive = true;
         rows.SuspendLayout();
         DisposeRows();
@@ -112,16 +148,17 @@ public sealed class DiagnosticsForm : ModernForm
             var row = new DiagnosticResultRow(result);
             rows.Controls.Add(row);
             row.BeginReveal(delay);
-            delay += 32;
+            delay = Math.Min(delay + 32, 192);
         }
         rows.ResumeLayout();
         ResizeRows();
 
         var passed = results.Count(item => item.Passed);
-        var allPassed = passed == results.Count;
-        summary.Text = allPassed ? $"All {passed} checks passed" : $"{passed} of {results.Count} passed";
-        summary.DotColor = allPassed ? Visuals.Success : Visuals.Danger;
-        summary.FillColor = allPassed ? Visuals.SuccessSurface : Visuals.DangerSurface;
+        var hasResults = results.Count > 0;
+        var allPassed = hasResults && passed == results.Count;
+        summary.Text = !hasResults ? "No checks returned" : allPassed ? $"All {passed} checks passed" : $"{passed} of {results.Count} passed";
+        summary.DotColor = !hasResults ? Visuals.Muted : allPassed ? Visuals.Success : Visuals.Danger;
+        summary.FillColor = Visuals.Background;
         summary.IsLive = allPassed;
         copy.Enabled = results.Count > 0;
     }
@@ -136,22 +173,46 @@ public sealed class DiagnosticsForm : ModernForm
     {
         var row = new RoundedPanel
         {
-            Height = 68,
-            Radius = 11,
-            BackColor = Visuals.Surface,
+            Radius = 0,
+            BorderWidth = 0,
+            BackColor = Visuals.Background,
             AccessibleRole = AccessibleRole.Grouping,
             AccessibleName = text,
         };
-        var icon = new ShimmerBar { Location = new Point(18, 18), Size = new Size(18, 18), Radius = 9 };
-        var title = new ShimmerBar { Location = new Point(50, 18), Size = new Size(148, 10) };
-        var detail = new ShimmerBar { Location = new Point(50, 39), Size = new Size(286, 8), Radius = 4 };
+        row.Paint += (_, e) =>
+        {
+            using var rule = new Pen(Visuals.BorderSoft, Math.Max(1f, row.Scale()));
+            e.Graphics.DrawLine(rule, 0, row.Height - rule.Width / 2f, row.Width, row.Height - rule.Width / 2f);
+        };
+        var icon = new ShimmerBar { Radius = 9 };
+        var title = new ShimmerBar();
+        var detail = new ShimmerBar { Radius = 4 };
         row.Controls.AddRange([icon, title, detail]);
+
+        void LayoutSkeleton()
+        {
+            var targetHeight = row.Dp(68);
+            if (row.Height != targetHeight) row.Height = targetHeight;
+            icon.SetBounds(row.Dp(18), row.Dp(18), row.Dp(18), row.Dp(18));
+            title.SetBounds(row.Dp(50), row.Dp(18), row.Dp(148), row.Dp(10));
+            detail.SetBounds(
+                row.Dp(50),
+                row.Dp(39),
+                Math.Max(row.Dp(80), Math.Min(row.Dp(286), row.Width - row.Dp(68))),
+                row.Dp(8));
+        }
+
+        row.HandleCreated += (_, _) => LayoutSkeleton();
+        row.DpiChangedAfterParent += (_, _) => LayoutSkeleton();
+        row.Resize += (_, _) => LayoutSkeleton();
+        LayoutSkeleton();
         return row;
     }
 
     private void ResizeRows()
     {
-        var width = Math.Max(400, rows.ClientSize.Width - rows.Padding.Horizontal);
+        var scrollbarWidth = rows.VerticalScroll.Visible ? rows.Dp(18) : 0;
+        var width = Math.Max(rows.Dp(400), rows.ClientSize.Width - rows.Padding.Horizontal - scrollbarWidth);
         foreach (Control row in rows.Controls) row.Width = width;
     }
 
@@ -167,77 +228,119 @@ public sealed class DiagnosticsForm : ModernForm
     private sealed class DiagnosticResultRow : RoundedPanel
     {
         private readonly DiagnosticItem result;
-        private readonly IconView icon;
-        private readonly Label name;
-        private readonly Label detail;
-        private readonly Label state;
         private IDisposable? revealMotion;
         private float reveal = 1f;
 
         public DiagnosticResultRow(DiagnosticItem result)
         {
             this.result = result;
-            Height = 60;
-            Radius = 11;
-            BackColor = Visuals.Surface;
-            BorderColor = result.Passed ? Visuals.BorderSoft : Visuals.Danger;
-            Margin = new Padding(0, 0, 0, 8);
+            Radius = 0;
+            BorderWidth = 0;
+            BackColor = result.Passed ? Visuals.Background : Visuals.DangerSurface;
+            Margin = Padding.Empty;
             AccessibleRole = AccessibleRole.Grouping;
             AccessibleName = $"{result.Name}: {(result.Passed ? "passed" : "needs attention")}. {result.Detail}";
-
-            icon = new IconView(result.Passed ? UiIcon.Check : UiIcon.Warning)
-            {
-                Size = new Size(20, 20),
-                IconColor = result.Passed ? Visuals.Success : Visuals.Danger,
-            };
-            name = Visuals.Label(result.Name, 9.5f, false, FontStyle.Bold);
-            name.AutoSize = false;
-            name.AutoEllipsis = true;
-            name.Height = 20;
-            detail = Visuals.Label(result.Detail, 8.25f, true);
-            detail.AutoSize = false;
-            detail.AutoEllipsis = true;
-            detail.Height = 18;
-            state = Visuals.Label(result.Passed ? "Ready" : "Check", 8, false, FontStyle.Bold);
-            state.ForeColor = result.Passed ? Visuals.Success : Visuals.Danger;
-            state.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            Controls.AddRange([icon, name, detail, state]);
-            Resize += (_, _) => LayoutRow();
-            LayoutRow();
+            ApplyDpiMetrics();
         }
 
         public void BeginReveal(int delayMs)
         {
             revealMotion?.Dispose();
-            reveal = MotionClock.IsReduced ? 1f : 0f;
-            ApplyReveal();
+            if (MotionClock.IsReduced)
+            {
+                reveal = 1f;
+                Invalidate();
+                return;
+            }
+
+            reveal = 0f;
+            Invalidate();
             revealMotion = MotionClock.Animate(this, 170, value =>
             {
                 reveal = value;
-                ApplyReveal();
-            }, MotionEasing.EaseOutCubic, delayMs);
+                Invalidate();
+            }, MotionEasing.EaseOutCubic, delayMs, completed: () => revealMotion = null);
         }
 
-        private void LayoutRow()
+        protected override void OnPaint(PaintEventArgs e)
         {
-            var offset = (int)Math.Round(this.Dp(7) * (1f - reveal));
-            icon.Location = new Point(this.Dp(16) + offset, this.Dp(20));
-            name.Location = new Point(this.Dp(46) + offset, this.Dp(12));
-            detail.Location = new Point(this.Dp(46) + offset, this.Dp(34));
-            state.Location = new Point(Width - state.Width - this.Dp(18), this.Dp(21));
-            var textWidth = Math.Max(this.Dp(160), Width - state.Width - this.Dp(88));
-            name.Width = textWidth;
-            detail.Width = textWidth;
-        }
+            base.OnPaint(e);
 
-        private void ApplyReveal()
-        {
             var baseColor = BackColor;
-            icon.IconColor = Visuals.Blend(baseColor, result.Passed ? Visuals.Success : Visuals.Danger, reveal);
-            name.ForeColor = Visuals.Blend(baseColor, Visuals.Text, reveal);
-            detail.ForeColor = Visuals.Blend(baseColor, Visuals.TextSecondary, reveal);
-            state.ForeColor = Visuals.Blend(baseColor, result.Passed ? Visuals.Success : Visuals.Danger, reveal);
-            LayoutRow();
+            var statusColor = result.Passed ? Visuals.Success : Visuals.Danger;
+            var foreground = Visuals.Blend(baseColor, Visuals.Text, reveal);
+            var secondary = Visuals.Blend(baseColor, Visuals.TextSecondary, reveal);
+            var revealedStatus = Visuals.Blend(baseColor, statusColor, reveal);
+            var offset = (int)Math.Round(this.Dp(7) * (1f - reveal));
+
+            var iconBounds = new RectangleF(this.Dp(16) + offset, this.Dp(21), this.Dp(20), this.Dp(20));
+            UiIcons.Draw(e.Graphics, result.Passed ? UiIcon.Check : UiIcon.Warning, iconBounds, revealedStatus);
+
+            var stateText = result.Passed ? "Ready" : "Check";
+            var stateFont = Visuals.Font(8, FontStyle.Bold);
+            var measuredState = TextRenderer.MeasureText(
+                e.Graphics,
+                stateText,
+                stateFont,
+                Size.Empty,
+                TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+            var stateWidth = Math.Max(this.Dp(48), measuredState.Width);
+            var stateBounds = new Rectangle(
+                Width - stateWidth - this.Dp(18),
+                this.Dp(21),
+                stateWidth,
+                this.Dp(21));
+            TextRenderer.DrawText(
+                e.Graphics,
+                stateText,
+                stateFont,
+                stateBounds,
+                revealedStatus,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+
+            var textLeft = this.Dp(46) + offset;
+            var textRight = stateBounds.Left - this.Dp(12);
+            var textWidth = Math.Max(0, textRight - textLeft);
+            var textFlags = TextFormatFlags.Left |
+                            TextFormatFlags.VerticalCenter |
+                            TextFormatFlags.EndEllipsis |
+                            TextFormatFlags.NoPrefix |
+                            TextFormatFlags.SingleLine;
+            TextRenderer.DrawText(
+                e.Graphics,
+                result.Name,
+                Visuals.Font(9.5f, FontStyle.Bold),
+                new Rectangle(textLeft, this.Dp(9), textWidth, this.Dp(23)),
+                foreground,
+                textFlags);
+            TextRenderer.DrawText(
+                e.Graphics,
+                result.Detail,
+                Visuals.Font(8.25f),
+                new Rectangle(textLeft, this.Dp(33), textWidth, this.Dp(22)),
+                secondary,
+                textFlags);
+
+            using var rule = new Pen(result.Passed ? Visuals.BorderSoft : Visuals.Danger, Math.Max(1f, this.Scale()));
+            e.Graphics.DrawLine(rule, 0, Height - rule.Width / 2f, Width, Height - rule.Width / 2f);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            ApplyDpiMetrics();
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            base.OnDpiChangedAfterParent(e);
+            ApplyDpiMetrics();
+        }
+
+        private void ApplyDpiMetrics()
+        {
+            var targetHeight = this.Dp(64);
+            if (Height != targetHeight) Height = targetHeight;
             Invalidate();
         }
 

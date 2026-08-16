@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace CodexPresence;
 
@@ -15,6 +17,7 @@ public enum UiIcon
     Task,
     Add,
     Remove,
+    Exit,
     Refresh,
     Copy,
     ChevronDown,
@@ -24,11 +27,44 @@ public enum UiIcon
     File,
 }
 
-/// <summary>Small, dependency-free monoline icons drawn from one 24-unit grid.</summary>
+/// <summary>
+/// Renders the Windows system icon language without shipping another asset
+/// library. Windows 11 uses Segoe Fluent Icons; Windows 10 falls back to the
+/// codepoint-compatible Segoe MDL2 Assets family.
+/// </summary>
 public static class UiIcons
 {
+    private const string FluentFamily = "Segoe Fluent Icons";
+    private const string Mdl2Family = "Segoe MDL2 Assets";
+
+    private static readonly Lazy<string> SystemIconFamily = new(ResolveSystemIconFamily);
+    private static readonly ConcurrentDictionary<int, Font> FontCache = new();
+    private static readonly IReadOnlyDictionary<UiIcon, string> Glyphs = new Dictionary<UiIcon, string>
+    {
+        [UiIcon.Pause] = "\uE769",
+        [UiIcon.Play] = "\uE768",
+        [UiIcon.Settings] = "\uE713",
+        [UiIcon.Diagnostics] = "\uE9D9",
+        [UiIcon.General] = "\uE9E9",
+        [UiIcon.Privacy] = "\uEA18",
+        [UiIcon.Remote] = "\uE8AF",
+        [UiIcon.Task] = "\uE9D5",
+        [UiIcon.Add] = "\uE710",
+        [UiIcon.Remove] = "\uE738",
+        [UiIcon.Exit] = "\uE7E8",
+        [UiIcon.Refresh] = "\uE72C",
+        [UiIcon.Copy] = "\uE8C8",
+        [UiIcon.ChevronDown] = "\uE70D",
+        [UiIcon.Check] = "\uE73E",
+        [UiIcon.Warning] = "\uE7BA",
+        [UiIcon.Info] = "\uE946",
+        [UiIcon.File] = "\uE8A5",
+    };
+
     public static Bitmap RenderBitmap(UiIcon icon, int size, Color color)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
+
         var bitmap = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -40,99 +76,22 @@ public static class UiIcons
 
     public static void Draw(Graphics graphics, UiIcon icon, RectangleF bounds, Color color, float strokeWidth = 1.75f)
     {
+        ArgumentNullException.ThrowIfNull(graphics);
+        if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
         var state = graphics.Save();
         try
         {
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.TranslateTransform(bounds.X, bounds.Y);
-            graphics.ScaleTransform(bounds.Width / 24f, bounds.Height / 24f);
 
-            using var pen = new Pen(color, strokeWidth)
+            if (icon == UiIcon.Brand)
             {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round,
-                LineJoin = LineJoin.Round,
-            };
-
-            switch (icon)
-            {
-                case UiIcon.Brand:
-                    graphics.DrawRoundedRectangle(pen, new RectangleF(2.5f, 2.5f, 19, 19), 5.5f);
-                    graphics.DrawLines(pen, [new PointF(7, 8), new PointF(11, 12), new PointF(7, 16)]);
-                    graphics.DrawLine(pen, 13.5f, 16, 18, 16);
-                    break;
-                case UiIcon.Pause:
-                    graphics.DrawLine(pen, 8.5f, 6, 8.5f, 18);
-                    graphics.DrawLine(pen, 15.5f, 6, 15.5f, 18);
-                    break;
-                case UiIcon.Play:
-                    DrawPath(graphics, pen, [new(8, 5.5f), new(18, 12), new(8, 18.5f)], close: true);
-                    break;
-                case UiIcon.Settings:
-                case UiIcon.General:
-                    Slider(graphics, pen, 6, 9);
-                    Slider(graphics, pen, 12, 15);
-                    Slider(graphics, pen, 18, 11);
-                    break;
-                case UiIcon.Diagnostics:
-                    graphics.DrawEllipse(pen, 3.5f, 3.5f, 17, 17);
-                    graphics.DrawLines(pen, [new PointF(7.5f, 12), new PointF(10.5f, 15), new PointF(16.5f, 8.5f)]);
-                    break;
-                case UiIcon.Privacy:
-                    graphics.DrawRoundedRectangle(pen, new RectangleF(5, 10, 14, 10), 2.5f);
-                    graphics.DrawArc(pen, 8, 4, 8, 11, 180, 180);
-                    graphics.DrawLine(pen, 12, 14, 12, 17);
-                    break;
-                case UiIcon.Remote:
-                    graphics.DrawEllipse(pen, 4, 13, 6, 6);
-                    graphics.DrawEllipse(pen, 14, 5, 6, 6);
-                    graphics.DrawLine(pen, 9, 14, 15, 10);
-                    graphics.DrawLine(pen, 8, 13, 8, 8);
-                    graphics.DrawLine(pen, 8, 8, 13, 8);
-                    break;
-                case UiIcon.Task:
-                    graphics.DrawRoundedRectangle(pen, new RectangleF(4, 5, 16, 14), 3);
-                    graphics.DrawLine(pen, 8, 9, 16, 9);
-                    graphics.DrawLine(pen, 8, 13, 14, 13);
-                    graphics.DrawLine(pen, 8, 17, 12, 17);
-                    break;
-                case UiIcon.Add:
-                    graphics.DrawLine(pen, 12, 5, 12, 19);
-                    graphics.DrawLine(pen, 5, 12, 19, 12);
-                    break;
-                case UiIcon.Remove:
-                    graphics.DrawLine(pen, 5, 12, 19, 12);
-                    break;
-                case UiIcon.Refresh:
-                    graphics.DrawArc(pen, 4, 4, 16, 16, 205, 245);
-                    graphics.DrawLines(pen, [new PointF(18.5f, 5), new PointF(19, 10), new PointF(14, 9)]);
-                    break;
-                case UiIcon.Copy:
-                    graphics.DrawRoundedRectangle(pen, new RectangleF(8, 7, 11, 12), 2);
-                    graphics.DrawLines(pen, [new PointF(15, 7), new PointF(15, 5), new PointF(5, 5), new PointF(5, 16), new PointF(8, 16)]);
-                    break;
-                case UiIcon.ChevronDown:
-                    graphics.DrawLines(pen, [new PointF(6, 9), new PointF(12, 15), new PointF(18, 9)]);
-                    break;
-                case UiIcon.Check:
-                    graphics.DrawLines(pen, [new PointF(5, 12), new PointF(10, 17), new PointF(19, 7)]);
-                    break;
-                case UiIcon.Warning:
-                    DrawPath(graphics, pen, [new(12, 3.5f), new(21, 19.5f), new(3, 19.5f)], close: true);
-                    graphics.DrawLine(pen, 12, 9, 12, 14);
-                    graphics.DrawEllipse(pen, 11.8f, 17, .4f, .4f);
-                    break;
-                case UiIcon.Info:
-                    graphics.DrawEllipse(pen, 3.5f, 3.5f, 17, 17);
-                    graphics.DrawLine(pen, 12, 10.5f, 12, 17);
-                    graphics.DrawEllipse(pen, 11.8f, 7, .4f, .4f);
-                    break;
-                case UiIcon.File:
-                    DrawPath(graphics, pen, [new(6, 3.5f), new(14, 3.5f), new(19, 8.5f), new(19, 20.5f), new(6, 20.5f)], close: true);
-                    graphics.DrawLines(pen, [new PointF(14, 3.5f), new PointF(14, 8.5f), new PointF(19, 8.5f)]);
-                    break;
+                DrawBrand(graphics, bounds, color, strokeWidth);
+                return;
             }
+
+            DrawSystemGlyph(graphics, Glyphs[icon], bounds, color);
         }
         finally
         {
@@ -140,19 +99,67 @@ public static class UiIcons
         }
     }
 
-    private static void Slider(Graphics graphics, Pen pen, float y, float knobX)
+    private static void DrawSystemGlyph(Graphics graphics, string glyph, RectangleF bounds, Color color)
     {
-        graphics.DrawLine(pen, 4, y, 20, y);
-        using var fill = new SolidBrush(Color.FromArgb(255, pen.Color));
-        graphics.FillEllipse(fill, knobX - 1.8f, y - 1.8f, 3.6f, 3.6f);
+        var emSize = Math.Max(1f, Math.Min(bounds.Width, bounds.Height) * .86f);
+        var font = IconFont(emSize);
+        using var brush = new SolidBrush(color);
+        using var format = (StringFormat)StringFormat.GenericTypographic.Clone();
+        format.Alignment = StringAlignment.Center;
+        format.LineAlignment = StringAlignment.Center;
+        format.FormatFlags |= StringFormatFlags.NoClip | StringFormatFlags.NoWrap;
+
+        graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        graphics.DrawString(glyph, font, brush, bounds, format);
     }
 
-    private static void DrawPath(Graphics graphics, Pen pen, PointF[] points, bool close)
+    /// <summary>
+    /// A command entering a two-stage relay. Unlike the former terminal tile,
+    /// the mark describes the product's actual job: carrying Codex activity
+    /// toward a confirmed destination.
+    /// </summary>
+    private static void DrawBrand(Graphics graphics, RectangleF bounds, Color color, float strokeWidth)
     {
-        using var path = new GraphicsPath();
-        path.AddLines(points);
-        if (close) path.CloseFigure();
-        graphics.DrawPath(pen, path);
+        graphics.TranslateTransform(bounds.X, bounds.Y);
+        graphics.ScaleTransform(bounds.Width / 24f, bounds.Height / 24f);
+
+        using var pen = new Pen(color, strokeWidth)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round,
+        };
+        graphics.DrawLines(pen,
+        [
+            new PointF(4.5f, 6.5f),
+            new PointF(9.8f, 12f),
+            new PointF(4.5f, 17.5f),
+        ]);
+        graphics.DrawLine(pen, 12f, 12f, 20f, 12f);
+        using var hubFill = new SolidBrush(Visuals.Canvas);
+        graphics.FillEllipse(hubFill, 13.1f, 10.1f, 3.8f, 3.8f);
+        graphics.DrawEllipse(pen, 13.1f, 10.1f, 3.8f, 3.8f);
+        using var destination = new SolidBrush(color);
+        graphics.FillEllipse(destination, 18.2f, 10.2f, 3.6f, 3.6f);
+    }
+
+    private static Font IconFont(float emSize)
+    {
+        // Quarter-pixel buckets keep resizing smooth without allocating a GDI
+        // font handle on every paint.
+        var sizeKey = Math.Max(4, (int)Math.Round(emSize * 4f));
+        return FontCache.GetOrAdd(sizeKey, key =>
+            new Font(SystemIconFamily.Value, key / 4f, FontStyle.Regular, GraphicsUnit.Pixel));
+    }
+
+    private static string ResolveSystemIconFamily()
+    {
+        using var installed = new InstalledFontCollection();
+        var available = installed.Families
+            .Select(family => family.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return available.Contains(FluentFamily) ? FluentFamily : Mdl2Family;
     }
 }
 
@@ -178,12 +185,19 @@ public sealed class IconView : Control
         this.icon = icon;
         Size = new Size(20, 20);
         TabStop = false;
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer |
+            ControlStyles.SupportsTransparentBackColor |
+            ControlStyles.UserPaint |
+            ControlStyles.ResizeRedraw,
+            true);
+        BackColor = Color.Transparent;
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        e.Graphics.Clear(Parent?.BackColor ?? Visuals.Background);
+        base.OnPaint(e);
         UiIcons.Draw(e.Graphics, Icon, new RectangleF(0, 0, Width, Height), IconColor);
     }
 }

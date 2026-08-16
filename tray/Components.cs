@@ -51,8 +51,13 @@ public sealed class ModernButton : Button
     {
         e.Graphics.Clear(Parent?.BackColor ?? Visuals.Background);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        var offsetY = this.Dp(1) * pressProgress;
-        var bounds = new RectangleF(0.5f, 0.5f + offsetY, Width - 1, Height - 1 - offsetY);
+        var pressInset = this.Dp(1) * pressProgress;
+        var offsetY = (int)Math.Round(this.Dp(.5f) * pressProgress);
+        var bounds = new RectangleF(
+            0.5f + pressInset,
+            0.5f + pressInset,
+            Width - 1 - pressInset * 2,
+            Height - 1 - pressInset * 2);
         var radius = this.Dp(Radius);
         var (background, foreground, border) = Colors();
         if (!Enabled) { background = Visuals.Surface; foreground = Visuals.Muted; border = Visuals.BorderSoft; }
@@ -71,7 +76,7 @@ public sealed class ModernButton : Button
             e.Graphics.DrawRoundedRectangle(pen, bounds, radius);
         }
 
-        DrawContent(e.Graphics, foreground, (int)Math.Round(offsetY));
+        DrawContent(e.Graphics, foreground, offsetY);
 
         // A visible focus ring is the only way to drive this UI from the keyboard.
         if (Focused && ShowFocusCues)
@@ -101,6 +106,12 @@ public sealed class ModernButton : Button
         {
             flags |= TextAlign == ContentAlignment.MiddleLeft ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter;
             TextRenderer.DrawText(graphics, Text, Font, new Rectangle(padding, offsetY, Width - padding * 2, Height), color, flags);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Text))
+        {
+            UiIcons.Draw(graphics, Icon.Value, new RectangleF((Width - iconSize) / 2f, (Height - iconSize) / 2f + offsetY, iconSize, iconSize), color);
             return;
         }
 
@@ -253,11 +264,11 @@ public sealed class ToggleSwitch : Control
         toggleMotion?.Dispose();
         var start = progress;
         var target = isChecked ? 1f : 0f;
-        toggleMotion = MotionClock.Animate(this, 180, value =>
+        toggleMotion = MotionClock.Animate(this, 160, value =>
         {
             progress = Math.Clamp(MotionClock.Lerp(start, target, value), 0f, 1f);
             Invalidate();
-        }, MotionEasing.SpringOut);
+        }, MotionEasing.EaseOutCubic);
     }
 
     private void SetChecked(bool value, bool animate)
@@ -482,10 +493,13 @@ public sealed class ToggleRow : RoundedPanel
 
     public ToggleRow(string titleText, string descriptionText)
     {
-        Height = 72;
-        Radius = 12;
-        BackColor = Visuals.Surface;
+        Height = 68;
+        Radius = 0;
+        BorderWidth = 0;
+        BackColor = Visuals.Background;
         Cursor = Cursors.Hand;
+        AccessibleRole = AccessibleRole.Grouping;
+        AccessibleName = titleText;
         title = Visuals.Label(titleText, 10, false, FontStyle.Bold);
         description = Visuals.Label(descriptionText, 8.5f, true);
         toggle.AccessibleName = titleText;
@@ -498,6 +512,11 @@ public sealed class ToggleRow : RoundedPanel
         {
             target.Click += (_, _) => { toggle.Checked = !toggle.Checked; toggle.Focus(); };
         }
+        Paint += (_, e) =>
+        {
+            using var rule = new Pen(Visuals.BorderSoft);
+            e.Graphics.DrawLine(rule, 0, Height - 1, Width, Height - 1);
+        };
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -524,6 +543,7 @@ public sealed class StatusPill : Control
     private bool isLive;
     private float pulse;
     private IDisposable? pulseMotion;
+    private DateTimeOffset lastConfirmationAt;
 
     public Color DotColor
     {
@@ -544,7 +564,7 @@ public sealed class StatusPill : Control
         {
             if (isLive == value) return;
             isLive = value;
-            StartPulse();
+            ConfirmLiveState();
             Invalidate();
         }
     }
@@ -569,13 +589,16 @@ public sealed class StatusPill : Control
     {
         base.OnHandleCreated(e);
         MeasureAndResize();
-        StartPulse();
+        pulse = 1f;
+        Invalidate();
     }
 
     protected override void OnVisibleChanged(EventArgs e)
     {
         base.OnVisibleChanged(e);
-        if (Visible && IsHandleCreated) StartPulse();
+        if (!Visible) pulseMotion?.Dispose();
+        pulse = 1f;
+        Invalidate();
     }
 
     /// <summary>Measures the label instead of relying on hard-coded pixel widths.</summary>
@@ -607,12 +630,24 @@ public sealed class StatusPill : Control
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
     }
 
-    private void StartPulse()
+    private void ConfirmLiveState()
     {
         pulseMotion?.Dispose();
+        pulse = 1;
+        if (!IsLive || !IsHandleCreated) { Invalidate(); return; }
+
+        var now = DateTimeOffset.UtcNow;
+        if (now - lastConfirmationAt < TimeSpan.FromSeconds(8)) { Invalidate(); return; }
+        lastConfirmationAt = now;
+
+        // A single acknowledgement communicates the state change. An endless
+        // halo looked decorative and made a stable connection feel busy.
         pulse = 0;
-        if (!IsLive || !IsHandleCreated) return;
-        pulseMotion = MotionClock.Loop(this, 1800, value => { pulse = value; Invalidate(); });
+        pulseMotion = MotionClock.Animate(this, 520, value =>
+        {
+            pulse = value;
+            Invalidate();
+        }, MotionEasing.EaseOutCubic);
     }
 
     protected override void Dispose(bool disposing)
@@ -747,6 +782,8 @@ public class ModernForm : Form
     protected ModernForm(string title, Size size, bool resizable = false)
     {
         this.resizable = resizable;
+        AutoScaleDimensions = new SizeF(96f, 96f);
+        AutoScaleMode = AutoScaleMode.Dpi;
         Text = title;
         Icon = Visuals.AppIcon;
         ClientSize = size;
@@ -789,11 +826,11 @@ public class ModernForm : Form
 
     private void LayoutCaption(List<Control> buttons)
     {
-        var right = TitleBar.Width - 2;
+        var right = TitleBar.Width - this.Dp(2);
         foreach (var button in buttons)
         {
             right -= button.Width;
-            button.Location = new Point(right, 5);
+            button.Location = new Point(right, this.Dp(5));
         }
     }
 
@@ -863,8 +900,11 @@ public class ModernForm : Form
         }
 
         if (!TitleBar.Bounds.Contains(point)) return HTCLIENT;
-        // Leave the caption buttons clickable; everything else drags the window.
-        return TitleBar.GetChildAtPoint(TitleBar.PointToClient(screenPoint)) is CaptionButton ? HTCLIENT : HTCAPTION;
+        // Leave command and caption buttons clickable; passive title/brand
+        // content continues to behave like the native draggable caption.
+        return TitleBar.GetChildAtPoint(TitleBar.PointToClient(screenPoint)) is CaptionButton or ModernButton
+            ? HTCLIENT
+            : HTCAPTION;
     }
 
     /// <summary>Keeps a maximized borderless window inside the work area instead of covering the taskbar.</summary>
@@ -906,6 +946,6 @@ public sealed class BrandMark : Control
         UiIcons.Draw(e.Graphics, UiIcon.Brand, new RectangleF(0, 0, Width, Height), Visuals.Text, 1.5f);
         var scale = Width / 24f;
         using var live = new SolidBrush(Visuals.Success);
-        e.Graphics.FillEllipse(live, Width - 7 * scale, 4 * scale, 4 * scale, 4 * scale);
+        e.Graphics.FillEllipse(live, Width - 5.8f * scale, 10.2f * scale, 3.6f * scale, 3.6f * scale);
     }
 }

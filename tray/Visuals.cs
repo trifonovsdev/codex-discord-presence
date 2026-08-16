@@ -7,23 +7,25 @@ namespace CodexPresence;
 
 public static class Visuals
 {
-    public static readonly Color Canvas = Color.FromArgb(9, 12, 16);
-    public static readonly Color Background = Color.FromArgb(13, 17, 22);
-    public static readonly Color Surface = Color.FromArgb(18, 23, 30);
-    public static readonly Color SurfaceRaised = Color.FromArgb(25, 31, 40);
-    public static readonly Color SurfaceHover = Color.FromArgb(33, 41, 52);
-    public static readonly Color Border = Color.FromArgb(50, 60, 74);
-    public static readonly Color BorderSoft = Color.FromArgb(36, 44, 55);
-    public static readonly Color Accent = Color.FromArgb(239, 243, 247);
-    public static readonly Color AccentText = Color.FromArgb(11, 15, 20);
-    public static readonly Color Text = Color.FromArgb(242, 245, 248);
-    public static readonly Color TextSecondary = Color.FromArgb(177, 187, 199);
-    public static readonly Color Muted = Color.FromArgb(145, 157, 171);
+    // Warm graphite reads like a physical desktop instrument instead of the
+    // blue-black palette used by nearly every generic developer dashboard.
+    public static readonly Color Canvas = Color.FromArgb(10, 12, 11);
+    public static readonly Color Background = Color.FromArgb(15, 18, 16);
+    public static readonly Color Surface = Color.FromArgb(21, 24, 22);
+    public static readonly Color SurfaceRaised = Color.FromArgb(29, 33, 30);
+    public static readonly Color SurfaceHover = Color.FromArgb(40, 45, 41);
+    public static readonly Color Border = Color.FromArgb(58, 65, 59);
+    public static readonly Color BorderSoft = Color.FromArgb(40, 45, 41);
+    public static readonly Color Accent = Color.FromArgb(232, 236, 228);
+    public static readonly Color AccentText = Color.FromArgb(15, 18, 16);
+    public static readonly Color Text = Color.FromArgb(238, 241, 235);
+    public static readonly Color TextSecondary = Color.FromArgb(175, 183, 175);
+    public static readonly Color Muted = Color.FromArgb(128, 138, 129);
     public static readonly Color Success = Color.FromArgb(91, 219, 165);
-    public static readonly Color SuccessSurface = Color.FromArgb(18, 55, 45);
+    public static readonly Color SuccessSurface = Color.FromArgb(17, 47, 36);
     public static readonly Color Danger = Color.FromArgb(247, 126, 126);
-    public static readonly Color DangerSurface = Color.FromArgb(62, 30, 35);
-    public static readonly Color FocusRing = Color.FromArgb(137, 194, 255);
+    public static readonly Color DangerSurface = Color.FromArgb(55, 26, 29);
+    public static readonly Color FocusRing = Color.FromArgb(124, 171, 255);
 
     private static readonly ConcurrentDictionary<(string Family, float Size, FontStyle Style), Font> FontCache = new();
     private static readonly Lazy<string> TextFamily = new(() => ResolveFamily("Segoe UI Variable Text", "Segoe UI"));
@@ -71,7 +73,7 @@ public static class Visuals
         graphics.FillRoundedRectangle(tile, new RectangleF(inset, inset, size - inset * 2, size - inset * 2), size * .22f);
         UiIcons.Draw(graphics, UiIcon.Brand, new RectangleF(inset + size * .08f, inset + size * .08f, size - inset * 2 - size * .16f, size - inset * 2 - size * .16f), Text);
         using var live = new SolidBrush(Success);
-        graphics.FillEllipse(live, size * .69f, size * .21f, size * .11f, size * .11f);
+        graphics.FillEllipse(live, size * .73f, size * .445f, size * .115f, size * .115f);
 
         var handle = bitmap.GetHicon();
         try { return (Icon)Icon.FromHandle(handle).Clone(); }

@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Codex Presence icon">
-  <rect x="8" y="8" width="240" height="240" rx="58" fill="#121212"/>
-  <rect x="9" y="9" width="238" height="238" rx="57" fill="none" stroke="#343434" stroke-width="2"/>
-  <path d="M58 82l42 46-42 46M122 174h72" fill="none" stroke="#f4f4f4" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="201" cy="55" r="22" fill="#121212"/>
-  <circle cx="201" cy="55" r="14" fill="#2ecf91"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Codex Presence relay icon">
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="#0f1210"/>
+  <rect x="9" y="9" width="238" height="238" rx="57" fill="none" stroke="#3a413b" stroke-width="2"/>
+  <path d="M52 80l48 48-48 48" fill="none" stroke="#eef1eb" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M116 128h72" fill="none" stroke="#eef1eb" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="144" cy="128" r="13" fill="#0f1210" stroke="#eef1eb" stroke-width="7"/>
+  <circle cx="204" cy="128" r="19" fill="#5bd79d"/>
 </svg>

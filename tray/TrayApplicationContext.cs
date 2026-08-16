@@ -65,7 +65,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         update.Click += async (_, _) => await CheckUpdatesAsync(true);
         var restart = MenuItem("Restart service", UiIcon.Refresh);
         restart.Click += async (_, _) => await RestartAsync();
-        var exit = MenuItem("Exit", UiIcon.Remove);
+        var exit = MenuItem("Exit", UiIcon.Exit);
         exit.Click += async (_, _) => await ExitAsync();
         menu.Items.AddRange([open, new ToolStripSeparator(), statusItem, activityItem, new ToolStripSeparator(), pauseItem, settings, doctor, update, restart, new ToolStripSeparator(), exit]);
 

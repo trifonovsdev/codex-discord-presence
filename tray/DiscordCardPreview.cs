@@ -11,6 +11,7 @@ public sealed class DiscordCardPreview : RoundedPanel
     private string elapsed = "00:00:00";
     private string language = "en";
     private string fileMode = "relative";
+    private string? publishError;
     private bool showProject = true;
     private bool showTaskTitle = true;
     private bool showFile = true;
@@ -25,6 +26,7 @@ public sealed class DiscordCardPreview : RoundedPanel
     public string Elapsed { get => elapsed; set { elapsed = value; RefreshPreview(); } }
     public string Language { get => language; set { language = value; RefreshPreview(); } }
     public string FileMode { get => fileMode; set { fileMode = value; RefreshPreview(); } }
+    public string? PublishError { get => publishError; set { publishError = value; RefreshPreview(); } }
     public bool ShowProject { get => showProject; set { showProject = value; RefreshPreview(); } }
     public bool ShowTaskTitle { get => showTaskTitle; set { showTaskTitle = value; RefreshPreview(); } }
     public bool ShowFile { get => showFile; set { showFile = value; RefreshPreview(); } }
@@ -64,13 +66,20 @@ public sealed class DiscordCardPreview : RoundedPanel
 
         if (!published)
         {
+            var failed = !string.IsNullOrWhiteSpace(publishError);
+            var statusTitle = failed ? "Discord rejected update" : connected ? "Publishing…" : "Not published";
+            var statusDetail = failed
+                ? publishError!
+                : connected
+                ? "Waiting for Discord to acknowledge the current presence update."
+                : "Discord receives no activity while presence is paused or unavailable.";
             var statusIcon = new RectangleF(card.X + this.Dp(14), card.Y + this.Dp(18), this.Dp(22), this.Dp(22));
-            UiIcons.Draw(e.Graphics, UiIcon.Info, statusIcon, Visuals.Muted);
+            UiIcons.Draw(e.Graphics, failed ? UiIcon.Warning : UiIcon.Info, statusIcon, failed ? Visuals.Danger : Visuals.Muted);
             var statusLeft = (int)statusIcon.Right + this.Dp(11);
-            TextRenderer.DrawText(e.Graphics, "Not published", Visuals.Font(9.25f, FontStyle.Bold),
+            TextRenderer.DrawText(e.Graphics, statusTitle, Visuals.Font(9.25f, FontStyle.Bold),
                 new Rectangle(statusLeft, (int)card.Y + this.Dp(14), (int)card.Right - statusLeft - this.Dp(12), this.Dp(22)),
-                Visuals.TextSecondary, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
-            TextRenderer.DrawText(e.Graphics, "Discord receives no activity while presence is paused or unavailable.", Visuals.Font(8f),
+                failed ? Visuals.Danger : Visuals.TextSecondary, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
+            TextRenderer.DrawText(e.Graphics, statusDetail, Visuals.Font(8f),
                 new Rectangle(statusLeft, (int)card.Y + this.Dp(39), (int)card.Right - statusLeft - this.Dp(12), this.Dp(52)),
                 Visuals.Muted, TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             return;
@@ -80,10 +89,16 @@ public sealed class DiscordCardPreview : RoundedPanel
         var iconBounds = new RectangleF(card.X + this.Dp(12), card.Y + this.Dp(13), iconSize, iconSize);
         using var iconFill = new SolidBrush(Visuals.Canvas);
         e.Graphics.FillRoundedRectangle(iconFill, iconBounds, this.Dp(12));
-        UiIcons.Draw(e.Graphics, UiIcon.Brand, RectangleF.Inflate(iconBounds, -this.Dp(9), -this.Dp(9)), Visuals.Text, 1.6f);
+        var brandBounds = RectangleF.Inflate(iconBounds, -this.Dp(9), -this.Dp(9));
+        UiIcons.Draw(e.Graphics, UiIcon.Brand, brandBounds, Visuals.Text, 1.6f);
         using var liveDot = new SolidBrush(connected ? Visuals.Success : Visuals.Muted);
         var liveSize = this.Dp(7);
-        e.Graphics.FillEllipse(liveDot, iconBounds.Right - liveSize - this.Dp(5), iconBounds.Top + this.Dp(5), liveSize, liveSize);
+        e.Graphics.FillEllipse(
+            liveDot,
+            brandBounds.Left + brandBounds.Width * .83f - liveSize / 2f,
+            brandBounds.Top + brandBounds.Height * .5f - liveSize / 2f,
+            liveSize,
+            liveSize);
 
         var textLeft = (int)iconBounds.Right + this.Dp(12);
         var textWidth = Math.Max(this.Dp(80), (int)card.Right - textLeft - this.Dp(12));
@@ -146,7 +161,11 @@ public sealed class DiscordCardPreview : RoundedPanel
     {
         AccessibleDescription = published
             ? $"Coding with Codex. {PrimaryLine()}. {SecondaryLine()}."
-            : "Discord preview. Activity is not currently published.";
+            : !string.IsNullOrWhiteSpace(publishError)
+                ? $"Discord preview. Discord rejected the current update: {publishError}"
+            : connected
+                ? "Discord preview. The current presence update is waiting for Discord acknowledgement."
+                : "Discord preview. Activity is not currently published.";
         Invalidate();
     }
 }
