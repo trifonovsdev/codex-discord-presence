@@ -18,6 +18,34 @@ test('desktop windows use the native Windows frame for drag, snap, and resize', 
   assert.doesNotMatch(components, /WM_NCHITTEST|WM_NCCALCSIZE|class CaptionButton/);
 });
 
+test('desktop windows settle their bounds before the first visible frame', () => {
+  const components = source('tray/Components.cs');
+  const settings = source('tray/SettingsForm.cs');
+  const diagnostics = source('tray/DiagnosticsForm.cs');
+  const modernForm = components.slice(components.indexOf('public class ModernForm'));
+
+  assert.match(modernForm, /protected override void OnLoad\(EventArgs e\)/);
+  assert.match(modernForm, /PrepareInitialBounds\(\)/);
+  assert.doesNotMatch(modernForm, /protected override void OnShown\(EventArgs e\)/);
+  assert.match(settings, /StartPosition\s*=\s*FormStartPosition\.CenterParent/);
+  assert.match(diagnostics, /StartPosition\s*=\s*FormStartPosition\.CenterParent/);
+});
+
+test('window hosts and scrolling stacks use buffered paint surfaces', () => {
+  const components = source('tray/Components.cs');
+  const dashboard = source('tray/DashboardForm.cs');
+  const settings = source('tray/SettingsForm.cs');
+  const diagnostics = source('tray/DiagnosticsForm.cs');
+
+  assert.match(components, /public (?:sealed )?class BufferedPanel\s*:\s*Panel/);
+  assert.match(components, /public (?:sealed )?class BufferedFlowLayoutPanel\s*:\s*FlowLayoutPanel/);
+  assert.match(components, /ControlStyles\.OptimizedDoubleBuffer/);
+  assert.match(components, /protected readonly BufferedPanel ContentHost/);
+  assert.match(dashboard, /private readonly BufferedFlowLayoutPanel content/);
+  assert.match(settings, /private readonly BufferedPanel pageHost/);
+  assert.match(diagnostics, /private readonly BufferedFlowLayoutPanel rows/);
+});
+
 test('interface icons are deterministic vector paths, not installed font glyphs', () => {
   const iconography = source('tray/Iconography.cs');
 
@@ -39,6 +67,14 @@ test('dashboard contains only activity, Discord preview, and essential controls'
   assert.match(dashboard, /SharingSummary/);
   assert.match(dashboard, /activityContext\.AutoEllipsis\s*=\s*true/);
   assert.match(dashboard, /alertAction/);
+});
+
+test('dashboard stays compact without clipped copy text or duplicate timer chrome', () => {
+  const dashboard = source('tray/DashboardForm.cs');
+
+  assert.match(dashboard, /Visuals\.Button\(string\.Empty,\s*ButtonKind\.Ghost,\s*UiIcon\.Copy\)/);
+  assert.doesNotMatch(dashboard, /footer\.Controls\.AddRange\(\[elapsed,\s*pause\]\)/);
+  assert.match(dashboard, /width\s*-\s*control\.Margin\.Horizontal/);
 });
 
 test('settings uses a compact horizontal tab bar without a duplicate Discord preview', () => {
@@ -72,6 +108,16 @@ test('all settings pages join the form before its first DPI autoscale pass', () 
   assert.doesNotMatch(settings, /ShowPage\([^)]*,\s*Build[A-Za-z]+Page/);
 });
 
+test('settings swaps pages in one layout transaction without stealing focus', () => {
+  const settings = source('tray/SettingsForm.cs');
+  const showPage = settings.slice(settings.indexOf('private void ShowPage'), settings.indexOf('private void LayoutTabUnderline'));
+
+  assert.match(showPage, /pageHost\.SuspendLayout\(\)/);
+  assert.match(showPage, /pageHost\.ResumeLayout\(false\)/);
+  assert.match(showPage, /pageHost\.PerformLayout\(\)/);
+  assert.doesNotMatch(showPage, /page\.Focus\(\)/);
+});
+
 test('the installed Windows app runs a hidden UI construction smoke test', () => {
   const program = source('tray/Program.cs');
   const smoke = source('tests/installer-smoke.ps1');
@@ -79,5 +125,7 @@ test('the installed Windows app runs a hidden UI construction smoke test', () =>
   assert.match(program, /--ui-smoke/);
   assert.match(program, /AccessibleRole\.PageTab/);
   assert.match(program, /PerformClick\(\)/);
+  assert.match(program, /AssertNoHorizontalScroll\(form\)/);
+  assert.match(program, /HorizontalScroll\.Visible/);
   assert.match(smoke, /--ui-smoke/);
 });

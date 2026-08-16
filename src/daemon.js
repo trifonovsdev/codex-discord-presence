@@ -23,7 +23,7 @@ const {
   toolPayloadFromRecord,
 } = require('./codex-paths');
 
-const VERSION = '2.3.2';
+const VERSION = '2.3.3';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';

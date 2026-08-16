@@ -179,6 +179,28 @@ public sealed class ModernButton : Button
 }
 
 /// <summary>
+/// Container surfaces opt into buffered painting so a resize or page swap is
+/// presented as one complete frame instead of exposing WinForms erase passes.
+/// </summary>
+public class BufferedPanel : Panel
+{
+    public BufferedPanel()
+    {
+        DoubleBuffered = true;
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+    }
+}
+
+public sealed class BufferedFlowLayoutPanel : FlowLayoutPanel
+{
+    public BufferedFlowLayoutPanel()
+    {
+        DoubleBuffered = true;
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+    }
+}
+
+/// <summary>
 /// A rounded surface. The corners are painted rather than clipped with a
 /// <see cref="Region"/>: regions are not antialiased, which is what made every
 /// card in the previous build show visibly stair-stepped corners.
@@ -690,7 +712,7 @@ public sealed class StatusPill : Control
 /// </summary>
 public class ModernForm : Form
 {
-    protected readonly Panel ContentHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
+    protected readonly BufferedPanel ContentHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
 
     /// <summary>When true, Escape closes the window. Enabled for dialogs.</summary>
     protected bool CloseOnEscape { get; set; }
@@ -724,20 +746,28 @@ public class ModernForm : Form
         Visuals.ApplyWindowStyle(this);
     }
 
-    protected override void OnShown(EventArgs e)
+    protected override void OnLoad(EventArgs e)
     {
-        base.OnShown(e);
+        base.OnLoad(e);
+        PrepareInitialBounds();
+    }
+
+    private void PrepareInitialBounds()
+    {
         if (WindowState != FormWindowState.Normal) return;
 
         var workingArea = Screen.FromControl(this).WorkingArea;
         var width = Math.Min(Width, workingArea.Width);
         var height = Math.Min(Height, workingArea.Height);
-        if (MinimumSize.Width > width || MinimumSize.Height > height)
-            MinimumSize = new Size(Math.Min(MinimumSize.Width, width), Math.Min(MinimumSize.Height, height));
-        Size = new Size(width, height);
-        Location = new Point(
+        var minimumSize = new Size(Math.Min(MinimumSize.Width, width), Math.Min(MinimumSize.Height, height));
+        var size = new Size(width, height);
+        var location = new Point(
             Math.Clamp(Left, workingArea.Left, workingArea.Right - width),
             Math.Clamp(Top, workingArea.Top, workingArea.Bottom - height));
+
+        if (MinimumSize != minimumSize) MinimumSize = minimumSize;
+        if (Size != size) Size = size;
+        if (Location != location) Location = location;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

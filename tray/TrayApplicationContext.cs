@@ -30,7 +30,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{version.Build}"
-        : "2.3.2";
+        : "2.3.3";
 
     public TrayApplicationContext(bool showOnStart, WaitHandle? activationSignal = null)
     {

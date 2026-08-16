@@ -73,6 +73,8 @@ static class Program
 
     private static void ShowAndValidate(Form form, bool exerciseTabs = false)
     {
+        Rectangle? firstVisibleBounds = null;
+        form.Shown += (_, _) => firstVisibleBounds = form.Bounds;
         form.Show();
         Application.DoEvents();
         form.PerformLayout();
@@ -80,6 +82,9 @@ static class Program
             throw new InvalidOperationException($"{form.Text} did not create a valid window.");
         if (form.FormBorderStyle is FormBorderStyle.None)
             throw new InvalidOperationException($"{form.Text} lost its native window frame.");
+        if (firstVisibleBounds is null || firstVisibleBounds.Value != form.Bounds)
+            throw new InvalidOperationException($"{form.Text} changed bounds after its first visible frame.");
+        AssertNoHorizontalScroll(form);
         if (exerciseTabs)
         {
             var tabs = Descendants(form)
@@ -87,14 +92,28 @@ static class Program
                 .Where(control => control.AccessibleRole == AccessibleRole.PageTab)
                 .ToArray();
             if (tabs.Length != 3) throw new InvalidOperationException($"{form.Text} did not expose all settings tabs.");
-            foreach (var tab in tabs)
+            for (var pass = 0; pass < 2; pass++)
             {
-                tab.PerformClick();
-                Application.DoEvents();
-                form.PerformLayout();
+                foreach (var tab in tabs)
+                {
+                    tab.PerformClick();
+                    Application.DoEvents();
+                    form.PerformLayout();
+                    AssertNoHorizontalScroll(form);
+                }
             }
         }
         form.Hide();
+    }
+
+    private static void AssertNoHorizontalScroll(Control root)
+    {
+        foreach (var scrollable in Descendants(root).Prepend(root).OfType<ScrollableControl>())
+        {
+            scrollable.PerformLayout();
+            if (scrollable.HorizontalScroll.Visible)
+                throw new InvalidOperationException($"{root.Text} exposes a horizontal scrollbar in {scrollable.GetType().Name}.");
+        }
     }
 
     private static IEnumerable<Control> Descendants(Control root)

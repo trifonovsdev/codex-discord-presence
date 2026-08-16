@@ -28,7 +28,7 @@ public sealed partial class SettingsForm : ModernForm
     private readonly DataGridView remotes = new();
     private readonly Label remoteEmptyState = Visuals.Label("No SSH workspaces yet. Add one to follow remote Codex tasks.", 9, true);
     private readonly AccessibleStatusLabel remoteActionStatus = new();
-    private readonly Panel pageHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
+    private readonly BufferedPanel pageHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
     private readonly Panel tabUnderline = new() { Height = 2, BackColor = Visuals.Text, Visible = false };
     private readonly List<ModernButton> tabs = [];
     private readonly List<ModernButton> remoteActions = [];
@@ -44,6 +44,7 @@ public sealed partial class SettingsForm : ModernForm
         this.remoteService = remoteService;
         config = store.Load();
         MinimumSize = SizeFromClientSize(new Size(620, 400));
+        StartPosition = FormStartPosition.CenterParent;
         CloseOnEscape = true;
 
         var tabBar = BuildTabBar();
@@ -110,10 +111,18 @@ public sealed partial class SettingsForm : ModernForm
         LayoutTabUnderline();
 
         var page = pages[selected];
-
-        foreach (Control candidate in pageHost.Controls) candidate.Visible = ReferenceEquals(candidate, page);
-        page.BringToFront();
-        page.Focus();
+        pageHost.SuspendLayout();
+        try
+        {
+            foreach (Control candidate in pageHost.Controls) candidate.Visible = ReferenceEquals(candidate, page);
+            page.BringToFront();
+        }
+        finally
+        {
+            pageHost.ResumeLayout(false);
+        }
+        pageHost.PerformLayout();
+        pageHost.Invalidate(true);
     }
 
     private void LayoutTabUnderline()
@@ -254,7 +263,7 @@ public sealed partial class SettingsForm : ModernForm
 
     private void Stack(Control page, params Control[] rows)
     {
-        var column = new FlowLayoutPanel
+        var column = new BufferedFlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
