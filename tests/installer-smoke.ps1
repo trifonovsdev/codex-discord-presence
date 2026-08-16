@@ -18,6 +18,86 @@ $installDir = Join-Path $testRoot 'Program'
 $foreignCommand = 'foreign-tool --keep-me'
 $setupExit = $null
 $uninstallExit = $null
+$trayProcess = $null
+$smokeStartedAt = Get-Date
+
+function Write-SmokeDiagnostics {
+  param(
+    [Diagnostics.Process]$TrayProcess,
+    [string]$InstallDir,
+    [int]$Port,
+    [Management.Automation.ErrorRecord]$LastHealthError
+  )
+
+  Write-Host '--- installer smoke diagnostics ---'
+  if ($TrayProcess) {
+    try {
+      $status = if ($TrayProcess.HasExited) { "exited with code $($TrayProcess.ExitCode)" } else { 'still running' }
+      Write-Host "Tray PID $($TrayProcess.Id): $status"
+    } catch {
+      Write-Host "Tray status unavailable: $($_.Exception.Message)"
+    }
+  } else {
+    Write-Host 'Tray process was not created.'
+  }
+  if ($LastHealthError) { Write-Host "Last health error: $($LastHealthError.Exception.Message)" }
+
+  $presenceLog = Join-Path $InstallDir 'app\presence.log'
+  if (Test-Path -LiteralPath $presenceLog) {
+    Write-Host "presence.log ($presenceLog):"
+    Get-Content -LiteralPath $presenceLog -Tail 120
+  } else {
+    Write-Host "presence.log was not created at $presenceLog"
+  }
+
+  try {
+    $events = Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $smokeStartedAt } -ErrorAction Stop |
+      Where-Object { $_.Message -match 'CodexPresence|Codex Presence|node\.exe' } |
+      Select-Object -First 10 TimeCreated,ProviderName,Id,LevelDisplayName,Message
+    if ($events) {
+      Write-Host 'Relevant Windows Application events:'
+      $events | Format-List | Out-String | Write-Host
+    } else {
+      Write-Host 'No matching Windows Application events were recorded.'
+    }
+  } catch {
+    Write-Host "Windows Application events unavailable: $($_.Exception.Message)"
+  }
+
+  $nodePath = Join-Path $InstallDir 'runtime\node.exe'
+  $daemonPath = Join-Path $InstallDir 'app\daemon.js'
+  if (-not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $daemonPath)) { return }
+
+  $stdout = Join-Path $env:RUNNER_TEMP 'codex-presence-daemon.stdout.log'
+  $stderr = Join-Path $env:RUNNER_TEMP 'codex-presence-daemon.stderr.log'
+  Remove-Item -LiteralPath $stdout,$stderr -Force -ErrorAction SilentlyContinue
+  $directDaemon = $null
+  try {
+    $env:CODEX_PRESENCE_TEST = '1'
+    $directDaemon = Start-Process $nodePath -ArgumentList @($daemonPath) -WorkingDirectory (Split-Path $daemonPath) -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    Start-Sleep -Seconds 2
+    try {
+      $directHealth = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 2
+      Write-Host "Direct bundled Node health: v$($directHealth.version)"
+    } catch {
+      Write-Host "Direct bundled Node health failed: $($_.Exception.Message)"
+    }
+    try {
+      $directStatus = if ($directDaemon.HasExited) { "exited with code $($directDaemon.ExitCode)" } else { 'still running' }
+      Write-Host "Direct bundled Node PID $($directDaemon.Id): $directStatus"
+    } catch {}
+    foreach ($capture in @($stdout,$stderr)) {
+      if (Test-Path -LiteralPath $capture) {
+        Write-Host "$([IO.Path]::GetFileName($capture)):"
+        Get-Content -LiteralPath $capture -Tail 120
+      }
+    }
+  } finally {
+    Remove-Item Env:CODEX_PRESENCE_TEST -ErrorAction SilentlyContinue
+    try { Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"shutdown"}' -TimeoutSec 1 | Out-Null } catch {}
+    if ($directDaemon -and -not $directDaemon.HasExited) { Stop-Process -Id $directDaemon.Id -Force -ErrorAction SilentlyContinue }
+  }
+}
 
 try {
   New-Item -ItemType Directory -Path $env:LOCALAPPDATA,$env:CODEX_HOME -Force | Out-Null
@@ -51,14 +131,24 @@ try {
   if (([regex]::Matches($normalizedHooks, [regex]::Escape($newHookPath))).Count -ne 16) { throw 'Expected eight dual-platform hook registrations.' }
   if ($normalizedHooks.IndexOf((Join-Path $legacyDir 'hook.js'), [StringComparison]::OrdinalIgnoreCase) -ge 0) { throw 'Legacy hook registration remains.' }
 
-  Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--background'
+  $trayProcess = Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--background' -PassThru
   $health = $null
+  $lastHealthError = $null
   for ($attempt = 0; $attempt -lt 40; $attempt++) {
     Start-Sleep -Milliseconds 250
-    try { $health = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1; if ($health.ok) { break } } catch {}
+    try {
+      $health = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1
+      if ($health.ok) { break }
+    } catch {
+      $lastHealthError = $_
+      if ($trayProcess.HasExited) { break }
+    }
   }
   $expectedVersion = (Get-Content -LiteralPath (Join-Path $repository 'package.json') -Raw | ConvertFrom-Json).version
-  if ($health.version -ne $expectedVersion) { throw "Installed daemon did not become healthy (expected v$expectedVersion, got '$($health.version)')." }
+  if ($health.version -ne $expectedVersion) {
+    Write-SmokeDiagnostics -TrayProcess $trayProcess -InstallDir $installDir -Port $Port -LastHealthError $lastHealthError
+    throw "Installed daemon did not become healthy (expected v$expectedVersion, got '$($health.version)')."
+  }
   $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}'
   $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'
   if ($pause.presenceEnabled -ne $false -or $resume.presenceEnabled -ne $true) { throw 'Pause/resume control failed.' }

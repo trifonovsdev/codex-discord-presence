@@ -41,3 +41,21 @@ jobs:
         run: dotnet build tray/CodexPresence.Tray.csproj -c Release
       - name: Verify C# formatting
         run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore
+
+  installer-smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install Inno Setup
+        shell: pwsh
+        run: winget install --id JRSoftware.InnoSetup --version 6.7.3 --source winget --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+      - name: Build release candidate
+        shell: pwsh
+        run: .\build-release.ps1
+      - name: Smoke-test installer lifecycle
+        shell: pwsh
+        run: .\tests\installer-smoke.ps1

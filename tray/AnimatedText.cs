@@ -107,11 +107,6 @@ public sealed class AnimatedText : Control
 
     public AnimatedText()
     {
-        Size = new Size(160, 24);
-        Font = Visuals.Font(9f);
-        BackColor = Color.Transparent;
-        TabStop = false;
-        AccessibleRole = AccessibleRole.StaticText;
         SetStyle(
             ControlStyles.AllPaintingInWmPaint |
             ControlStyles.OptimizedDoubleBuffer |
@@ -119,6 +114,11 @@ public sealed class AnimatedText : Control
             ControlStyles.SupportsTransparentBackColor |
             ControlStyles.UserPaint,
             true);
+        Size = new Size(160, 24);
+        Font = Visuals.Font(9f);
+        BackColor = Color.Transparent;
+        TabStop = false;
+        AccessibleRole = AccessibleRole.StaticText;
     }
 
     protected override void OnTextChanged(EventArgs e)
