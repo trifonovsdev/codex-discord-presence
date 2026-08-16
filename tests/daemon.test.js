@@ -85,7 +85,7 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
   }, async ({ port, root, configPath }) => {
     const initial = await waitForHealth(port);
     assert.equal(initial.ok, true);
-    assert.equal(initial.version, '2.3.0');
+    assert.equal(initial.version, '2.3.1');
     assert.equal(initial.project, null, 'health must expose unresolved state instead of a fake project');
     assert.equal(initial.details, 'Working in Codex');
     assert.equal(initial.taskTitleShared, false);
