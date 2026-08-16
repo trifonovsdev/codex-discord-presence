@@ -8,7 +8,7 @@ namespace CodexPresence;
 public sealed class UpdateService : IDisposable
 {
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(30) };
-    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 3, 2);
+    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 3, 3);
 
     public UpdateService()
     {

@@ -147,7 +147,7 @@ git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.3.2
+.\build-release.ps1 -Version 2.3.3
 ```
 
 The build downloads the pinned official Node distribution, verifies its archive against both the reviewed SHA-256 pinned in the build script and Node.js `SHASUMS256.txt`, publishes a self-contained UI, compiles the installer, and emits SHA-256 checksums. Verified downloads are cached under `.build-cache/`.
