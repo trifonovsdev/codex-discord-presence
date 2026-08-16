@@ -131,7 +131,10 @@ def write_private_cache(cache_dir, cache_path, state):
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{cache_path.stem}-", suffix=".tmp", dir=cache_dir)
     try:
         try:
-            os.fchmod(descriptor, 0o600)
+            # fchmod is not available on every supported platform. POSIX hosts
+            # keep descriptor hardening; the fallback stays atomic on Windows.
+            if hasattr(os, "fchmod"):
+                os.fchmod(descriptor, 0o600)
         except Exception:
             os.close(descriptor)
             raise
