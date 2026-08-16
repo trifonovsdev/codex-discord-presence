@@ -3,9 +3,10 @@ import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
-PARSER_VERSION = 3
+PARSER_VERSION = 4
 
 
 def emit(payload):
@@ -100,6 +101,56 @@ def process_record(state, record):
         state["file"] = file_path
 
 
+def repository_project(cwd, file_path):
+    if not cwd or not file_path:
+        return None
+    candidate = Path(file_path)
+    if not candidate.is_absolute():
+        candidate = Path(cwd) / candidate
+    if not candidate.is_dir():
+        candidate = candidate.parent
+    for directory in (candidate, *candidate.parents):
+        if (directory / ".git").exists():
+            return directory.name
+    return None
+
+
+def is_account_root(value):
+    if not value:
+        return True
+    try:
+        candidate = Path(value).expanduser().resolve()
+        return candidate == Path("/") or candidate == Path.home().resolve()
+    except (OSError, RuntimeError):
+        return value in ("/", str(Path.home()))
+
+
+def write_private_cache(cache_dir, cache_path, state):
+    cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(cache_dir, 0o700)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{cache_path.stem}-", suffix=".tmp", dir=cache_dir)
+    try:
+        try:
+            # fchmod is not available on every supported platform. POSIX hosts
+            # keep descriptor hardening; the fallback stays atomic on Windows.
+            if hasattr(os, "fchmod"):
+                os.fchmod(descriptor, 0o600)
+        except Exception:
+            os.close(descriptor)
+            raise
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(state, handle, ensure_ascii=False)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, cache_path)
+        os.chmod(cache_path, 0o600)
+    finally:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+
+
 def main():
     if len(sys.argv) != 2 or not re.fullmatch(r"[0-9a-fA-F-]{20,64}", sys.argv[1]):
         emit({"ok": False, "error": "invalid-thread-id"})
@@ -112,7 +163,6 @@ def main():
         return 0
     size = session_path.stat().st_size
     cache_dir = Path.home() / ".local" / "state" / "codex-discord-presence"
-    cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / f"{thread_id}.json"
     state = load_cache(cache_path, session_path, size)
     with session_path.open("rb") as handle:
@@ -123,11 +173,15 @@ def main():
             except Exception:
                 continue
         state["offset"] = handle.tell()
-    cache_path.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+    write_private_cache(cache_dir, cache_path, state)
     cwd = state.get("cwd")
     roots = state.get("roots") or []
-    project_root = next((item for item in roots if isinstance(item, str) and item not in ("/", "/root")), cwd)
-    project = Path(project_root).name if project_root else None
+    project = repository_project(cwd, state.get("file"))
+    if not project:
+        project_root = next((item for item in roots if isinstance(item, str) and not is_account_root(item)), None)
+        if not project_root and not is_account_root(cwd):
+            project_root = cwd
+        project = Path(project_root).name if project_root else None
     emit({"ok": True, "threadId": thread_id, "project": project, "cwd": cwd, "file": state.get("file")})
     return 0
 

@@ -13,6 +13,8 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly RemoteService remote = new();
     private readonly UpdateService updates = new();
     private readonly NotifyIcon notifyIcon;
+    private readonly ContextMenuStrip menu;
+    private readonly Dictionary<(UiIcon Icon, int Color), Bitmap> menuIcons = [];
     private readonly ToolStripMenuItem statusItem = new("Starting…") { Enabled = false };
     private readonly ToolStripMenuItem activityItem = new("Waiting for activity") { Enabled = false };
     private readonly ToolStripMenuItem pauseItem = new("Pause presence");
@@ -28,7 +30,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{version.Build}"
-        : "2.2.0";
+        : "2.3.0";
 
     public TrayApplicationContext(bool showOnStart, WaitHandle? activationSignal = null)
     {
@@ -36,28 +38,34 @@ public sealed class TrayApplicationContext : ApplicationContext
         dashboard = new DashboardForm(Version);
         daemon = new DaemonService(configStore);
         if (!File.Exists(AppPaths.ConfigPath)) configStore.Save(new PresenceConfig());
+        dashboard.UpdatePrivacy(configStore.Load().Privacy);
 
-        var menu = new ContextMenuStrip
+        menu = new ContextMenuStrip
         {
             BackColor = Visuals.Surface,
             ForeColor = Visuals.Text,
             Font = Visuals.Font(9.5f),
             Padding = new Padding(6),
-            ShowImageMargin = false,
+            ShowImageMargin = true,
+            ImageScalingSize = new Size(18, 18),
             Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
         };
-        var open = new ToolStripMenuItem("Open Codex Presence") { Font = Visuals.Font(9.5f, FontStyle.Bold) };
+        var open = MenuItem("Open Codex Presence", UiIcon.Brand, Visuals.Text);
+        open.Font = Visuals.Font(9.5f, FontStyle.Bold);
         open.Click += (_, _) => ShowDashboard();
+        pauseItem.Image = MenuIcon(UiIcon.Pause, Visuals.TextSecondary);
         pauseItem.Click += async (_, _) => await TogglePresenceAsync();
-        var settings = new ToolStripMenuItem("Settings…");
+        statusItem.Image = MenuIcon(UiIcon.Info, Visuals.Muted);
+        activityItem.Image = MenuIcon(UiIcon.File, Visuals.TextSecondary);
+        var settings = MenuItem("Settings…", UiIcon.Settings);
         settings.Click += async (_, _) => await ShowSettingsAsync();
-        var doctor = new ToolStripMenuItem("Run diagnostics…");
+        var doctor = MenuItem("Run diagnostics…", UiIcon.Diagnostics);
         doctor.Click += (_, _) => ShowDiagnostics();
-        var update = new ToolStripMenuItem("Check for updates…");
+        var update = MenuItem("Check for updates…", UiIcon.Refresh);
         update.Click += async (_, _) => await CheckUpdatesAsync(true);
-        var restart = new ToolStripMenuItem("Restart service");
+        var restart = MenuItem("Restart service", UiIcon.Refresh);
         restart.Click += async (_, _) => await RestartAsync();
-        var exit = new ToolStripMenuItem("Exit");
+        var exit = MenuItem("Exit", UiIcon.Exit);
         exit.Click += async (_, _) => await ExitAsync();
         menu.Items.AddRange([open, new ToolStripSeparator(), statusItem, activityItem, new ToolStripSeparator(), pauseItem, settings, doctor, update, restart, new ToolStripSeparator(), exit]);
 
@@ -134,20 +142,24 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         if (latest is null)
         {
-            statusItem.Text = "● Service unavailable";
+            statusItem.Text = "Service unavailable";
             statusItem.ForeColor = Visuals.Danger;
+            statusItem.Image = MenuIcon(UiIcon.Warning, Visuals.Danger);
             activityItem.Text = "Run diagnostics for details";
             notifyIcon.Text = "Codex Presence — offline";
             return;
         }
 
         statusItem.Text = latest.PresenceEnabled
-            ? latest.RpcReady ? "● Discord connected" : "● Waiting for Discord"
-            : "● Presence paused";
+            ? latest.RpcReady ? "Discord connected" : "Waiting for Discord"
+            : "Presence paused";
         statusItem.ForeColor = latest.PresenceEnabled && latest.RpcReady ? Visuals.Success : Visuals.Muted;
-        activityItem.Text = $"{latest.Project ?? "Waiting"}  ·  {Shorten(latest.File, 48)}";
+        statusItem.Image = MenuIcon(latest.RpcReady && latest.PresenceEnabled ? UiIcon.Check : UiIcon.Info,
+            latest.RpcReady && latest.PresenceEnabled ? Visuals.Success : Visuals.Muted);
+        activityItem.Text = $"{latest.Project ?? "Project not detected"}  ·  {Shorten(latest.File, 48)}";
         pauseItem.Text = latest.PresenceEnabled ? "Pause presence" : "Resume presence";
-        notifyIcon.Text = Shorten($"Codex Presence — {latest.Project}", 63);
+        pauseItem.Image = MenuIcon(latest.PresenceEnabled ? UiIcon.Pause : UiIcon.Play, Visuals.TextSecondary);
+        notifyIcon.Text = Shorten($"Codex Presence — {latest.Project ?? "waiting"}", 63);
     }
 
     private async Task TogglePresenceAsync()
@@ -167,6 +179,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         using var form = new SettingsForm(configStore, remote);
         if (form.ShowDialog(dashboard.Visible ? dashboard : null) != DialogResult.OK || !form.Saved) return;
+        dashboard.UpdatePrivacy(configStore.Load().Privacy);
         try
         {
             daemon.InvalidateEndpoint();
@@ -271,6 +284,8 @@ public sealed class TrayApplicationContext : ApplicationContext
             activationWait?.Unregister(null);
             timer.Dispose();
             notifyIcon.Dispose();
+            menu.Dispose();
+            foreach (var image in menuIcons.Values) image.Dispose();
             dashboard.Dispose();
             daemon.Dispose();
             updates.Dispose();
@@ -284,6 +299,21 @@ public sealed class TrayApplicationContext : ApplicationContext
         : $"…{value[^Math.Max(1, max - 1)..]}";
 
     private static void ShowError(string title, Exception error) => ModernDialog.Show(title, error.Message, false);
+
+    private ToolStripMenuItem MenuItem(string text, UiIcon icon, Color? color = null) => new(text)
+    {
+        Image = MenuIcon(icon, color ?? Visuals.TextSecondary),
+        ImageScaling = ToolStripItemImageScaling.SizeToFit,
+    };
+
+    private Bitmap MenuIcon(UiIcon icon, Color color)
+    {
+        var key = (icon, color.ToArgb());
+        if (menuIcons.TryGetValue(key, out var bitmap)) return bitmap;
+        bitmap = UiIcons.RenderBitmap(icon, 18, color);
+        menuIcons[key] = bitmap;
+        return bitmap;
+    }
 
     private sealed class DarkMenuColors : ProfessionalColorTable
     {

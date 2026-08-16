@@ -7,27 +7,30 @@ namespace CodexPresence;
 
 public static class Visuals
 {
-    public static readonly Color Canvas = Color.FromArgb(13, 13, 13);
-    public static readonly Color Background = Color.FromArgb(18, 18, 18);
-    public static readonly Color Surface = Color.FromArgb(24, 24, 24);
-    public static readonly Color SurfaceRaised = Color.FromArgb(31, 31, 31);
-    public static readonly Color SurfaceHover = Color.FromArgb(39, 39, 39);
-    public static readonly Color Border = Color.FromArgb(48, 48, 48);
-    public static readonly Color BorderSoft = Color.FromArgb(38, 38, 38);
-    public static readonly Color Accent = Color.FromArgb(238, 238, 238);
-    public static readonly Color AccentText = Color.FromArgb(14, 14, 14);
-    public static readonly Color Text = Color.FromArgb(242, 242, 242);
-    public static readonly Color TextSecondary = Color.FromArgb(183, 183, 183);
-    public static readonly Color Muted = Color.FromArgb(132, 132, 132);
-    public static readonly Color Success = Color.FromArgb(54, 211, 153);
-    public static readonly Color SuccessSurface = Color.FromArgb(20, 55, 45);
-    public static readonly Color Danger = Color.FromArgb(248, 113, 113);
-    public static readonly Color DangerSurface = Color.FromArgb(64, 31, 31);
-    public static readonly Color FocusRing = Color.FromArgb(120, 214, 214, 214);
+    // Warm graphite reads like a physical desktop instrument instead of the
+    // blue-black palette used by nearly every generic developer dashboard.
+    public static readonly Color Canvas = Color.FromArgb(10, 12, 11);
+    public static readonly Color Background = Color.FromArgb(15, 18, 16);
+    public static readonly Color Surface = Color.FromArgb(21, 24, 22);
+    public static readonly Color SurfaceRaised = Color.FromArgb(29, 33, 30);
+    public static readonly Color SurfaceHover = Color.FromArgb(40, 45, 41);
+    public static readonly Color Border = Color.FromArgb(58, 65, 59);
+    public static readonly Color BorderSoft = Color.FromArgb(40, 45, 41);
+    public static readonly Color Accent = Color.FromArgb(232, 236, 228);
+    public static readonly Color AccentText = Color.FromArgb(15, 18, 16);
+    public static readonly Color Text = Color.FromArgb(238, 241, 235);
+    public static readonly Color TextSecondary = Color.FromArgb(175, 183, 175);
+    public static readonly Color Muted = Color.FromArgb(128, 138, 129);
+    public static readonly Color Success = Color.FromArgb(91, 219, 165);
+    public static readonly Color SuccessSurface = Color.FromArgb(17, 47, 36);
+    public static readonly Color Danger = Color.FromArgb(247, 126, 126);
+    public static readonly Color DangerSurface = Color.FromArgb(55, 26, 29);
+    public static readonly Color FocusRing = Color.FromArgb(124, 171, 255);
 
     private static readonly ConcurrentDictionary<(string Family, float Size, FontStyle Style), Font> FontCache = new();
     private static readonly Lazy<string> TextFamily = new(() => ResolveFamily("Segoe UI Variable Text", "Segoe UI"));
     private static readonly Lazy<string> DisplayFamily = new(() => ResolveFamily("Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI"));
+    private static readonly Lazy<string> MonoFamily = new(() => ResolveFamily("Cascadia Mono", "Consolas", "Courier New"));
     private static readonly Lazy<Icon> SharedIcon = new(() => RenderIcon(64));
 
     /// <summary>
@@ -49,6 +52,7 @@ public static class Visuals
 
     public static Font Font(float size, FontStyle style = FontStyle.Regular) => Cached(TextFamily.Value, size, style);
     public static Font DisplayFont(float size, FontStyle style = FontStyle.Regular) => Cached(DisplayFamily.Value, size, style);
+    public static Font MonoFont(float size, FontStyle style = FontStyle.Regular) => Cached(MonoFamily.Value, size, style);
 
     /// <summary>Device pixels per layout unit, so custom painting stays correct above 100% scaling.</summary>
     public static float Scale(this Control control) => control.DeviceDpi / 96f;
@@ -65,31 +69,22 @@ public static class Visuals
         graphics.Clear(Color.Transparent);
 
         var inset = Math.Max(1f, size * .035f);
-        using var tile = new SolidBrush(Color.FromArgb(17, 17, 17));
-        using var outline = new Pen(Color.FromArgb(238, 238, 238), Math.Max(1.4f, size * .035f));
-        using var glyph = new Pen(Color.FromArgb(238, 238, 238), Math.Max(2f, size * .065f))
-        {
-            StartCap = LineCap.Round,
-            EndCap = LineCap.Round,
-            LineJoin = LineJoin.Round,
-        };
+        using var tile = new SolidBrush(Canvas);
         graphics.FillRoundedRectangle(tile, new RectangleF(inset, inset, size - inset * 2, size - inset * 2), size * .22f);
-        graphics.DrawRoundedRectangle(outline, new RectangleF(inset + 1, inset + 1, size - inset * 2 - 2, size - inset * 2 - 2), size * .2f);
-        graphics.DrawLines(glyph, new PointF[] { new(size * .27f, size * .34f), new(size * .41f, size * .5f), new(size * .27f, size * .66f) });
-        graphics.DrawLine(glyph, size * .5f, size * .66f, size * .72f, size * .66f);
+        UiIcons.Draw(graphics, UiIcon.Brand, new RectangleF(inset + size * .08f, inset + size * .08f, size - inset * 2 - size * .16f, size - inset * 2 - size * .16f), Text);
         using var live = new SolidBrush(Success);
-        graphics.FillEllipse(live, size * .69f, size * .21f, size * .11f, size * .11f);
+        graphics.FillEllipse(live, size * .73f, size * .445f, size * .115f, size * .115f);
 
         var handle = bitmap.GetHicon();
         try { return (Icon)Icon.FromHandle(handle).Clone(); }
         finally { DestroyIcon(handle); }
     }
 
-    public static ModernButton Button(string text, ButtonKind kind = ButtonKind.Secondary, string? icon = null) => new()
+    public static ModernButton Button(string text, ButtonKind kind = ButtonKind.Secondary, UiIcon? icon = null) => new()
     {
         Text = text,
         Kind = kind,
-        IconGlyph = icon,
+        Icon = icon,
         Height = 40,
     };
 
@@ -105,7 +100,7 @@ public static class Visuals
 
     public static Label Eyebrow(string text) => new()
     {
-        Text = text.ToUpperInvariant(),
+        Text = text,
         ForeColor = Muted,
         Font = Font(8.5f, FontStyle.Bold),
         AutoSize = true,
@@ -113,7 +108,27 @@ public static class Visuals
         UseMnemonic = false,
     };
 
+    public static Label Heading(string text, float size = 20f) => new()
+    {
+        Text = text,
+        ForeColor = Text,
+        Font = DisplayFont(size, FontStyle.Bold),
+        AutoSize = true,
+        BackColor = Color.Transparent,
+        UseMnemonic = false,
+    };
+
     public static ModernSelect Select(IEnumerable<string> values, int width = 210) => new(values) { Width = width };
+
+    public static Color Blend(Color from, Color to, float amount)
+    {
+        var t = Math.Clamp(amount, 0f, 1f);
+        return Color.FromArgb(
+            (int)(from.A + (to.A - from.A) * t),
+            (int)(from.R + (to.R - from.R) * t),
+            (int)(from.G + (to.G - from.G) * t),
+            (int)(from.B + (to.B - from.B) * t));
+    }
 
     public static GraphicsPath RoundedPath(RectangleF rectangle, float radius)
     {

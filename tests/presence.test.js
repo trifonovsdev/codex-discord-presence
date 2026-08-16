@@ -23,9 +23,30 @@ test('russian is available for the whole card, not just parts of it', () => {
   assert.equal(card.state, 'Файл: src/index.ts');
 });
 
+test('a task title replaces the fake local-project fallback only when the user opts in', () => {
+  const privateCard = buildActivity({
+    ...base,
+    project: null,
+    task: 'Обновить дизайн приложения',
+    privacy: { ...PRIVACY_PRESETS.standard, preset: 'standard' },
+    language: 'ru',
+  });
+  assert.equal(privateCard.details, 'Работает в Codex');
+  assert.equal(privateCard.details.includes('Обновить'), false);
+
+  const sharedCard = buildActivity({
+    ...base,
+    project: null,
+    task: 'Обновить дизайн приложения',
+    privacy: { ...PRIVACY_PRESETS.standard, preset: 'standard', showTaskTitle: true },
+    language: 'ru',
+  });
+  assert.equal(sharedCard.details, 'Задача: Обновить дизайн приложения');
+});
+
 test('the minimal preset hides the file name', () => {
   const card = buildActivity({ ...base, project: 'store', file: 'src/secret-client.ts', privacy: { ...PRIVACY_PRESETS.minimal, preset: 'minimal' }, language: 'en' });
-  assert.equal(card.state, 'Editing: Working in Codex');
+  assert.equal(card.state, 'Working privately');
   assert.equal(card.state.includes('secret-client'), false);
 });
 
@@ -61,8 +82,12 @@ test('over-long values are clamped to what Discord accepts', () => {
   assert.ok(card.state.length <= MAX_FIELD);
 });
 
-test('an unknown project falls back to a placeholder rather than an empty card', () => {
+test('an unknown project reports an honest generic state instead of inventing a local project', () => {
   const privacy = { ...PRIVACY_PRESETS.standard, preset: 'standard' };
-  assert.equal(buildActivity({ ...base, project: null, file: null, privacy, language: 'en' }).details, 'Project: Local task');
-  assert.equal(buildActivity({ ...base, project: null, file: null, privacy, language: 'ru' }).details, 'Проект: Локальная задача');
+  const english = buildActivity({ ...base, project: null, file: null, privacy, language: 'en' });
+  const russian = buildActivity({ ...base, project: null, file: null, privacy, language: 'ru' });
+  assert.equal(english.details, 'Working in Codex');
+  assert.equal(english.state, 'Active Codex session');
+  assert.equal(russian.details, 'Работает в Codex');
+  assert.equal(russian.state, 'Активная сессия Codex');
 });

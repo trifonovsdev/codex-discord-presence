@@ -20,6 +20,7 @@ public sealed class PrivacyConfig
 {
     [JsonPropertyName("preset")] public string Preset { get; set; } = "standard";
     [JsonPropertyName("showProject")] public bool ShowProject { get; set; } = true;
+    [JsonPropertyName("showTaskTitle")] public bool ShowTaskTitle { get; set; }
     [JsonPropertyName("showFile")] public bool ShowFile { get; set; } = true;
     [JsonPropertyName("showTimer")] public bool ShowTimer { get; set; } = true;
     [JsonPropertyName("fileMode")] public string FileMode { get; set; } = "relative";
@@ -54,14 +55,19 @@ public sealed class HealthSnapshot
     [JsonPropertyName("version")] public string? Version { get; set; }
     [JsonPropertyName("language")] public string? Language { get; set; }
     [JsonPropertyName("rpcReady")] public bool RpcReady { get; set; }
+    [JsonPropertyName("rpcPublished")] public bool RpcPublished { get; set; }
+    [JsonPropertyName("rpcError")] public string? RpcError { get; set; }
     [JsonPropertyName("codexRunning")] public bool CodexRunning { get; set; }
     [JsonPropertyName("configWarnings")] public List<string> ConfigWarnings { get; set; } = [];
     [JsonPropertyName("presenceEnabled")] public bool PresenceEnabled { get; set; }
     [JsonPropertyName("project")] public string? Project { get; set; }
+    [JsonPropertyName("task")] public string? Task { get; set; }
+    [JsonPropertyName("taskTitleShared")] public bool TaskTitleShared { get; set; }
     [JsonPropertyName("file")] public string? File { get; set; }
     [JsonPropertyName("source")] public string? Source { get; set; }
     [JsonPropertyName("codexStartedAt")] public DateTimeOffset? CodexStartedAt { get; set; }
     [JsonPropertyName("lastRpcAck")] public DateTimeOffset? LastRpcAck { get; set; }
+    [JsonPropertyName("lastHookAt")] public DateTimeOffset? LastHookAt { get; set; }
     [JsonPropertyName("lastRemoteError")] public string? LastRemoteError { get; set; }
     [JsonPropertyName("selectedRemote")] public string? SelectedRemote { get; set; }
 }

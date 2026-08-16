@@ -6,21 +6,23 @@ const MAX_FIELD = 128;
 
 const STRINGS = {
   en: {
-    fallbackProject: 'Local task',
-    fallbackFile: 'Getting started',
-    hiddenFile: 'Working in Codex',
+    genericDetails: 'Working in Codex',
+    fallbackState: 'Active Codex session',
+    hiddenFileState: 'Working privately',
     hiddenProject: 'Codex Desktop',
     localWorkspace: 'Local',
     details: (project) => `Project: ${project}`,
+    taskDetails: (task) => `Task: ${task}`,
     state: (file) => `Editing: ${file}`,
   },
   ru: {
-    fallbackProject: 'Локальная задача',
-    fallbackFile: 'Начинаем',
-    hiddenFile: 'Работает в Codex',
+    genericDetails: 'Работает в Codex',
+    fallbackState: 'Активная сессия Codex',
+    hiddenFileState: 'Работает приватно',
     hiddenProject: 'Codex Desktop',
     localWorkspace: 'Локально',
     details: (project) => `Проект: ${project}`,
+    taskDetails: (task) => `Задача: ${task}`,
     state: (file) => `Файл: ${file}`,
   },
 };
@@ -43,6 +45,7 @@ function clamp(value, fallback) {
  */
 function buildActivity({
   project = null,
+  task = null,
   file = null,
   workspace = null,
   privacy,
@@ -52,17 +55,24 @@ function buildActivity({
   largeImageText = '',
 } = {}) {
   const text = stringsFor(language);
-  const visibleProject = privacy.showProject ? (project || text.fallbackProject) : text.hiddenProject;
+  let details = text.genericDetails;
+  if (privacy.showProject && project) details = text.details(project);
+  else if (privacy.showTaskTitle && task) details = text.taskDetails(task);
+  else if (!privacy.showProject) details = text.hiddenProject;
 
-  let visibleFile;
-  if (!privacy.showFile) visibleFile = text.hiddenFile;
-  else if (!file) visibleFile = text.fallbackFile;
-  else if (privacy.fileMode === 'name') visibleFile = String(file).replaceAll('\\', '/').split('/').at(-1) || file;
-  else visibleFile = file;
+  let visibleState;
+  if (!privacy.showFile) visibleState = text.hiddenFileState;
+  else if (!file) visibleState = text.fallbackState;
+  else {
+    const visibleFile = privacy.fileMode === 'name'
+      ? String(file).replaceAll('\\', '/').split('/').at(-1) || file
+      : file;
+    visibleState = text.state(visibleFile);
+  }
 
   const activity = {
-    details: clamp(text.details(visibleProject), text.details(text.fallbackProject)),
-    state: clamp(text.state(visibleFile), text.state(text.fallbackFile)),
+    details: clamp(details, text.genericDetails),
+    state: clamp(visibleState, text.fallbackState),
     instance: false,
   };
 

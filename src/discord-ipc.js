@@ -15,6 +15,7 @@ const OP_PONG = 4;
 const PIPE_COUNT = 10;
 const HEADER_BYTES = 8;
 const MAX_FRAME_BYTES = 1024 * 1024;
+const MAX_PENDING_ACKS = 32;
 const CONNECT_TIMEOUT_MS = 2000;
 
 // Discord accepts five SET_ACTIVITY commands per twenty seconds. Staying just
@@ -68,11 +69,23 @@ class DiscordIpc extends EventEmitter {
     this.buffer = Buffer.alloc(0);
     this.desired = null;
     this.lastSentJson = '';
+    this.lastAckedJson = '';
+    this.pendingAcks = new Map();
+    this.sendSequence = 0;
+    this.lastAckedSequence = 0;
     this.lastSentAt = 0;
     this.lastAck = null;
+    this.lastError = null;
     this.flushTimer = null;
     this.reconnectTimer = null;
     this.attempt = 0;
+  }
+
+  /** True only when Discord acknowledged the activity that is desired now. */
+  get published() {
+    if (!this.ready || !this.lastAck || this.desired === null) return false;
+    return this.lastAckedSequence === this.sendSequence &&
+      this.lastAckedJson === JSON.stringify(this.desired);
   }
 
   connect() {
@@ -86,6 +99,7 @@ class DiscordIpc extends EventEmitter {
    * shutting down, where a delayed clear would leave a stale card behind.
    */
   setActivity(activity, { immediate = false } = {}) {
+    if (JSON.stringify(activity ?? null) !== JSON.stringify(this.desired ?? null)) this.lastError = null;
     this.desired = activity;
     if (!immediate) {
       this.#scheduleFlush();
@@ -158,6 +172,11 @@ class DiscordIpc extends EventEmitter {
     this.ready = false;
     this.buffer = Buffer.alloc(0);
     this.lastSentJson = '';
+    this.lastAckedJson = '';
+    this.pendingAcks.clear();
+    this.sendSequence = 0;
+    this.lastAckedSequence = 0;
+    this.lastError = null;
     if (!socket) return;
     socket.removeAllListeners();
     socket.destroy();
@@ -242,11 +261,28 @@ class DiscordIpc extends EventEmitter {
       return;
     }
     if (message.evt === 'ERROR') {
+      const pending = this.pendingAcks.get(String(message.nonce || ''));
+      this.pendingAcks.delete(String(message.nonce || ''));
+      if (pending?.sequence === this.sendSequence && pending.json === JSON.stringify(this.desired ?? null)) {
+        this.lastError = String(message.data?.message || message.message || 'Discord rejected the activity update').slice(0, 512);
+        this.emit('activityError', this.lastError);
+      }
       this.log(`Discord RPC error: ${raw}`);
       return;
     }
     if (message.cmd === 'SET_ACTIVITY') {
+      const pending = this.pendingAcks.get(String(message.nonce || ''));
+      if (!pending) return;
+      this.pendingAcks.delete(String(message.nonce));
+      if (pending.sequence < this.lastAckedSequence) return;
+
+      this.lastAckedSequence = pending.sequence;
       this.lastAck = new Date().toISOString();
+      this.lastAckedJson = pending.json;
+      if (pending.sequence === this.sendSequence) this.lastError = null;
+      for (const [nonce, queued] of this.pendingAcks) {
+        if (queued.sequence <= this.lastAckedSequence) this.pendingAcks.delete(nonce);
+      }
       this.emit('ack', this.lastAck);
     }
   }
@@ -265,12 +301,19 @@ class DiscordIpc extends EventEmitter {
     if (!this.ready) return;
     const json = JSON.stringify(this.desired ?? null);
     if (json === this.lastSentJson) return;
+    const nonce = randomUUID();
     const sent = this.#write(OP_FRAME, {
       cmd: 'SET_ACTIVITY',
       args: { pid: process.pid, activity: this.desired },
-      nonce: randomUUID(),
+      nonce,
     });
     if (!sent) return;
+    const sequence = ++this.sendSequence;
+    this.pendingAcks.set(nonce, { json, sequence });
+    while (this.pendingAcks.size > MAX_PENDING_ACKS) {
+      const oldestNonce = this.pendingAcks.keys().next().value;
+      this.pendingAcks.delete(oldestNonce);
+    }
     this.lastSentJson = json;
     this.lastSentAt = Date.now();
   }
