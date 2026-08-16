@@ -9,6 +9,7 @@
   "privacy": {
     "preset": "standard",
     "showProject": true,
+    "showTaskTitle": false,
     "showFile": true,
     "showTimer": true,
     "fileMode": "relative"

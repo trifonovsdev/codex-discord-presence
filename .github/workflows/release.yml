@@ -3,29 +3,48 @@ name: Release
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version without the v prefix
-        required: true
-        default: '2.0.0'
 
 permissions:
   contents: write
 
 jobs:
+  validate:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   windows-release:
+    needs: validate
     runs-on: windows-latest
     env:
       SIGNING_AVAILABLE: ${{ secrets.CODE_SIGN_PFX_BASE64 != '' }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath .\package.json -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid package version: $version" }
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -ne 'tag' -or $env:GITHUB_REF_NAME -ne $tag) {
+            throw "Release must run from tag $tag; received $($env:GITHUB_REF_TYPE) $($env:GITHUB_REF_NAME)."
+          }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+      - name: Refuse to overwrite an existing release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Release $env:RELEASE_TAG already exists; refusing to overwrite its assets." }
+          $global:LASTEXITCODE = 0
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: '8.0.x'
       - name: Install Inno Setup
         shell: pwsh
-        run: winget install --id JRSoftware.InnoSetup --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        run: winget install --id JRSoftware.InnoSetup --version 6.7.3 --source winget --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
       - name: Import optional code-signing certificate
         if: env.SIGNING_AVAILABLE == 'true'
         shell: pwsh
@@ -40,9 +59,7 @@ jobs:
           "CODE_SIGN_THUMBPRINT=$($certificate.Thumbprint)" >> $env:GITHUB_ENV
       - name: Build release
         shell: pwsh
-        run: |
-          $version = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
-          .\build-release.ps1 -Version $version
+        run: .\build-release.ps1 -Version $env:RELEASE_VERSION
       - name: Smoke-test installer lifecycle
         shell: pwsh
         run: .\tests\installer-smoke.ps1
@@ -57,13 +74,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { "v${{ inputs.version }}" } else { '${{ github.ref_name }}' }
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag .\artifacts\CodexPresenceSetup.exe .\artifacts\CodexPresence-*-portable.zip .\artifacts\SHA256SUMS.txt --clobber
-          } else {
-            gh release create $tag .\artifacts\CodexPresenceSetup.exe .\artifacts\CodexPresence-*-portable.zip .\artifacts\SHA256SUMS.txt --generate-notes --latest --title "Codex Presence $tag"
-          }
+          gh release create $env:RELEASE_TAG .\artifacts\CodexPresenceSetup.exe .\artifacts\CodexPresence-*-portable.zip .\artifacts\SHA256SUMS.txt --generate-notes --latest --title "Codex Presence $env:RELEASE_TAG"
       - name: Remove signing certificate
         if: ${{ always() && env.CODE_SIGN_THUMBPRINT != '' }}
         shell: pwsh

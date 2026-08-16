@@ -48,7 +48,12 @@ function isFilesystemRoot(value) {
  */
 function isAnyFilesystemRoot(value) {
   const clean = String(value ?? '').replaceAll('\\', '/').replace(/\/+$/, '');
-  return clean === '' || clean === '/' || /^[A-Za-z]:$/.test(clean) || /^\/root$/.test(clean) || /^\/home\/[^/]+$/.test(clean);
+  return clean === ''
+    || clean === '/'
+    || /^[A-Za-z]:$/.test(clean)
+    || /^\/root$/.test(clean)
+    || /^\/home\/[^/]+$/.test(clean)
+    || /^[A-Za-z]:\/Users\/[^/]+$/i.test(clean);
 }
 
 function isWorkspaceContainer(name) {
@@ -68,14 +73,15 @@ function shortenPath(value, max = MAX_FILE) {
 }
 
 function projectNameFromCwd(cwd) {
-  return segments(cwd).at(-1)?.slice(0, MAX_PROJECT) || null;
+  const name = segments(cwd).at(-1);
+  return name && !isWorkspaceContainer(name) ? name.slice(0, MAX_PROJECT) : null;
 }
 
 /** Project name implied by a hook payload's working directory, or null. */
 function projectFromCwd(cwd) {
-  if (typeof cwd !== 'string' || isFilesystemRoot(cwd)) return null;
+  if (typeof cwd !== 'string' || isAnyFilesystemRoot(cwd)) return null;
   const name = win.basename(cwd.replace(/[\\/]+$/, ''));
-  return name && name !== '.' ? name.slice(0, MAX_PROJECT) : null;
+  return name && name !== '.' && !isWorkspaceContainer(name) ? name.slice(0, MAX_PROJECT) : null;
 }
 
 const repositoryCache = new Map();
@@ -111,6 +117,20 @@ function repositoryProjectFromFile(filePath, cwd, { fileSystem = defaultFileSyst
   return null;
 }
 
+function sessionRoots(state) {
+  return [...(state.workspaceRoots || []), state.cwd]
+    .filter((value) => typeof value === 'string' && value.trim() && !isAnyFilesystemRoot(value))
+    .sort((left, right) => String(right).length - String(left).length);
+}
+
+function projectFromContainerPath(rootName, filePath) {
+  if (!isWorkspaceContainer(rootName)) return null;
+  const parts = segments(filePath);
+  const first = parts[0];
+  if (parts.length <= 1 || !first || isWorkspaceContainer(first) || SOURCE_DIRECTORY.test(first) || SYSTEM_ROOT.test(first)) return null;
+  return first.slice(0, MAX_PROJECT);
+}
+
 /**
  * Best-effort project name for a transcript state. Returns null when nothing
  * better than a generic container folder could be found, so the caller can
@@ -120,16 +140,14 @@ function projectFromSession(state, options = {}) {
   const repositoryProject = repositoryProjectFromFile(state.lastFile, state.cwd, options);
   if (repositoryProject) return repositoryProject;
 
-  const roots = [...(state.workspaceRoots || []), state.cwd]
-    .filter((value) => typeof value === 'string' && value.trim() && !isFilesystemRoot(value))
-    .sort((left, right) => String(right).length - String(left).length);
+  const roots = sessionRoots(state);
 
   const relativeParts = segments(state.lastFile);
 
   if (roots.length) {
     const rootName = win.basename(roots[0].replace(/[\\/]+$/, ''));
-    if (isWorkspaceContainer(rootName) && relativeParts.length > 1 && !isWorkspaceContainer(relativeParts[0])) {
-      return relativeParts[0].slice(0, MAX_PROJECT);
+    if (isWorkspaceContainer(rootName)) {
+      return projectFromContainerPath(rootName, state.lastFile);
     }
     return rootName.slice(0, MAX_PROJECT) || null;
   }
@@ -146,6 +164,18 @@ function projectFromSession(state, options = {}) {
   if (relativeParts.length > 1 && !SYSTEM_ROOT.test(relativeParts[0])) return relativeParts[0].slice(0, MAX_PROJECT);
 
   return null;
+}
+
+/** Uses concrete repository evidence first, Codex metadata second, and path heuristics last. */
+function resolveSessionProject(state, contextProject, options = {}) {
+  const [root] = sessionRoots(state);
+  const containerProject = root
+    ? projectFromContainerPath(win.basename(root.replace(/[\\/]+$/, '')), state.lastFile)
+    : null;
+  return repositoryProjectFromFile(state.lastFile, state.cwd, options)
+    || contextProject
+    || containerProject
+    || projectFromSession(state, options);
 }
 
 /** Strips the project prefix so the card shows a repository-relative path. */
@@ -230,6 +260,7 @@ module.exports = {
   isWorkspaceContainer,
   projectFromCwd,
   projectFromSession,
+  resolveSessionProject,
   projectNameFromCwd,
   repositoryProjectFromFile,
   segments,

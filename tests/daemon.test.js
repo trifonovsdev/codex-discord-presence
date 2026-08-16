@@ -7,6 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 
 const daemonPath = path.resolve(__dirname, '..', 'src', 'daemon.js');
 
@@ -81,10 +82,13 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
         { name: 'server-b', host: 'user@server-b', roots: ['/srv/b'] },
       ],
     },
-  }, async ({ port, configPath }) => {
+  }, async ({ port, root, configPath }) => {
     const initial = await waitForHealth(port);
     assert.equal(initial.ok, true);
-    assert.equal(initial.version, '2.2.0');
+    assert.equal(initial.version, '2.3.0');
+    assert.equal(initial.project, null, 'health must expose unresolved state instead of a fake project');
+    assert.equal(initial.details, 'Working in Codex');
+    assert.equal(initial.taskTitleShared, false);
     assert.deepEqual(initial.remoteHosts, ['server-a', 'server-b']);
 
     const hookResponse = await json(port, '/hook', {
@@ -98,6 +102,29 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
     const afterHook = await waitForHealth(port);
     assert.equal(afterHook.project, 'demo');
     assert.equal(afterHook.file, 'src/demo.js');
+    assert.ok(Date.parse(afterHook.lastHookAt), 'Doctor can distinguish registered hooks from hooks that actually fired');
+
+    const metadataThreadId = '00000000-0000-0000-0000-000000000001';
+    const stateDatabase = new DatabaseSync(path.join(root, 'state_5.sqlite'));
+    stateDatabase.exec('CREATE TABLE threads (id TEXT PRIMARY KEY, title TEXT, cwd TEXT, git_origin_url TEXT)');
+    stateDatabase.prepare('INSERT INTO threads VALUES (?, ?, ?, ?)').run(
+      metadataThreadId,
+      'Ship the polished release',
+      'C:\\work\\checkout-alias',
+      'https://github.com/acme/canonical-repository.git',
+    );
+    stateDatabase.close();
+
+    const metadataHookResponse = await json(port, '/hook', {
+      hook_event_name: 'SessionStart',
+      session_id: metadataThreadId,
+      cwd: 'C:\\work\\checkout-alias',
+    });
+    assert.equal(metadataHookResponse.status, 204);
+    const afterMetadataHook = await waitForHealth(port);
+    assert.equal(afterMetadataHook.project, 'canonical-repository', 'authoritative repository metadata wins over a cwd alias');
+    assert.equal(afterMetadataHook.file, null);
+    assert.equal(afterMetadataHook.task, null, 'prompt-derived task metadata remains private without opt-in');
 
     const nestedHookResponse = await json(port, '/hook', {
       hook_event_name: 'PostToolUse',
@@ -111,6 +138,17 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
     assert.equal(afterNestedHook.project, 'codex-discord-presence');
     assert.equal(afterNestedHook.file, 'tray/Program.cs');
 
+    const privateSessionResponse = await json(port, '/hook', {
+      hook_event_name: 'SessionStart',
+      session_id: '00000000-0000-0000-0000-000000000003',
+      cwd: '/root',
+    });
+    assert.equal(privateSessionResponse.status, 204);
+    const afterPrivateSession = await waitForHealth(port);
+    assert.equal(afterPrivateSession.project, null, 'a new unresolved session cannot inherit the previous repository');
+    assert.equal(afterPrivateSession.file, null);
+    assert.equal(afterPrivateSession.details, 'Working in Codex');
+
     const pause = await json(port, '/control', { action: 'pause' });
     assert.equal(pause.status, 200);
     assert.equal((await pause.json()).presenceEnabled, false);
@@ -119,6 +157,28 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
     const persisted = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     assert.equal(persisted.presenceEnabled, false);
     assert.equal(persisted.port, Number(port), 'pausing must not discard the rest of the config');
+  });
+});
+
+test('task metadata is exposed to the tray only after explicit opt-in', async () => {
+  await withDaemon({ privacy: { showTaskTitle: true } }, async ({ port, root }) => {
+    await waitForHealth(port);
+    const threadId = '00000000-0000-0000-0000-000000000002';
+    const stateDatabase = new DatabaseSync(path.join(root, 'state_5.sqlite'));
+    stateDatabase.exec('CREATE TABLE threads (id TEXT PRIMARY KEY, title TEXT, cwd TEXT, git_origin_url TEXT)');
+    stateDatabase.prepare('INSERT INTO threads VALUES (?, ?, ?, ?)').run(
+      threadId,
+      'Visible only by explicit choice',
+      'C:\\work\\demo',
+      'https://github.com/acme/demo.git',
+    );
+    stateDatabase.close();
+
+    const response = await json(port, '/hook', { hook_event_name: 'SessionStart', session_id: threadId, cwd: 'C:\\work\\demo' });
+    assert.equal(response.status, 204);
+    const health = await waitForHealth(port);
+    assert.equal(health.taskTitleShared, true);
+    assert.equal(health.task, 'Visible only by explicit choice');
   });
 });
 

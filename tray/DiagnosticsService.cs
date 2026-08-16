@@ -67,10 +67,15 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
 
         var hooksOk = false;
         try { hooksOk = File.ReadAllText(AppPaths.HooksPath).Replace("\\\\", "\\").Contains(AppPaths.HookPath, StringComparison.OrdinalIgnoreCase); } catch { }
+        var hookDetail = hooksOk
+            ? health?.LastHookAt is { } observed
+                ? $"Last event received {observed.ToLocalTime():g}"
+                : "Registered; no event received since the service started — open a task and review Codex hook permissions if this persists"
+            : $"Not registered in {SafePath(AppPaths.HooksPath)} — restart ChatGPT/Codex once after installing";
         result.Add(new(
             "Codex hooks",
             hooksOk,
-            hooksOk ? SafePath(AppPaths.HooksPath) : $"Not registered in {SafePath(AppPaths.HooksPath)} — restart ChatGPT/Codex once after installing"));
+            hookDetail));
 
         result.Add(new("Windows startup", true, configStore.StartsWithWindows ? "Enabled" : "Disabled (optional)"));
 

@@ -27,6 +27,14 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Native product UI** — dark dashboard, custom controls, privacy presets, diagnostics, and verified updates.
 - **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
+## v2.3 changes
+
+- The native dashboard, Settings, Doctor, dialogs, tray menu, icon system, and motion have been redesigned as one accessible graphite UI.
+- Route changes now require nearby workspace evidence, so sidebar/background tasks cannot steal the active Discord card.
+- Task titles are opt-in through `privacy.showTaskTitle` and remain hidden by default.
+- When no project can be resolved, the Discord card uses an honest generic Codex fallback instead of inventing a local project.
+- Remote project detection resolves repositories below account roots without exposing the account name or cached paths to other users.
+
 ## Install
 
 1. Download [`CodexPresenceSetup.exe`](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe).
@@ -48,11 +56,11 @@ Double-click the tray icon to open the dashboard. The tray menu offers pause/res
 
 ## Privacy presets
 
-| Preset | Project | File | Timer | Tooltip | Best for |
-|---|:---:|:---:|:---:|:---:|---|
-| `minimal` | ✓ | hidden | ✓ | app name | Streaming and maximum privacy |
-| `standard` | ✓ | relative path | ✓ | app name | Everyday use |
-| `detailed` | ✓ | relative path | ✓ | app name + workspace | A more descriptive card |
+| Preset | Project | Task title | File | Timer | Tooltip | Best for |
+|---|:---:|:---:|:---:|:---:|:---:|---|
+| `minimal` | ✓ | hidden | hidden | ✓ | app name | Streaming and maximum privacy |
+| `standard` | ✓ | hidden | relative path | ✓ | app name | Everyday use |
+| `detailed` | ✓ | hidden | relative path | ✓ | app name + workspace | A more descriptive card |
 
 A preset sets the baseline; every individual field can still be overridden, in the UI or by hand in `config.json`. File display supports filename-only or a repository-relative path.
 
@@ -97,7 +105,7 @@ Selected remote task ── system OpenSSH ──> incremental Python helper
 
 The daemon is split into focused modules under `src/`: `config.js` (validation and atomic writes),
 `discord-ipc.js` (framing, keepalive, reconnect and rate limiting), `codex-paths.js` (project and file
-heuristics), `desktop-selection.js` (which task is selected), `presence.js` (card text) and `logger.js`
+heuristics), `desktop-selection.js` (which task is selected), `codex-state.js` (read-only selected-task metadata), `presence.js` (card text) and `logger.js`
 (rotating log). `daemon.js` wires them to the HTTP control surface.
 
 The local server binds only to `127.0.0.1`, requires a loopback `Host` header, and rejects any request
@@ -132,17 +140,17 @@ their default and reported in **Doctor** instead of preventing the service from 
 
 ## Development
 
-Requirements: Windows, .NET 8 SDK, Node.js 18+, Python 3, and Inno Setup 6.
+Requirements: Windows, .NET 8 SDK, Node.js 24+, Python 3, and Inno Setup 6.7.3.
 
 ```powershell
 git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.2.0
+.\build-release.ps1 -Version 2.3.0
 ```
 
-The build downloads the pinned official Node distribution, publishes a self-contained UI, compiles the installer, and emits SHA-256 checksums.
+The build downloads the pinned official Node distribution, verifies its archive against both the reviewed SHA-256 pinned in the build script and Node.js `SHASUMS256.txt`, publishes a self-contained UI, compiles the installer, and emits SHA-256 checksums. Verified downloads are cached under `.build-cache/`.
 
 `npm run check` runs the whole JavaScript suite — the path heuristics are pinned to Windows semantics, so the
 tests give identical results on Linux and macOS. The tray project sets `EnableWindowsTargeting`, so

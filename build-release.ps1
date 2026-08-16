@@ -1,12 +1,18 @@
 [CmdletBinding()]
 param(
-  [string]$Version = '2.2.0',
+  [string]$Version = '2.3.0',
   [string]$NodeVersion = '24.17.0',
+  [string]$NodeSha256 = 'f2aa33b35b75aca5f3f7b85675a6f6423201053e9381911e64961f3bda2528ab',
   [switch]$SkipInstaller
 )
 
 $ErrorActionPreference = 'Stop'
+if ($Version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid release version: $Version" }
+if ($NodeVersion -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid Node version: $NodeVersion" }
+if ($NodeSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'NodeSha256 must be a 64-character SHA-256 digest.' }
 $root = [IO.Path]::GetFullPath($PSScriptRoot)
+$packageVersion = (Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw | ConvertFrom-Json).version
+if ($Version -ne $packageVersion) { throw "Release version $Version must match package.json version $packageVersion." }
 $artifacts = Join-Path $root 'artifacts'
 $stage = Join-Path $artifacts 'stage'
 $cache = Join-Path $root '.build-cache'
@@ -24,12 +30,48 @@ Copy-Item -LiteralPath (Join-Path $artifacts 'tray-publish\CodexPresence.exe') -
 Copy-Item -Path (Join-Path $root 'src\*.js'),(Join-Path $root 'src\remote-monitor.py') -Destination (Join-Path $stage 'app')
 Copy-Item -LiteralPath (Join-Path $root 'config.example.json') -Destination (Join-Path $stage 'app\config.default.json')
 
-$nodeArchive = Join-Path $cache "node-v$NodeVersion-win-x64.zip"
-$nodeExtract = Join-Path $cache "node-v$NodeVersion-win-x64"
-if (-not (Test-Path -LiteralPath $nodeArchive)) {
-  Invoke-WebRequest -Uri "https://nodejs.org/dist/v$NodeVersion/node-v$NodeVersion-win-x64.zip" -OutFile $nodeArchive
+function Save-CachedDownload {
+  param([Parameter(Mandatory)][string]$Uri, [Parameter(Mandatory)][string]$Destination)
+  if (Test-Path -LiteralPath $Destination) { return }
+  $partial = "$Destination.download"
+  try {
+    Invoke-WebRequest -Uri $Uri -OutFile $partial
+    Move-Item -LiteralPath $partial -Destination $Destination -Force
+  } finally {
+    if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
+  }
 }
-if (-not (Test-Path -LiteralPath $nodeExtract)) { Expand-Archive -LiteralPath $nodeArchive -DestinationPath $cache }
+
+$nodeArchiveName = "node-v$NodeVersion-win-x64.zip"
+$nodeArchive = Join-Path $cache $nodeArchiveName
+$nodeExtract = Join-Path $cache "node-v$NodeVersion-win-x64"
+$nodeChecksums = Join-Path $cache "node-v$NodeVersion-SHASUMS256.txt"
+Save-CachedDownload -Uri "https://nodejs.org/dist/v$NodeVersion/SHASUMS256.txt" -Destination $nodeChecksums
+Save-CachedDownload -Uri "https://nodejs.org/dist/v$NodeVersion/$nodeArchiveName" -Destination $nodeArchive
+
+$escapedNodeArchiveName = [regex]::Escape($nodeArchiveName)
+$nodeChecksumPattern = '^[0-9a-fA-F]{64}\s+\*?' + $escapedNodeArchiveName + '$'
+$checksumLine = Get-Content -LiteralPath $nodeChecksums | Where-Object {
+  $_.Trim() -match $nodeChecksumPattern
+} | Select-Object -First 1
+if (-not $checksumLine) { throw "Official Node SHASUMS256.txt has no entry for $nodeArchiveName." }
+$manifestNodeHash = (($checksumLine.Trim() -split '\s+')[0]).ToLowerInvariant()
+$expectedNodeHash = $NodeSha256.ToLowerInvariant()
+if ($manifestNodeHash -ne $expectedNodeHash) { throw "Official manifest checksum $manifestNodeHash does not match pinned checksum $expectedNodeHash." }
+$actualNodeHash = (Get-FileHash -LiteralPath $nodeArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualNodeHash -ne $expectedNodeHash) { throw "Node archive checksum mismatch for $nodeArchiveName." }
+
+$nodeExtractMarker = Join-Path $nodeExtract '.archive-sha256'
+$cachedExtractHash = if (Test-Path -LiteralPath $nodeExtractMarker) {
+  (Get-Content -LiteralPath $nodeExtractMarker -Raw).Trim().ToLowerInvariant()
+} else {
+  ''
+}
+if (-not (Test-Path -LiteralPath $nodeExtract) -or $cachedExtractHash -ne $actualNodeHash) {
+  if (Test-Path -LiteralPath $nodeExtract) { Remove-Item -LiteralPath $nodeExtract -Recurse -Force }
+  Expand-Archive -LiteralPath $nodeArchive -DestinationPath $cache
+  [IO.File]::WriteAllText($nodeExtractMarker, $actualNodeHash, [Text.UTF8Encoding]::new($false))
+}
 Copy-Item -LiteralPath (Join-Path $nodeExtract 'node.exe') -Destination (Join-Path $stage 'runtime\node.exe')
 Copy-Item -LiteralPath (Join-Path $nodeExtract 'LICENSE') -Destination (Join-Path $stage 'runtime\NODE_LICENSE')
 

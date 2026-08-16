@@ -54,6 +54,7 @@ test('a privacy preset supplies defaults that explicit fields still override', (
   try {
     const { config } = readConfig(configPath);
     assert.equal(config.privacy.showFile, false);
+    assert.equal(config.privacy.showTaskTitle, false, 'prompt-derived task titles stay private by default');
     assert.equal(config.privacy.fileMode, 'name');
   } finally {
     cleanup();
@@ -64,6 +65,13 @@ test('a privacy preset supplies defaults that explicit fields still override', (
     assert.equal(readConfig(explicit.configPath).config.privacy.showFile, true);
   } finally {
     explicit.cleanup();
+  }
+
+  const taskTitle = withConfig(JSON.stringify({ privacy: { preset: 'standard', showTaskTitle: true } }));
+  try {
+    assert.equal(readConfig(taskTitle.configPath).config.privacy.showTaskTitle, true);
+  } finally {
+    taskTitle.cleanup();
   }
 });
 

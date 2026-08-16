@@ -25,7 +25,7 @@ function parseDesktopLogLine(line) {
   const cwdMatch = CWD.exec(line);
   if (cwdMatch) {
     const cwd = cwdMatch[1].replace(/^['"]|['"]$/g, '');
-    if (cwd && !GIT_DIRECTORY.test(cwd) && !isAnyFilesystemRoot(cwd)) events.push({ type: 'cwd', at, cwd });
+    if (cwd && !GIT_DIRECTORY.test(cwd)) events.push({ type: 'cwd', at, cwd });
   }
   return events;
 }
@@ -46,6 +46,7 @@ class DesktopSelection {
     this.selectedThreadId = null;
     this.selectedRouteKind = null;
     this.selectedRouteAt = 0;
+    this.confirmedThreadId = null;
   }
 
   /**
@@ -60,15 +61,17 @@ class DesktopSelection {
 
     for (const event of ordered) {
       if (event.type === 'route') {
-        this.activeRoute = event;
         const state = this.#thread(event.threadId);
         state.kind = event.kind;
-        state.lastSelectedAt = event.at;
+        state.lastSelectedAt = Math.max(state.lastSelectedAt, event.at);
         if (event.at >= this.selectedRouteAt) {
+          this.activeRoute = event;
           switched = switched || event.threadId !== this.selectedThreadId;
           this.selectedThreadId = event.threadId;
           this.selectedRouteKind = event.kind;
           this.selectedRouteAt = event.at;
+          state.pendingRouteAt = event.at;
+          state.cwdRouteDelta = null;
         }
         continue;
       }
@@ -79,9 +82,13 @@ class DesktopSelection {
         const state = this.#thread(this.activeRoute.threadId);
         if (state.cwdRouteDelta == null || delta < state.cwdRouteDelta) {
           state.cwd = event.cwd;
-          state.project = projectNameFromCwd(event.cwd);
+          state.project = isAnyFilesystemRoot(event.cwd) ? null : projectNameFromCwd(event.cwd);
           state.cwdAt = event.at;
           state.cwdRouteDelta = delta;
+          state.confirmedRouteAt = this.activeRoute.at;
+          if (this.activeRoute.threadId === this.selectedThreadId && this.activeRoute.at === this.selectedRouteAt) {
+            this.confirmedThreadId = this.activeRoute.threadId;
+          }
         }
       }
     }
@@ -93,6 +100,30 @@ class DesktopSelection {
   selected() {
     if (!this.selectedThreadId) return null;
     return { ...this.#thread(this.selectedThreadId), threadId: this.selectedThreadId, kind: this.selectedRouteKind, at: this.selectedRouteAt };
+  }
+
+  /** Returns the most recent task backed by a route + nearby cwd pair. */
+  confirmedSelected() {
+    if (!this.confirmedThreadId) return null;
+    const state = this.threadState(this.confirmedThreadId);
+    if (!state?.confirmedRouteAt) return null;
+    return {
+      ...state,
+      threadId: this.confirmedThreadId,
+      kind: state.kind,
+      at: state.confirmedRouteAt,
+    };
+  }
+
+  /** A bare owner route can come from an embedded sidebar; nearby cwd proves it represents task navigation. */
+  selectedRouteConfirmed() {
+    const state = this.threadState(this.selectedThreadId);
+    return Boolean(
+      state?.cwd
+      && state.cwdAt
+      && state.confirmedRouteAt === this.selectedRouteAt
+      && this.confirmedThreadId === this.selectedThreadId,
+    );
   }
 
   threadState(threadId) {
@@ -113,7 +144,17 @@ class DesktopSelection {
   #thread(threadId) {
     let state = this.threads.get(threadId);
     if (!state) {
-      state = { kind: null, cwd: null, project: null, lastFile: null, lastSelectedAt: 0, cwdAt: 0, cwdRouteDelta: null };
+      state = {
+        kind: null,
+        cwd: null,
+        project: null,
+        lastFile: null,
+        lastSelectedAt: 0,
+        cwdAt: 0,
+        cwdRouteDelta: null,
+        pendingRouteAt: 0,
+        confirmedRouteAt: 0,
+      };
       this.threads.set(threadId, state);
     }
     return state;
@@ -125,6 +166,7 @@ class DesktopSelection {
     const ordered = [...this.threads].sort((left, right) => (right[1].lastSelectedAt || 0) - (left[1].lastSelectedAt || 0));
     this.threads = new Map(ordered.slice(0, this.threadLimit));
     if (this.selectedThreadId && !this.threads.has(this.selectedThreadId)) this.#thread(this.selectedThreadId);
+    if (this.confirmedThreadId && !this.threads.has(this.confirmedThreadId)) this.#thread(this.confirmedThreadId);
   }
 }
 

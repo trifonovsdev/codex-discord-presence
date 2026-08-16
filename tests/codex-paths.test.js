@@ -11,6 +11,7 @@ const {
   isFilesystemRoot,
   projectFromCwd,
   projectFromSession,
+  resolveSessionProject,
   repositoryProjectFromFile,
   shortenPath,
   toolPayloadFromRecord,
@@ -31,6 +32,7 @@ test('filesystem roots are never treated as project names', () => {
   assert.equal(isFilesystemRoot('C:\\projects\\demo'), false);
   assert.equal(isAnyFilesystemRoot('/root'), true);
   assert.equal(isAnyFilesystemRoot('/home/dev'), true);
+  assert.equal(isAnyFilesystemRoot('C:\\Users\\dev'), true);
   assert.equal(isAnyFilesystemRoot('/srv/store'), false);
 });
 
@@ -53,6 +55,45 @@ test('a workspace container folder resolves to the checkout inside it', () => {
   assert.equal(project, 'codex-discord-presence');
 });
 
+test('a workspace container without repository evidence is not presented as a project', () => {
+  const project = projectFromSession(
+    { cwd: 'C:\\Users\\dev\\Documents\\GitHub', workspaceRoots: [], lastFile: null },
+    { fileSystem: fakeFileSystem([]), now: 31 },
+  );
+  assert.equal(project, null);
+});
+
+test('session resolution prefers repository evidence, then authoritative metadata, then cwd heuristics', () => {
+  const metadataWins = resolveSessionProject(
+    { cwd: 'D:\\work\\checkout-alias', workspaceRoots: [], lastFile: null },
+    'canonical-repository',
+    { fileSystem: fakeFileSystem([]), now: 32 },
+  );
+  assert.equal(metadataWins, 'canonical-repository');
+
+  const metadataBeatsGenericSourceFolder = resolveSessionProject(
+    { cwd: 'D:\\Projects', workspaceRoots: [], lastFile: 'src/index.js' },
+    'canonical-repository',
+    { fileSystem: fakeFileSystem([]), now: 34 },
+  );
+  assert.equal(metadataBeatsGenericSourceFolder, 'canonical-repository');
+
+  const metadataBeatsContainerGuess = resolveSessionProject(
+    { cwd: 'D:\\Projects', workspaceRoots: [], lastFile: 'checkout-alias/src/index.js' },
+    'canonical-repository',
+    { fileSystem: fakeFileSystem([]), now: 35 },
+  );
+  assert.equal(metadataBeatsContainerGuess, 'canonical-repository');
+
+  const fileSystem = fakeFileSystem(['D:\\work\\nested-repository', 'D:\\work\\nested-repository\\.git']);
+  const repositoryWins = resolveSessionProject(
+    { cwd: 'D:\\work', workspaceRoots: [], lastFile: 'nested-repository/src/index.js' },
+    'outer-repository',
+    { fileSystem, now: 33 },
+  );
+  assert.equal(repositoryWins, 'nested-repository');
+});
+
 test('an unresolvable session returns null so the caller can localise it', () => {
   const project = projectFromSession({ cwd: '', workspaceRoots: [], lastFile: '' }, { fileSystem: fakeFileSystem([]), now: 4 });
   assert.equal(project, null);
@@ -70,7 +111,19 @@ test('project name comes from the working directory of a hook payload', () => {
   assert.equal(projectFromCwd('C:\\projects\\demo'), 'demo');
   assert.equal(projectFromCwd('/srv/store/'), 'store');
   assert.equal(projectFromCwd('C:\\'), null);
+  assert.equal(projectFromCwd('/root'), null);
+  assert.equal(projectFromCwd('/home/dev'), null);
+  assert.equal(projectFromCwd('C:\\Users\\dev'), null);
+  assert.equal(projectFromCwd('C:\\Projects'), null);
+  assert.equal(projectFromCwd('C:\\Users\\dev\\Documents\\GitHub'), null);
   assert.equal(projectFromCwd(undefined), null);
+});
+
+test('home directory roots never leak the account name through session fallback', () => {
+  const options = { fileSystem: fakeFileSystem([]), now: 6 };
+  assert.equal(projectFromSession({ cwd: '/root', workspaceRoots: [], lastFile: '' }, options), null);
+  assert.equal(projectFromSession({ cwd: '/home/dev', workspaceRoots: [], lastFile: '' }, options), null);
+  assert.equal(projectFromSession({ cwd: 'C:\\Users\\dev', workspaceRoots: [], lastFile: '' }, options), null);
 });
 
 test('the project prefix is stripped from the displayed file', () => {

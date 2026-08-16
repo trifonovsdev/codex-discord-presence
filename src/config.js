@@ -24,6 +24,7 @@ const DEFAULT_CONFIG = Object.freeze({
   privacy: Object.freeze({
     preset: 'standard',
     showProject: true,
+    showTaskTitle: false,
     showFile: true,
     showTimer: true,
     fileMode: 'relative',
@@ -37,9 +38,9 @@ const DEFAULT_CONFIG = Object.freeze({
 });
 
 const PRIVACY_PRESETS = Object.freeze({
-  minimal: Object.freeze({ showProject: true, showFile: false, showTimer: true, fileMode: 'name' }),
-  standard: Object.freeze({ showProject: true, showFile: true, showTimer: true, fileMode: 'relative' }),
-  detailed: Object.freeze({ showProject: true, showFile: true, showTimer: true, fileMode: 'relative' }),
+  minimal: Object.freeze({ showProject: true, showTaskTitle: false, showFile: false, showTimer: true, fileMode: 'name' }),
+  standard: Object.freeze({ showProject: true, showTaskTitle: false, showFile: true, showTimer: true, fileMode: 'relative' }),
+  detailed: Object.freeze({ showProject: true, showTaskTitle: false, showFile: true, showTimer: true, fileMode: 'relative' }),
 });
 
 function pickString(value, pattern, fallback) {
@@ -97,6 +98,7 @@ function readConfig(configPath) {
     privacy: {
       preset,
       showProject: pickBoolean(privacyRaw.showProject, presetDefaults.showProject),
+      showTaskTitle: pickBoolean(privacyRaw.showTaskTitle, presetDefaults.showTaskTitle),
       showFile: pickBoolean(privacyRaw.showFile, presetDefaults.showFile),
       showTimer: pickBoolean(privacyRaw.showTimer, presetDefaults.showTimer),
       fileMode: pickEnum(privacyRaw.fileMode, FILE_MODES, presetDefaults.fileMode),

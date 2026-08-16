@@ -12,17 +12,18 @@ const { createLogger } = require('./logger');
 const { DiscordIpc } = require('./discord-ipc');
 const { DesktopSelection, parseDesktopLogLine } = require('./desktop-selection');
 const { buildActivity, stringsFor } = require('./presence');
+const { readThreadContext } = require('./codex-state');
 const { configuredRemotes, remoteForCwd: selectRemoteForCwd } = require('./remotes');
 const {
   displayPath,
   extractEditedFile,
   fileForProject,
   projectFromCwd,
-  projectFromSession,
+  resolveSessionProject,
   toolPayloadFromRecord,
 } = require('./codex-paths');
 
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
@@ -37,6 +38,7 @@ const PACKAGES_DIR = path.join(process.env.LOCALAPPDATA || path.join(USER_HOME, 
 const DESKTOP_LOG_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 const DESKTOP_LOG_FILE_LIMIT = 100;
 const SESSION_STATE_LIMIT = 64;
+const THREAD_CONTEXT_REFRESH_MS = 30_000;
 const READ_CHUNK_BYTES = 1024 * 1024;
 const READ_BUDGET_BYTES = 8 * 1024 * 1024;
 const MAX_PARTIAL_LINE_BYTES = 1024 * 1024;
@@ -63,6 +65,7 @@ const desktopLogStates = new Map();
 
 let currentProject = null;
 let currentFile = null;
+let currentTaskTitle = null;
 let currentSessionId = null;
 let activeSessionPath = null;
 let presenceSource = 'startup';
@@ -76,6 +79,8 @@ let lastRemotePollAt = null;
 let lastRemoteError = null;
 let lastLoggedRemoteError = null;
 let selectedRemoteName = null;
+let lastHookAt = null;
+let publishedDesktopRouteKey = null;
 
 const ipc = new DiscordIpc({ clientId: CONFIG.clientId, log });
 ipc.on('ready', () => (presenceEnabled ? queuePresence(true) : ipc.setActivity(null, { immediate: true })));
@@ -89,6 +94,7 @@ function remoteForCwd(cwd) {
 function currentActivity() {
   return buildActivity({
     project: currentProject,
+    task: currentTaskTitle,
     file: currentFile,
     workspace: selectedRemoteName,
     privacy: CONFIG.privacy,
@@ -137,13 +143,18 @@ function setPresenceEnabled(enabled) {
  * ownership of a card that the transcript monitor already populated with the
  * same values. Every other monitor leaves a more specific source in place.
  */
-function applyActivity(project, file, source, { claimSource = false } = {}) {
-  const nextProject = project || currentProject;
+function applyActivity(project, file, source, { claimSource = false, replaceProject = false, taskTitle = currentTaskTitle } = {}) {
+  const nextProject = replaceProject ? (project || null) : (project || currentProject);
   const nextFile = file ?? null;
-  const changed = nextProject !== currentProject || nextFile !== currentFile || (claimSource && presenceSource !== source);
+  const nextTaskTitle = taskTitle || null;
+  const changed = nextProject !== currentProject
+    || nextFile !== currentFile
+    || nextTaskTitle !== currentTaskTitle
+    || (claimSource && presenceSource !== source);
   if (!changed) return false;
   currentProject = nextProject;
   currentFile = nextFile;
+  currentTaskTitle = nextTaskTitle;
   presenceSource = source;
   queuePresence();
   return true;
@@ -265,13 +276,38 @@ function syncDesktopSelection() {
   }
 
   const switched = selection.ingest(events);
-  const selected = selection.selected();
+  let selected = selection.selected();
   if (!selected) return;
 
-  if (selected.project && applyActivity(selected.project, selected.lastFile, 'desktop-route')) {
+  // `ownerRoutePath` is also emitted by embedded/sidebar views. It cannot
+  // replace the visible activity until a nearby cwd line proves navigation.
+  if (!selection.selectedRouteConfirmed()) return;
+  const routeKey = `${selected.threadId}:${selected.at}`;
+  const newlyConfirmed = routeKey !== publishedDesktopRouteKey;
+  if (newlyConfirmed) selectedRemoteName = null;
+
+  const now = Date.now();
+  if (newlyConfirmed || switched || now - (selected.contextReadAt || 0) >= THREAD_CONTEXT_REFRESH_MS) {
+    const context = readThreadContext(selected.threadId, { codexHome: CODEX_HOME });
+    selection.updateThread(selected.threadId, {
+      contextReadAt: now,
+      ...(context?.cwd && !selected.cwd ? { cwd: context.cwd } : {}),
+      ...(context?.project ? { project: context.project } : {}),
+      taskTitle: context?.title || null,
+    });
+    selected = selection.selected();
+  }
+
+  if ((newlyConfirmed || selected.project || selected.taskTitle || selected.lastFile) && applyActivity(
+    selected.project,
+    selected.lastFile,
+    'desktop-route',
+    { replaceProject: newlyConfirmed, taskTitle: selected.taskTitle || null },
+  )) {
     log(`Desktop route -> thread=${selected.threadId}, project=${currentProject}, file=${currentFile ?? '—'}`);
   }
-  if (switched) setImmediate(syncRemoteFile);
+  publishedDesktopRouteKey = routeKey;
+  if (newlyConfirmed) setImmediate(syncRemoteFile);
 }
 
 // ── Codex transcript monitor ────────────────────────────────────────────────
@@ -285,7 +321,10 @@ function processSessionRecord(state, line) {
   }
 
   const payload = record.payload || {};
-  if (record.type === 'session_meta' && typeof payload.cwd === 'string') state.cwd = payload.cwd;
+  if (record.type === 'session_meta') {
+    if (typeof payload.cwd === 'string') state.cwd = payload.cwd;
+    state.threadId = payload.id || payload.session_id || state.threadId;
+  }
   if (record.type === 'turn_context') {
     if (typeof payload.cwd === 'string') state.cwd = payload.cwd;
     if (Array.isArray(payload.workspace_roots)) state.workspaceRoots = payload.workspace_roots;
@@ -305,7 +344,7 @@ function pruneSessionStates() {
 }
 
 function syncActiveSession() {
-  const threadId = selection.selectedThreadId;
+  const threadId = selection.confirmedSelected()?.threadId ?? null;
   // Narrowing by name before stat()ing matters: users accumulate thousands of
   // transcripts, and this runs every couple of seconds.
   const transcripts = listFiles(SESSIONS_DIR, []).filter((filePath) => filePath.endsWith('.jsonl'));
@@ -315,7 +354,7 @@ function syncActiveSession() {
 
   let state = sessionStates.get(latest.path);
   if (!state) {
-    state = { ...newTailState(), cwd: null, workspaceRoots: [], lastFile: null };
+    state = { ...newTailState(), cwd: null, workspaceRoots: [], lastFile: null, threadId: null, taskTitle: null, contextProject: null, contextReadAt: 0 };
     sessionStates.set(latest.path, state);
   }
 
@@ -333,10 +372,23 @@ function syncActiveSession() {
   for (const line of lines || []) processSessionRecord(state, line);
   activeSessionPath = latest.path;
 
-  const nextProject = projectFromSession(state);
+  const contextThreadId = threadId || state.threadId;
+  const now = Date.now();
+  if (contextThreadId && now - state.contextReadAt >= THREAD_CONTEXT_REFRESH_MS) {
+    const context = readThreadContext(contextThreadId, { codexHome: CODEX_HOME });
+    state.contextReadAt = now;
+    state.taskTitle = context?.title || null;
+    state.contextProject = context?.project || null;
+    if (!state.cwd && context?.cwd) state.cwd = context.cwd;
+  }
+
+  const nextProject = resolveSessionProject(state, state.contextProject);
   const nextFile = fileForProject(state.lastFile, nextProject);
   const source = threadId ? 'desktop-route+session' : 'session-monitor';
-  if (applyActivity(nextProject, nextFile, source)) {
+  if (applyActivity(nextProject, nextFile, source, {
+    replaceProject: switched,
+    taskTitle: state.taskTitle || (switched ? null : currentTaskTitle),
+  })) {
     if (threadId) selection.updateThread(threadId, { cwd: state.cwd || selection.threadState(threadId)?.cwd, project: currentProject, lastFile: currentFile });
     log(`Session monitor -> project=${currentProject ?? '—'}, file=${currentFile ?? '—'}`);
   }
@@ -352,8 +404,11 @@ function reportRemoteError(message) {
 }
 
 function syncRemoteFile() {
-  const requestedThreadId = selection.selectedThreadId;
-  if (remotePollRunning || !requestedThreadId || !THREAD_ID.test(requestedThreadId)) return;
+  const confirmed = selection.confirmedSelected();
+  const requestedThreadId = confirmed?.threadId;
+  const requestedRouteAt = confirmed?.at;
+  if (!requestedThreadId || !THREAD_ID.test(requestedThreadId)) return;
+  if (remotePollRunning) return;
 
   const desktopState = selection.threadState(requestedThreadId);
   if (!desktopState?.cwd || !desktopState.cwd.startsWith('/')) {
@@ -376,6 +431,12 @@ function syncRemoteFile() {
     { windowsHide: true, timeout: 10_000, maxBuffer: 1024 * 1024 },
     (error, stdout, stderr) => {
       remotePollRunning = false;
+      const stillConfirmed = selection.confirmedSelected();
+      if (stillConfirmed?.threadId !== requestedThreadId || stillConfirmed.at !== requestedRouteAt) {
+        setImmediate(syncRemoteFile);
+        return;
+      }
+
       lastRemotePollAt = new Date().toISOString();
       if (error) {
         reportRemoteError(String(stderr || error.message).trim().slice(-240));
@@ -398,14 +459,18 @@ function syncRemoteFile() {
 
       lastRemoteError = null;
       lastLoggedRemoteError = null;
+      const hasProject = Object.hasOwn(result, 'project');
       const state = selection.updateThread(requestedThreadId, {
         ...(result.cwd ? { cwd: result.cwd } : {}),
-        ...(result.project ? { project: String(result.project).slice(0, 60) } : {}),
+        ...(hasProject ? { project: result.project ? String(result.project).slice(0, 60) : null } : {}),
         ...(result.file ? { lastFile: displayPath(result.file, result.cwd) } : {}),
       });
 
-      if (selection.selectedThreadId !== requestedThreadId) return;
-      if (applyActivity(state.project, state.lastFile, 'desktop-route+remote-session', { claimSource: true })) {
+      if (applyActivity(state.project, state.lastFile, 'desktop-route+remote-session', {
+        claimSource: true,
+        replaceProject: hasProject,
+        taskTitle: state.taskTitle || currentTaskTitle,
+      })) {
         log(`Remote session -> thread=${requestedThreadId}, project=${currentProject ?? '—'}, file=${currentFile ?? '—'}`);
       }
     },
@@ -476,26 +541,29 @@ function readProcessStart() {
 function handleHook(payload) {
   const event = String(payload.hook_event_name || payload.event || '');
   const payloadThreadId = payload.session_id || payload.thread_id || null;
-  const selectedThreadId = selection.selectedThreadId;
+  const selectedThreadId = selection.confirmedSelected()?.threadId ?? null;
   if (selectedThreadId && payloadThreadId !== selectedThreadId) {
     log(`Ignored background hook ${event || 'unknown'} for thread=${payloadThreadId || 'unknown'}`);
     return;
   }
+  lastHookAt = new Date().toISOString();
 
-  let project = projectFromCwd(payload.cwd) || currentProject;
-  let file = currentFile;
-  if (payload.session_id && payload.session_id !== currentSessionId) {
-    currentSessionId = payload.session_id;
-    file = null;
-  }
+  const context = payloadThreadId ? readThreadContext(payloadThreadId, { codexHome: CODEX_HOME }) : null;
+  const sessionChanged = Boolean(payloadThreadId && payloadThreadId !== currentSessionId);
+  let project = context?.project || projectFromCwd(payload.cwd) || (sessionChanged ? null : currentProject);
+  let file = sessionChanged ? null : currentFile;
+  if (sessionChanged) currentSessionId = payloadThreadId;
 
   const editedFile = extractEditedFile(payload);
   if (editedFile) {
-    project = projectFromSession({ cwd: payload.cwd, workspaceRoots: [], lastFile: editedFile }) || project;
+    project = resolveSessionProject({ cwd: payload.cwd, workspaceRoots: [], lastFile: editedFile }, context?.project) || project;
     file = fileForProject(editedFile, project);
   }
 
-  if (applyActivity(project, file, 'hook')) {
+  if (applyActivity(project, file, 'hook', {
+    replaceProject: sessionChanged,
+    taskTitle: context?.title || (sessionChanged ? null : currentTaskTitle),
+  })) {
     log(`Hook ${event || 'unknown'} -> project=${currentProject ?? '—'}, file=${currentFile ?? '—'}`);
   }
 }
@@ -579,7 +647,9 @@ function healthSnapshot() {
     language: CONFIG.language,
     rpcReady: ipc.ready,
     presenceEnabled,
-    project: currentProject ?? TEXT.fallbackProject,
+    project: currentProject,
+    task: CONFIG.privacy.showTaskTitle ? currentTaskTitle : null,
+    taskTitleShared: CONFIG.privacy.showTaskTitle,
     file: currentFile,
     source: presenceSource,
     codexRunning: appIsRunning,
@@ -591,6 +661,7 @@ function healthSnapshot() {
     remotePollRunning,
     lastRemotePollAt,
     lastRemoteError,
+    lastHookAt,
     remoteConfigured: REMOTE_HOSTS.length > 0,
     remoteHosts: REMOTE_HOSTS.map((remote) => remote.name),
     selectedRemote: selectedRemoteName,

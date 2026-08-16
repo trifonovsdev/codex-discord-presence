@@ -12,17 +12,16 @@ $sourceDir = Join-Path $PSScriptRoot 'src'
 $node = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
 
 if (-not $node) {
-  throw 'Node.js 18+ is required. Install it from https://nodejs.org and rerun this script.'
+  throw 'Node.js 24+ is required. Install it from https://nodejs.org and rerun this script.'
 }
 
 $nodeMajor = [int]((& $node --version).TrimStart('v').Split('.')[0])
-if ($nodeMajor -lt 18) { throw 'Node.js 18 or newer is required.' }
+if ($nodeMajor -lt 24) { throw 'Node.js 24 or newer is required.' }
 if (-not (Test-Path -LiteralPath (Join-Path $sourceDir 'daemon.js'))) { throw 'Run install.ps1 from the repository root.' }
 
 $InstallDir = [IO.Path]::GetFullPath($InstallDir)
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $sourceDir 'daemon.js') -Destination $InstallDir -Force
-Copy-Item -LiteralPath (Join-Path $sourceDir 'hook.js') -Destination $InstallDir -Force
+Copy-Item -Path (Join-Path $sourceDir '*.js') -Destination $InstallDir -Force
 Copy-Item -LiteralPath (Join-Path $sourceDir 'remote-monitor.py') -Destination $InstallDir -Force
 
 $configPath = Join-Path $InstallDir 'config.json'

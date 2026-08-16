@@ -14,10 +14,11 @@ public sealed class DiagnosticsForm : ModernForm
         Padding = new Padding(0, 0, 8, 0),
         Margin = new Padding(0),
     };
-    private readonly ModernButton rerun = Visuals.Button("Run again", ButtonKind.Primary, "↻");
-    private readonly ModernButton copy = Visuals.Button("Copy report", ButtonKind.Secondary, "□");
+    private readonly ModernButton rerun = Visuals.Button("Run again", ButtonKind.Primary, UiIcon.Refresh);
+    private readonly ModernButton copy = Visuals.Button("Copy report", ButtonKind.Secondary, UiIcon.Copy);
     private List<DiagnosticItem> results = [];
     private bool running;
+    private CancellationTokenSource? runCancellation;
 
     public DiagnosticsForm(DiagnosticsService diagnostics) : base("Doctor", new Size(860, 760), resizable: true)
     {
@@ -26,7 +27,7 @@ public sealed class DiagnosticsForm : ModernForm
         CloseOnEscape = true;
 
         var header = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Visuals.Background };
-        var title = Visuals.Label("System health", 20, false, FontStyle.Bold);
+        var title = Visuals.Heading("System health", 20);
         title.Location = new Point(28, 22);
         var subtitle = Visuals.Label("A local readiness check for Codex, Discord, hooks, and SSH.", 9, true);
         subtitle.Location = new Point(29, 58);
@@ -55,6 +56,7 @@ public sealed class DiagnosticsForm : ModernForm
         ContentHost.Controls.Add(body);
         ContentHost.Controls.Add(footer);
         ContentHost.Controls.Add(header);
+        FormClosing += (_, _) => runCancellation?.Cancel();
         Shown += async (_, _) => await RunAsync();
     }
 
@@ -67,30 +69,51 @@ public sealed class DiagnosticsForm : ModernForm
         summary.Text = "Running checks";
         summary.DotColor = Visuals.Muted;
         summary.FillColor = Visuals.SurfaceRaised;
+        summary.IsLive = true;
         rows.SuspendLayout();
         DisposeRows();
         rows.Controls.Add(SkeletonRow("Inspecting local services…"));
         rows.ResumeLayout();
         UseWaitCursor = true;
+        runCancellation?.Dispose();
+        var cancellation = new CancellationTokenSource();
+        runCancellation = cancellation;
+        var cancelled = false;
 
         try
         {
-            results = await diagnostics.RunAsync();
+            results = await diagnostics.RunAsync(cancellation.Token);
         }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception error)
         {
             results = [new DiagnosticItem("Doctor", false, error.Message)];
         }
         finally
         {
-            UseWaitCursor = false;
-            running = false;
-            rerun.Enabled = true;
+            cancelled = cancellation.IsCancellationRequested;
+            if (ReferenceEquals(runCancellation, cancellation)) runCancellation = null;
+            cancellation.Dispose();
+            if (!IsDisposed && !Disposing)
+            {
+                UseWaitCursor = false;
+                running = false;
+                rerun.Enabled = true;
+            }
         }
+
+        if (IsDisposed || Disposing || cancelled) return;
 
         rows.SuspendLayout();
         DisposeRows();
-        foreach (var result in results) rows.Controls.Add(ResultRow(result));
+        var delay = 0;
+        foreach (var result in results)
+        {
+            var row = new DiagnosticResultRow(result);
+            rows.Controls.Add(row);
+            row.BeginReveal(delay);
+            delay += 32;
+        }
         rows.ResumeLayout();
         ResizeRows();
 
@@ -99,6 +122,7 @@ public sealed class DiagnosticsForm : ModernForm
         summary.Text = allPassed ? $"All {passed} checks passed" : $"{passed} of {results.Count} passed";
         summary.DotColor = allPassed ? Visuals.Success : Visuals.Danger;
         summary.FillColor = allPassed ? Visuals.SuccessSurface : Visuals.DangerSurface;
+        summary.IsLive = allPassed;
         copy.Enabled = results.Count > 0;
     }
 
@@ -108,45 +132,20 @@ public sealed class DiagnosticsForm : ModernForm
         rows.Controls.Clear();
     }
 
-    private static RoundedPanel ResultRow(DiagnosticItem result)
+    private static RoundedPanel SkeletonRow(string text)
     {
         var row = new RoundedPanel
         {
-            Height = 56,
+            Height = 68,
             Radius = 11,
             BackColor = Visuals.Surface,
-            // A failing check now reads as failing at a glance, not only via the trailing label.
-            BorderColor = result.Passed ? Visuals.BorderSoft : Visuals.Danger,
-            Margin = new Padding(0, 0, 0, 8),
+            AccessibleRole = AccessibleRole.Grouping,
+            AccessibleName = text,
         };
-
-        var icon = Visuals.Label(result.Passed ? "✓" : "!", 10, false, FontStyle.Bold);
-        icon.ForeColor = result.Passed ? Visuals.Success : Visuals.Danger;
-        icon.Location = new Point(16, 18);
-        var name = Visuals.Label(result.Name, 9.5f, false, FontStyle.Bold);
-        name.Location = new Point(44, 12);
-        var detail = Visuals.Label(result.Detail, 8, true);
-        detail.Location = new Point(44, 32);
-        detail.AutoEllipsis = true;
-        var state = Visuals.Label(result.Passed ? "PASS" : "CHECK", 8, false, FontStyle.Bold);
-        state.ForeColor = result.Passed ? Visuals.Success : Visuals.Danger;
-        state.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-
-        row.Controls.AddRange([icon, name, detail, state]);
-        row.Resize += (_, _) =>
-        {
-            state.Location = new Point(row.Width - state.Width - 18, 20);
-            detail.MaximumSize = new Size(Math.Max(160, row.Width - state.Width - 80), 0);
-        };
-        return row;
-    }
-
-    private static RoundedPanel SkeletonRow(string text)
-    {
-        var row = new RoundedPanel { Height = 56, Radius = 11, BackColor = Visuals.Surface };
-        var label = Visuals.Label(text, 9, true);
-        label.Location = new Point(18, 20);
-        row.Controls.Add(label);
+        var icon = new ShimmerBar { Location = new Point(18, 18), Size = new Size(18, 18), Radius = 9 };
+        var title = new ShimmerBar { Location = new Point(50, 18), Size = new Size(148, 10) };
+        var detail = new ShimmerBar { Location = new Point(50, 39), Size = new Size(286, 8), Radius = 4 };
+        row.Controls.AddRange([icon, title, detail]);
         return row;
     }
 
@@ -164,4 +163,97 @@ public sealed class DiagnosticsForm : ModernForm
 
     private string BuildReport() => string.Join(Environment.NewLine,
         ["Codex Presence Doctor", .. results.Select(item => $"[{(item.Passed ? "PASS" : "FAIL")}] {item.Name}: {item.Detail}")]);
+
+    private sealed class DiagnosticResultRow : RoundedPanel
+    {
+        private readonly DiagnosticItem result;
+        private readonly IconView icon;
+        private readonly Label name;
+        private readonly Label detail;
+        private readonly Label state;
+        private IDisposable? revealMotion;
+        private float reveal = 1f;
+
+        public DiagnosticResultRow(DiagnosticItem result)
+        {
+            this.result = result;
+            Height = 60;
+            Radius = 11;
+            BackColor = Visuals.Surface;
+            BorderColor = result.Passed ? Visuals.BorderSoft : Visuals.Danger;
+            Margin = new Padding(0, 0, 0, 8);
+            AccessibleRole = AccessibleRole.Grouping;
+            AccessibleName = $"{result.Name}: {(result.Passed ? "passed" : "needs attention")}. {result.Detail}";
+
+            icon = new IconView(result.Passed ? UiIcon.Check : UiIcon.Warning)
+            {
+                Size = new Size(20, 20),
+                IconColor = result.Passed ? Visuals.Success : Visuals.Danger,
+            };
+            name = Visuals.Label(result.Name, 9.5f, false, FontStyle.Bold);
+            name.AutoSize = false;
+            name.AutoEllipsis = true;
+            name.Height = 20;
+            detail = Visuals.Label(result.Detail, 8.25f, true);
+            detail.AutoSize = false;
+            detail.AutoEllipsis = true;
+            detail.Height = 18;
+            state = Visuals.Label(result.Passed ? "Ready" : "Check", 8, false, FontStyle.Bold);
+            state.ForeColor = result.Passed ? Visuals.Success : Visuals.Danger;
+            state.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            Controls.AddRange([icon, name, detail, state]);
+            Resize += (_, _) => LayoutRow();
+            LayoutRow();
+        }
+
+        public void BeginReveal(int delayMs)
+        {
+            revealMotion?.Dispose();
+            reveal = MotionClock.IsReduced ? 1f : 0f;
+            ApplyReveal();
+            revealMotion = MotionClock.Animate(this, 170, value =>
+            {
+                reveal = value;
+                ApplyReveal();
+            }, MotionEasing.EaseOutCubic, delayMs);
+        }
+
+        private void LayoutRow()
+        {
+            var offset = (int)Math.Round(this.Dp(7) * (1f - reveal));
+            icon.Location = new Point(this.Dp(16) + offset, this.Dp(20));
+            name.Location = new Point(this.Dp(46) + offset, this.Dp(12));
+            detail.Location = new Point(this.Dp(46) + offset, this.Dp(34));
+            state.Location = new Point(Width - state.Width - this.Dp(18), this.Dp(21));
+            var textWidth = Math.Max(this.Dp(160), Width - state.Width - this.Dp(88));
+            name.Width = textWidth;
+            detail.Width = textWidth;
+        }
+
+        private void ApplyReveal()
+        {
+            var baseColor = BackColor;
+            icon.IconColor = Visuals.Blend(baseColor, result.Passed ? Visuals.Success : Visuals.Danger, reveal);
+            name.ForeColor = Visuals.Blend(baseColor, Visuals.Text, reveal);
+            detail.ForeColor = Visuals.Blend(baseColor, Visuals.TextSecondary, reveal);
+            state.ForeColor = Visuals.Blend(baseColor, result.Passed ? Visuals.Success : Visuals.Danger, reveal);
+            LayoutRow();
+            Invalidate();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) revealMotion?.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            runCancellation?.Cancel();
+        }
+        base.Dispose(disposing);
+    }
 }

@@ -19,20 +19,28 @@ public sealed class ModernDialog : ModernForm
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.CenterParent;
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 62, BackColor = Visuals.Background };
-        header.Controls.Add(new StatusPill
+        var header = new Panel { Dock = DockStyle.Top, Height = 68, BackColor = Visuals.Background };
+        var toneIcon = new IconView(tone switch { DialogTone.Success => UiIcon.Check, DialogTone.Question => UiIcon.Info, _ => UiIcon.Warning })
+        {
+            Location = new Point(24, 22),
+            Size = new Size(22, 22),
+            IconColor = tone switch { DialogTone.Success => Visuals.Success, DialogTone.Question => Visuals.TextSecondary, _ => Visuals.Danger },
+        };
+        var status = new StatusPill
         {
             Text = tone switch { DialogTone.Success => "Ready", DialogTone.Question => "Confirm", _ => "Needs attention" },
             DotColor = tone switch { DialogTone.Success => Visuals.Success, DialogTone.Question => Visuals.Accent, _ => Visuals.Danger },
             FillColor = tone switch { DialogTone.Success => Visuals.SuccessSurface, DialogTone.Question => Visuals.SurfaceRaised, _ => Visuals.DangerSurface },
-            Location = new Point(24, 20),
-        });
+            Location = new Point(56, 19),
+            IsLive = tone == DialogTone.Success,
+        };
+        header.Controls.AddRange([toneIcon, status]);
 
         var content = new Panel { Dock = DockStyle.Fill, BackColor = Visuals.Background, Padding = new Padding(24, 0, 24, 8) };
         var surface = new RoundedPanel { Dock = DockStyle.Fill, Radius = 10, BackColor = Visuals.Surface, Padding = new Padding(14, 12, 8, 12) };
 
         // A read-only text box keeps long diagnostics scrollable and copyable.
-        surface.Controls.Add(new TextBox
+        var message = new TextBox
         {
             Dock = DockStyle.Fill,
             Text = body.Replace("\r\n", "\n").Replace("\n", Environment.NewLine),
@@ -44,11 +52,13 @@ public sealed class ModernDialog : ModernForm
             Font = Visuals.Font(9f),
             ScrollBars = ScrollBars.Vertical,
             WordWrap = true,
-            TabStop = false,
-        });
+            TabStop = true,
+            AccessibleName = "Message details",
+        };
+        surface.Controls.Add(message);
         content.Controls.Add(surface);
 
-        var accept = Visuals.Button(confirm ? "Install update" : "Done", ButtonKind.Primary);
+        var accept = Visuals.Button(confirm ? "Install update" : "Done", ButtonKind.Primary, UiIcon.Check);
         accept.Size = new Size(confirm ? 152 : 120, 42);
         accept.Margin = new Padding(8, 0, 0, 0);
         accept.Click += (_, _) => { DialogResult = DialogResult.OK; Close(); };
@@ -57,10 +67,14 @@ public sealed class ModernDialog : ModernForm
         cancel.Size = new Size(108, 42);
         cancel.Margin = new Padding(0);
 
-        var copy = Visuals.Button("Copy", ButtonKind.Ghost);
+        var copy = Visuals.Button("Copy", ButtonKind.Ghost, UiIcon.Copy);
         copy.Size = new Size(92, 42);
         copy.Margin = new Padding(0);
-        copy.Click += (_, _) => { try { Clipboard.SetText(body); } catch { } };
+        copy.Click += (_, _) =>
+        {
+            try { Clipboard.SetText(body); }
+            catch (Exception error) { ModernDialog.Show(this, "Could not copy the message", error.Message, false); }
+        };
 
         var actions = new FlowLayoutPanel
         {
