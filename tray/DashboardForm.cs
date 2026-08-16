@@ -31,9 +31,8 @@ public sealed class DashboardForm : ModernForm
     };
     private readonly Label activityContext = Visuals.Label("Selected task · Local desktop", 8.5f, true);
     private readonly Label SharingSummary = Visuals.Label("Sharing: project · file · timer", 8.25f, true);
-    private readonly Label elapsed = Visuals.Label("00:00:00", 9.25f, false, FontStyle.Bold);
     private readonly ModernButton pause = Visuals.Button("Pause", ButtonKind.Primary, UiIcon.Pause);
-    private readonly ModernButton copyPath = Visuals.Button("Copy", ButtonKind.Ghost, UiIcon.Copy);
+    private readonly ModernButton copyPath = Visuals.Button(string.Empty, ButtonKind.Ghost, UiIcon.Copy);
     private readonly ModernButton settings = Visuals.Button("Settings", ButtonKind.Ghost, UiIcon.Settings);
     private readonly ModernButton doctor = Visuals.Button("Doctor", ButtonKind.Ghost, UiIcon.Diagnostics);
     private readonly RoundedPanel alert = new()
@@ -50,7 +49,7 @@ public sealed class DashboardForm : ModernForm
     private readonly DiscordCardPreview preview = new() { Height = 132, Published = false };
     private readonly System.Windows.Forms.Timer ticker = new() { Interval = 1000 };
     private readonly ToolTip tooltip = new();
-    private readonly FlowLayoutPanel content = new()
+    private readonly BufferedFlowLayoutPanel content = new()
     {
         Dock = DockStyle.Fill,
         FlowDirection = FlowDirection.TopDown,
@@ -64,14 +63,15 @@ public sealed class DashboardForm : ModernForm
     private string? pathToCopy;
     private string? lastAlertMessage;
     private string? lastAnnouncedAlert;
+    private string elapsedText = "00:00:00";
 
     public event EventHandler? PauseRequested;
     public event EventHandler? SettingsRequested;
     public event EventHandler? DiagnosticsRequested;
 
-    public DashboardForm(string version) : base("Codex Presence", new Size(740, 470), resizable: true)
+    public DashboardForm(string version) : base("Codex Presence", new Size(720, 440), resizable: true)
     {
-        MinimumSize = SizeFromClientSize(new Size(660, 430));
+        MinimumSize = SizeFromClientSize(new Size(660, 410));
         AccessibleDescription = $"Codex Presence {version}";
 
         var toolbar = BuildToolbar();
@@ -84,6 +84,7 @@ public sealed class DashboardForm : ModernForm
         activityContext.AutoSize = false;
         activityContext.AutoEllipsis = true;
         activityContext.Height = 18;
+        activityContext.Margin = Padding.Empty;
         project.Margin = new Padding(0, 0, 0, 1);
         fileLine.Margin = new Padding(0, 0, 0, 4);
         alert.Margin = new Padding(0, 4, 0, 8);
@@ -93,9 +94,9 @@ public sealed class DashboardForm : ModernForm
         footer.Margin = Padding.Empty;
 
         content.Controls.AddRange([toolbar, activityContext, project, fileLine, alert, divider, previewHeader, preview, footer]);
-        content.Resize += (_, _) => LayoutContent(toolbar, fileLine, divider, previewHeader, footer);
+        content.Resize += (_, _) => LayoutContent();
         ContentHost.Controls.Add(content);
-        LayoutContent(toolbar, fileLine, divider, previewHeader, footer);
+        LayoutContent();
 
         ticker.Tick += (_, _) => RenderElapsed();
         VisibleChanged += (_, _) => { if (Visible) ticker.Start(); else ticker.Stop(); };
@@ -143,7 +144,7 @@ public sealed class DashboardForm : ModernForm
     {
         var row = new Panel { Height = 32, BackColor = Visuals.Background };
         file.AccessibleDescription = "Current repository-relative file";
-        copyPath.Size = new Size(82, 32);
+        copyPath.Size = new Size(36, 32);
         copyPath.Enabled = false;
         copyPath.AccessibleName = "Copy current path";
         copyPath.AccessibleDescription = "Copies the repository-relative file path";
@@ -153,7 +154,7 @@ public sealed class DashboardForm : ModernForm
         row.Resize += (_, _) =>
         {
             copyPath.Location = new Point(row.Width - copyPath.Width, 0);
-            file.SetBounds(0, 2, Math.Max(row.Dp(160), copyPath.Left - row.Dp(12)), row.Dp(28));
+            file.SetBounds(0, 2, Math.Max(0, copyPath.Left - row.Dp(12)), row.Dp(28));
         };
         return row;
     }
@@ -189,6 +190,7 @@ public sealed class DashboardForm : ModernForm
         heading.AutoSize = false;
         heading.TextAlign = ContentAlignment.MiddleLeft;
         SharingSummary.AutoSize = false;
+        SharingSummary.AutoEllipsis = true;
         SharingSummary.TextAlign = ContentAlignment.MiddleRight;
         row.Controls.AddRange([heading, SharingSummary]);
         row.Resize += (_, _) =>
@@ -201,32 +203,27 @@ public sealed class DashboardForm : ModernForm
 
     private Panel BuildFooter()
     {
-        var footer = new Panel { Height = 44, BackColor = Visuals.Background };
-        elapsed.Font = Visuals.MonoFont(9.25f, FontStyle.Bold);
-        elapsed.AutoSize = false;
-        elapsed.TextAlign = ContentAlignment.MiddleLeft;
-        elapsed.AccessibleDescription = "Codex session duration";
+        var footer = new Panel { Height = 38, BackColor = Visuals.Background };
         pause.Size = new Size(124, 38);
         pause.Click += (_, _) => PauseRequested?.Invoke(this, EventArgs.Empty);
-        footer.Controls.AddRange([elapsed, pause]);
+        footer.Controls.Add(pause);
         footer.Resize += (_, _) =>
         {
-            elapsed.SetBounds(0, 3, Math.Max(footer.Dp(140), footer.Width - pause.Width - footer.Dp(18)), 38);
-            pause.Location = new Point(footer.Width - pause.Width, 3);
+            pause.Location = new Point(footer.Width - pause.Width, 0);
         };
         return footer;
     }
 
     private static Panel Divider() => new() { Height = 1, BackColor = Visuals.BorderSoft };
 
-    private void LayoutContent(params Control[] fullWidthControls)
+    private void LayoutContent()
     {
-        var width = Math.Max(this.Dp(440), content.ClientSize.Width - content.Padding.Horizontal - (content.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0));
-        activityContext.Width = width;
-        project.Width = width;
-        alert.Width = width;
-        preview.Width = width;
-        foreach (var control in fullWidthControls) control.Width = width;
+        var scrollbar = content.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0;
+        var width = Math.Max(0, content.ClientSize.Width - content.Padding.Horizontal - scrollbar);
+        foreach (Control control in content.Controls)
+            control.Width = Math.Max(0, width - control.Margin.Horizontal);
+        content.HorizontalScroll.Enabled = false;
+        content.HorizontalScroll.Maximum = 0;
     }
 
     public void UpdateSnapshot(HealthSnapshot? health)
@@ -239,7 +236,7 @@ public sealed class DashboardForm : ModernForm
             activityContext.Text = "Local service unavailable";
             project.Text = "Service not connected";
             file.Text = "No activity is being published";
-            elapsed.Text = "--:--:--";
+            elapsedText = "--:--:--";
             pause.Enabled = false;
             copyPath.Enabled = false;
             preview.ProjectName = null;
@@ -249,7 +246,7 @@ public sealed class DashboardForm : ModernForm
             preview.Connected = false;
             preview.Published = false;
             preview.HasTimestamp = false;
-            preview.Elapsed = elapsed.Text;
+            preview.Elapsed = elapsedText;
             ShowAlert(null);
             return;
         }
@@ -333,6 +330,7 @@ public sealed class DashboardForm : ModernForm
             tooltip.SetToolTip(alertText, visible ? $"{alertText.Text}\nClick to open Doctor." : string.Empty);
             AccessibleDescription = visible ? alertText.Text : AccessibleDescription;
             content.PerformLayout();
+            LayoutContent();
         }
         AnnounceAlertIfNeeded();
     }
@@ -346,8 +344,8 @@ public sealed class DashboardForm : ModernForm
 
     private void RenderElapsed()
     {
-        elapsed.Text = startedAt is { } started ? FormatElapsed(DateTimeOffset.Now - started) : "Codex closed";
-        preview.Elapsed = elapsed.Text;
+        elapsedText = startedAt is { } started ? FormatElapsed(DateTimeOffset.Now - started) : "Codex closed";
+        preview.Elapsed = elapsedText;
     }
 
     private void CopyCurrentPath()

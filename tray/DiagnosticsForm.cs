@@ -4,7 +4,7 @@ public sealed class DiagnosticsForm : ModernForm
 {
     private readonly DiagnosticsService diagnostics;
     private readonly StatusPill summary = new() { Text = "Running checks", DotColor = Visuals.Muted, FillColor = Visuals.Background };
-    private readonly FlowLayoutPanel rows = new()
+    private readonly BufferedFlowLayoutPanel rows = new()
     {
         Dock = DockStyle.Fill,
         AutoScroll = true,
@@ -24,6 +24,7 @@ public sealed class DiagnosticsForm : ModernForm
     {
         this.diagnostics = diagnostics;
         CloseOnEscape = true;
+        StartPosition = FormStartPosition.CenterParent;
 
         var header = new Panel { Dock = DockStyle.Top, BackColor = Visuals.Background };
         var title = Visuals.Heading("System health", 20);
