@@ -1,6 +1,5 @@
 using System.Drawing.Drawing2D;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 
 namespace CodexPresence;
 
@@ -14,6 +13,7 @@ public sealed class ModernButton : Button
     private IDisposable? pressMotion;
     private ButtonKind kind = ButtonKind.Secondary;
     private UiIcon? icon;
+    private bool isSelected;
 
     public ButtonKind Kind
     {
@@ -27,7 +27,18 @@ public sealed class ModernButton : Button
         set { if (icon == value) return; icon = value; Invalidate(); }
     }
 
-    public int Radius { get; set; } = 10;
+    public int Radius { get; set; } = 5;
+
+    public bool IsSelected
+    {
+        get => isSelected;
+        set
+        {
+            if (isSelected == value) return;
+            isSelected = value;
+            if (IsHandleCreated) AccessibilityNotifyClients(AccessibleEvents.StateChange, -1);
+        }
+    }
 
     public ModernButton()
     {
@@ -154,6 +165,17 @@ public sealed class ModernButton : Button
         }
         base.Dispose(disposing);
     }
+
+    protected override AccessibleObject CreateAccessibilityInstance() => new ModernButtonAccessibleObject(this);
+
+    private sealed class ModernButtonAccessibleObject(ModernButton owner) : ControlAccessibleObject(owner)
+    {
+        public override string? DefaultAction => "Press";
+        public override AccessibleRole Role => owner.AccessibleRole == AccessibleRole.Default ? AccessibleRole.PushButton : owner.AccessibleRole;
+        public override AccessibleStates State => base.State | (owner.IsSelected ? AccessibleStates.Selected : AccessibleStates.None);
+        public override int GetChildCount() => 0;
+        public override void DoDefaultAction() => owner.PerformClick();
+    }
 }
 
 /// <summary>
@@ -163,7 +185,7 @@ public sealed class ModernButton : Button
 /// </summary>
 public class RoundedPanel : Panel
 {
-    public int Radius { get; set; } = 14;
+    public int Radius { get; set; } = 8;
     public Color BorderColor { get; set; } = Visuals.BorderSoft;
     public int BorderWidth { get; set; } = 1;
 
@@ -439,7 +461,7 @@ public sealed class ModernSelect : Control
         var focused = Focused && ShowFocusCues;
         using var fill = new SolidBrush(Visuals.Blend(Visuals.SurfaceRaised, Visuals.SurfaceHover, hoverProgress));
         using var border = new Pen(focused ? Visuals.FocusRing : Visuals.Blend(Visuals.Border, Visuals.Muted, hoverProgress));
-        var radius = this.Dp(9);
+        var radius = this.Dp(5);
         e.Graphics.FillRoundedRectangle(fill, bounds, radius);
         e.Graphics.DrawRoundedRectangle(border, bounds, radius);
 
@@ -493,7 +515,7 @@ public sealed class ToggleRow : RoundedPanel
 
     public ToggleRow(string titleText, string descriptionText)
     {
-        Height = 68;
+        Height = 64;
         Radius = 0;
         BorderWidth = 0;
         BackColor = Visuals.Background;
@@ -502,6 +524,10 @@ public sealed class ToggleRow : RoundedPanel
         AccessibleName = titleText;
         title = Visuals.Label(titleText, 10, false, FontStyle.Bold);
         description = Visuals.Label(descriptionText, 8.5f, true);
+        title.AutoSize = false;
+        title.AutoEllipsis = true;
+        description.AutoSize = false;
+        description.AutoEllipsis = true;
         toggle.AccessibleName = titleText;
         toggle.AccessibleDescription = descriptionText;
         toggle.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -528,9 +554,9 @@ public sealed class ToggleRow : RoundedPanel
     private void LayoutChildren()
     {
         var padding = this.Dp(16);
-        title.Location = new Point(padding, this.Dp(14));
-        description.Location = new Point(padding, this.Dp(39));
-        description.MaximumSize = new Size(Math.Max(this.Dp(160), Width - toggle.Width - padding * 3), 0);
+        var textWidth = Math.Max(this.Dp(120), Width - toggle.Width - padding * 3);
+        title.SetBounds(padding, this.Dp(10), textWidth, this.Dp(22));
+        description.SetBounds(padding, this.Dp(34), textWidth, this.Dp(20));
         toggle.Location = new Point(Width - toggle.Width - padding, (Height - toggle.Height) / 2);
     }
 }
@@ -657,187 +683,61 @@ public sealed class StatusPill : Control
     }
 }
 
-/// <summary>Minimize / maximize / close glyph button for the custom title bar.</summary>
-public sealed class CaptionButton : Control
-{
-    public enum Glyph { Minimize, Maximize, Restore, Close }
-
-    private float hoverProgress;
-    private IDisposable? hoverMotion;
-    private Glyph glyph;
-
-    public Glyph Kind
-    {
-        get => glyph;
-        set { glyph = value; AccessibleName = value.ToString(); Invalidate(); }
-    }
-
-    public CaptionButton(Glyph kind)
-    {
-        glyph = kind;
-        Size = new Size(46, 38);
-        TabStop = true;
-        Cursor = Cursors.Hand;
-        AccessibleRole = AccessibleRole.PushButton;
-        AccessibleName = kind.ToString();
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-    }
-
-    protected override void OnMouseEnter(EventArgs e) { AnimateHover(1f); base.OnMouseEnter(e); }
-    protected override void OnMouseLeave(EventArgs e) { AnimateHover(0f); base.OnMouseLeave(e); }
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        if (e.KeyCode is Keys.Space or Keys.Enter) { OnClick(EventArgs.Empty); e.Handled = true; }
-        base.OnKeyDown(e);
-    }
-    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Space or Keys.Enter || base.IsInputKey(keyData);
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        e.Graphics.Clear(Parent?.BackColor ?? Visuals.Canvas);
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        if (hoverProgress > 0)
-        {
-            var hoverColor = glyph == Glyph.Close ? Color.FromArgb(196, 43, 40) : Visuals.SurfaceHover;
-            using var hover = new SolidBrush(Color.FromArgb((int)(255 * hoverProgress), hoverColor));
-            e.Graphics.FillRectangle(hover, ClientRectangle);
-        }
-
-        var color = glyph == Glyph.Close ? Visuals.Blend(Visuals.TextSecondary, Color.White, hoverProgress) : Visuals.TextSecondary;
-        using var pen = new Pen(color, Math.Max(1f, this.Scale()));
-        var size = this.Dp(10);
-        var left = (Width - size) / 2f;
-        var top = (Height - size) / 2f;
-
-        switch (glyph)
-        {
-            case Glyph.Minimize:
-                e.Graphics.DrawLine(pen, left, top + size / 2f, left + size, top + size / 2f);
-                break;
-            case Glyph.Maximize:
-                e.Graphics.DrawRectangle(pen, left, top, size, size);
-                break;
-            case Glyph.Restore:
-                e.Graphics.DrawRectangle(pen, left, top + this.Dp(3), size - this.Dp(3), size - this.Dp(3));
-                e.Graphics.DrawLines(pen, new PointF[] { new(left + this.Dp(3), top + this.Dp(3)), new(left + this.Dp(3), top), new(left + size, top), new(left + size, top + size - this.Dp(3)), new(left + size - this.Dp(3), top + size - this.Dp(3)) });
-                break;
-            case Glyph.Close:
-                e.Graphics.DrawLine(pen, left, top, left + size, top + size);
-                e.Graphics.DrawLine(pen, left + size, top, left, top + size);
-                break;
-        }
-
-        if (Focused && ShowFocusCues)
-        {
-            using var focus = new Pen(Visuals.FocusRing, Math.Max(1f, this.Scale()));
-            e.Graphics.DrawRectangle(focus, new RectangleF(this.Dp(4), this.Dp(4), Width - this.Dp(8), Height - this.Dp(8)));
-        }
-    }
-
-    private void AnimateHover(float target)
-    {
-        hoverMotion?.Dispose();
-        var start = hoverProgress;
-        hoverMotion = MotionClock.Animate(this, 120, value =>
-        {
-            hoverProgress = MotionClock.Lerp(start, target, value);
-            Invalidate();
-        });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing) hoverMotion?.Dispose();
-        base.Dispose(disposing);
-    }
-}
-
 /// <summary>
-/// Base window with custom dark chrome.
-///
-/// The frame keeps the native window styles (<c>WS_SIZEBOX</c>,
-/// <c>WS_MAXIMIZEBOX</c>) and reports the title bar as <c>HTCAPTION</c>, so
-/// dragging, Aero Snap, Win+Arrow, double-click-to-maximize and edge resizing
-/// all behave like a normal Windows window — none of which worked while the
-/// title bar was dragged by hand with <c>WM_NCLBUTTONDOWN</c>.
+/// Base window that deliberately leaves chrome to Windows. Native captions
+/// keep drag, Snap Layouts, resize handles, keyboard movement, and screen-reader
+/// behavior reliable across Windows versions and DPI settings.
 /// </summary>
 public class ModernForm : Form
 {
-    private const int WM_NCCALCSIZE = 0x0083;
-    private const int WM_NCHITTEST = 0x0084;
-    private const int WM_GETMINMAXINFO = 0x0024;
-    private const int HTCLIENT = 1, HTCAPTION = 2;
-    private const int HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13, HTTOPRIGHT = 14, HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
-    private const int WS_MINIMIZEBOX = 0x00020000, WS_MAXIMIZEBOX = 0x00010000, WS_SIZEBOX = 0x00040000;
-
-    private readonly bool resizable;
-    private readonly CaptionButton? maximize;
-
     protected readonly Panel ContentHost = new() { Dock = DockStyle.Fill, BackColor = Visuals.Background };
-    protected readonly Panel TitleBar = new() { Dock = DockStyle.Top, Height = 48, BackColor = Visuals.Canvas };
 
     /// <summary>When true, Escape closes the window. Enabled for dialogs.</summary>
     protected bool CloseOnEscape { get; set; }
 
     protected ModernForm(string title, Size size, bool resizable = false)
     {
-        this.resizable = resizable;
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
         Text = title;
         Icon = Visuals.AppIcon;
         ClientSize = size;
-        BackColor = Visuals.Border;
+        BackColor = Visuals.Background;
         ForeColor = Visuals.Text;
         Font = Visuals.Font(9f);
-        FormBorderStyle = FormBorderStyle.None;
-        Padding = new Padding(1);
+        FormBorderStyle = resizable ? FormBorderStyle.Sizable : FormBorderStyle.FixedDialog;
+        MaximizeBox = resizable;
+        MinimizeBox = resizable;
+        Padding = Padding.Empty;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = size;
+        MinimumSize = SizeFromClientSize(size);
         KeyPreview = true;
         DoubleBuffered = true;
-
-        var mark = new BrandMark { Location = new Point(14, 12), Size = new Size(24, 24) };
-        var windowTitle = Visuals.Label(title, 9.25f, false, FontStyle.Bold);
-        windowTitle.Location = new Point(48, 15);
-
-        var close = new CaptionButton(CaptionButton.Glyph.Close) { Anchor = AnchorStyles.Top | AnchorStyles.Right };
-        close.Click += (_, _) => Close();
-        var minimize = new CaptionButton(CaptionButton.Glyph.Minimize) { Anchor = AnchorStyles.Top | AnchorStyles.Right };
-        minimize.Click += (_, _) => WindowState = FormWindowState.Minimized;
-
-        var buttons = new List<Control> { close, minimize };
-        if (resizable)
-        {
-            maximize = new CaptionButton(CaptionButton.Glyph.Maximize) { Anchor = AnchorStyles.Top | AnchorStyles.Right };
-            maximize.Click += (_, _) => WindowState = WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
-            buttons.Add(maximize);
-        }
-
-        TitleBar.Controls.Add(mark);
-        TitleBar.Controls.Add(windowTitle);
-        foreach (var button in buttons) TitleBar.Controls.Add(button);
-        TitleBar.Resize += (_, _) => LayoutCaption(buttons);
+        SizeGripStyle = SizeGripStyle.Hide;
 
         Controls.Add(ContentHost);
-        Controls.Add(TitleBar);
-        Shown += (_, _) => Visuals.ApplyWindowStyle(this);
     }
 
-    private void LayoutCaption(List<Control> buttons)
+    protected override void OnHandleCreated(EventArgs e)
     {
-        var right = TitleBar.Width - this.Dp(2);
-        foreach (var button in buttons)
-        {
-            right -= button.Width;
-            button.Location = new Point(right, this.Dp(5));
-        }
+        base.OnHandleCreated(e);
+        Visuals.ApplyWindowStyle(this);
     }
 
-    protected override void OnClientSizeChanged(EventArgs e)
+    protected override void OnShown(EventArgs e)
     {
-        base.OnClientSizeChanged(e);
-        if (maximize is not null) maximize.Kind = WindowState == FormWindowState.Maximized ? CaptionButton.Glyph.Restore : CaptionButton.Glyph.Maximize;
+        base.OnShown(e);
+        if (WindowState != FormWindowState.Normal) return;
+
+        var workingArea = Screen.FromControl(this).WorkingArea;
+        var width = Math.Min(Width, workingArea.Width);
+        var height = Math.Min(Height, workingArea.Height);
+        if (MinimumSize.Width > width || MinimumSize.Height > height)
+            MinimumSize = new Size(Math.Min(MinimumSize.Width, width), Math.Min(MinimumSize.Height, height));
+        Size = new Size(width, height);
+        Location = new Point(
+            Math.Clamp(Left, workingArea.Left, workingArea.Right - width),
+            Math.Clamp(Top, workingArea.Top, workingArea.Bottom - height));
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -846,106 +746,4 @@ public class ModernForm : Form
         base.OnKeyDown(e);
     }
 
-    protected override CreateParams CreateParams
-    {
-        get
-        {
-            var parameters = base.CreateParams;
-            parameters.Style |= WS_MINIMIZEBOX;
-            if (resizable) parameters.Style |= WS_SIZEBOX | WS_MAXIMIZEBOX;
-            return parameters;
-        }
-    }
-
-    protected override void WndProc(ref Message m)
-    {
-        switch (m.Msg)
-        {
-            case WM_NCCALCSIZE when m.WParam != IntPtr.Zero:
-                // Claim the whole window as client area so WS_SIZEBOX does not draw a frame.
-                m.Result = IntPtr.Zero;
-                return;
-            case WM_NCHITTEST:
-                m.Result = HitTest(m.LParam);
-                return;
-            case WM_GETMINMAXINFO:
-                base.WndProc(ref m);
-                ConstrainMaximizedBounds(m.LParam);
-                return;
-        }
-        base.WndProc(ref m);
-    }
-
-    private IntPtr HitTest(IntPtr lParam)
-    {
-        var packed = (int)(long)lParam;
-        var screenPoint = new Point(unchecked((short)(packed & 0xFFFF)), unchecked((short)((packed >> 16) & 0xFFFF)));
-        var point = PointToClient(screenPoint);
-
-        if (resizable && WindowState == FormWindowState.Normal)
-        {
-            var grip = this.Dp(6);
-            var left = point.X <= grip;
-            var right = point.X >= ClientSize.Width - grip;
-            var top = point.Y <= grip;
-            var bottom = point.Y >= ClientSize.Height - grip;
-            if (top && left) return HTTOPLEFT;
-            if (top && right) return HTTOPRIGHT;
-            if (bottom && left) return HTBOTTOMLEFT;
-            if (bottom && right) return HTBOTTOMRIGHT;
-            if (left) return HTLEFT;
-            if (right) return HTRIGHT;
-            if (top) return HTTOP;
-            if (bottom) return HTBOTTOM;
-        }
-
-        if (!TitleBar.Bounds.Contains(point)) return HTCLIENT;
-        // Leave command and caption buttons clickable; passive title/brand
-        // content continues to behave like the native draggable caption.
-        return TitleBar.GetChildAtPoint(TitleBar.PointToClient(screenPoint)) is CaptionButton or ModernButton
-            ? HTCLIENT
-            : HTCAPTION;
-    }
-
-    /// <summary>Keeps a maximized borderless window inside the work area instead of covering the taskbar.</summary>
-    private void ConstrainMaximizedBounds(IntPtr lParam)
-    {
-        var screen = Screen.FromHandle(Handle);
-        var info = Marshal.PtrToStructure<MinMaxInfo>(lParam);
-        info.MaxPosition = new NativePoint(Math.Abs(screen.WorkingArea.Left - screen.Bounds.Left), Math.Abs(screen.WorkingArea.Top - screen.Bounds.Top));
-        info.MaxSize = new NativePoint(screen.WorkingArea.Width, screen.WorkingArea.Height);
-        info.MinTrackSize = new NativePoint(MinimumSize.Width, MinimumSize.Height);
-        Marshal.StructureToPtr(info, lParam, false);
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint(int x, int y)
-    {
-        public int X = x;
-        public int Y = y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MinMaxInfo
-    {
-        public NativePoint Reserved;
-        public NativePoint MaxSize;
-        public NativePoint MaxPosition;
-        public NativePoint MinTrackSize;
-        public NativePoint MaxTrackSize;
-    }
-}
-
-public sealed class BrandMark : Control
-{
-    public BrandMark() => SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        e.Graphics.Clear(Parent?.BackColor ?? Visuals.Canvas);
-        UiIcons.Draw(e.Graphics, UiIcon.Brand, new RectangleF(0, 0, Width, Height), Visuals.Text, 1.5f);
-        var scale = Width / 24f;
-        using var live = new SolidBrush(Visuals.Success);
-        e.Graphics.FillEllipse(live, Width - 5.8f * scale, 10.2f * scale, 3.6f * scale, 3.6f * scale);
-    }
 }

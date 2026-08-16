@@ -20,6 +20,18 @@ static class Program
             return;
         }
 
+        ApplicationConfiguration.Initialize();
+        if (arguments.Contains("--ui-smoke", StringComparer.OrdinalIgnoreCase))
+        {
+            try { RunUiSmoke(); }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine(error);
+                Environment.ExitCode = 1;
+            }
+            return;
+        }
+
         var key = InstanceKey();
         using var mutex = new Mutex(true, $"Local\\CodexDiscordPresence.Tray.{key}", out var createdNew);
         using var activation = new EventWaitHandle(false, EventResetMode.AutoReset, $"Local\\CodexDiscordPresence.Show.{key}");
@@ -32,9 +44,66 @@ static class Program
             return;
         }
 
-        ApplicationConfiguration.Initialize();
         var showOnStart = !arguments.Contains("--background", StringComparer.OrdinalIgnoreCase);
         Application.Run(new TrayApplicationContext(showOnStart, activation));
+    }
+
+    private static void RunUiSmoke()
+    {
+        using var dashboard = new DashboardForm("smoke")
+        {
+            ShowInTaskbar = false,
+            Opacity = 0,
+            StartPosition = FormStartPosition.Manual,
+            Location = new Point(-20_000, -20_000),
+        };
+        dashboard.UpdatePrivacy(new PrivacyConfig());
+        dashboard.UpdateSnapshot(null);
+        ShowAndValidate(dashboard);
+
+        using var settings = new SettingsForm(new ConfigStore(), new RemoteService())
+        {
+            ShowInTaskbar = false,
+            Opacity = 0,
+            StartPosition = FormStartPosition.Manual,
+            Location = new Point(-20_000, -20_000),
+        };
+        ShowAndValidate(settings, exerciseTabs: true);
+    }
+
+    private static void ShowAndValidate(Form form, bool exerciseTabs = false)
+    {
+        form.Show();
+        Application.DoEvents();
+        form.PerformLayout();
+        if (!form.IsHandleCreated || form.ClientSize.Width <= 0 || form.ClientSize.Height <= 0)
+            throw new InvalidOperationException($"{form.Text} did not create a valid window.");
+        if (form.FormBorderStyle is FormBorderStyle.None)
+            throw new InvalidOperationException($"{form.Text} lost its native window frame.");
+        if (exerciseTabs)
+        {
+            var tabs = Descendants(form)
+                .OfType<Button>()
+                .Where(control => control.AccessibleRole == AccessibleRole.PageTab)
+                .ToArray();
+            if (tabs.Length != 3) throw new InvalidOperationException($"{form.Text} did not expose all settings tabs.");
+            foreach (var tab in tabs)
+            {
+                tab.PerformClick();
+                Application.DoEvents();
+                form.PerformLayout();
+            }
+        }
+        form.Hide();
+    }
+
+    private static IEnumerable<Control> Descendants(Control root)
+    {
+        foreach (Control child in root.Controls)
+        {
+            yield return child;
+            foreach (var descendant in Descendants(child)) yield return descendant;
+        }
     }
 
     private static void ShutdownRunningInstances()
