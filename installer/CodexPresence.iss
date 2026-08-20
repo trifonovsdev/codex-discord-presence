@@ -1,6 +1,6 @@
 #define MyAppName "Codex Presence"
 #ifndef MyAppVersion
-#define MyAppVersion "2.3.3"
+#define MyAppVersion "2.3.4"
 #endif
 #define MyAppPublisher "trifonovsdev"
 #define MyAppURL "https://github.com/trifonovsdev/codex-discord-presence"

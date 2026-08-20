@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [string]$Version = '2.3.3',
+  [string]$Version = '2.3.4',
   [string]$NodeVersion = '24.17.0',
   [string]$NodeSha256 = 'f2aa33b35b75aca5f3f7b85675a6f6423201053e9381911e64961f3bda2528ab',
   [switch]$SkipInstaller

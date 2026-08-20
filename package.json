@@ -1,6 +1,6 @@
 {
   "name": "codex-discord-presence",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "private": true,
   "description": "Native Discord Rich Presence for the ChatGPT Codex desktop app on Windows.",
   "license": "MIT",
