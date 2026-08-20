@@ -1,0 +1,220 @@
+namespace CodexPresence;
+
+internal enum PresenceTone
+{
+    Muted,
+    Success,
+    Warning,
+    Danger,
+}
+
+/// <summary>
+/// Immutable text/state projection shared by the live dashboard and its timer.
+/// It deliberately keeps raw paths and private task details out of the Discord preview.
+/// </summary>
+internal sealed record PresencePresentation(
+    string Connection,
+    PresenceTone ConnectionTone,
+    string ActivityContext,
+    string Project,
+    string CurrentFile,
+    string? CopyPath,
+    string Source,
+    string Workspace,
+    string Session,
+    string SharingSummary,
+    string PreviewTitle,
+    string PreviewPrimary,
+    string PreviewSecondary,
+    string PreviewElapsed,
+    PresenceTone PreviewTone,
+    bool ShowPreviewElapsed,
+    bool PauseEnabled,
+    string PauseText,
+    string? WarningTitle,
+    string? WarningMessage,
+    PresenceTone WarningTone)
+{
+    public static PresencePresentation Create(
+        HealthSnapshot? snapshot,
+        PrivacyConfig privacy,
+        DateTimeOffset now)
+    {
+        if (snapshot is null)
+        {
+            return new(
+                "Service offline",
+                PresenceTone.Danger,
+                "Local service unavailable",
+                "Service not connected",
+                "No activity is being published",
+                null,
+                "Local service",
+                "Local desktop",
+                "Unavailable",
+                BuildSharingSummary(privacy),
+                "Not published",
+                "Codex Presence is offline",
+                "Discord is not receiving activity.",
+                "No active session",
+                PresenceTone.Danger,
+                false,
+                false,
+                "Pause",
+                "Presence service is offline",
+                "Run Doctor to check the local service and its connection.",
+                PresenceTone.Danger);
+        }
+
+        var live = snapshot.PresenceEnabled && snapshot.RpcReady && snapshot.CodexRunning;
+        var published = live && snapshot.RpcPublished;
+        var publishFailed = live && !string.IsNullOrWhiteSpace(snapshot.RpcError);
+
+        var (connection, connectionTone) = !snapshot.PresenceEnabled
+            ? ("Presence paused", PresenceTone.Muted)
+            : !snapshot.CodexRunning
+                ? ("Waiting for Codex", PresenceTone.Muted)
+                : publishFailed
+                    ? ("Discord rejected update", PresenceTone.Danger)
+                    : published
+                        ? ("Live on Discord", PresenceTone.Success)
+                        : snapshot.RpcReady
+                            ? ("Publishing to Discord", PresenceTone.Warning)
+                            : ("Waiting for Discord", PresenceTone.Muted);
+
+        var source = FriendlySource(snapshot.Source);
+        var workspace = string.IsNullOrWhiteSpace(snapshot.SelectedRemote)
+            ? "Local desktop"
+            : snapshot.SelectedRemote!;
+        var elapsed = FormatElapsed(snapshot.CodexStartedAt, now);
+        var session = snapshot.CodexStartedAt is null
+            ? snapshot.CodexRunning ? "Active now" : "No active task"
+            : $"Elapsed {elapsed}";
+        var project = !string.IsNullOrWhiteSpace(snapshot.Project)
+            ? snapshot.Project!
+            : snapshot.CodexRunning ? "Working in Codex" : "Waiting for Codex";
+        var file = !string.IsNullOrWhiteSpace(snapshot.Project)
+            ? string.IsNullOrWhiteSpace(snapshot.File) ? "No edited file yet" : snapshot.File!
+            : snapshot.CodexRunning ? "No detectable workspace for this task" : "Open a task to start sharing activity";
+
+        var (warningTitle, warningMessage, warningTone) = Warning(snapshot);
+        var preview = Preview(snapshot, privacy, published, publishFailed, elapsed);
+
+        return new(
+            connection,
+            connectionTone,
+            $"{source}  ·  {workspace}",
+            project,
+            file,
+            string.IsNullOrWhiteSpace(snapshot.File) ? null : snapshot.File,
+            source,
+            workspace,
+            session,
+            BuildSharingSummary(privacy),
+            preview.Title,
+            preview.Primary,
+            preview.Secondary,
+            elapsed,
+            preview.Tone,
+            preview.ShowElapsed,
+            true,
+            snapshot.PresenceEnabled ? "Pause presence" : "Resume presence",
+            warningTitle,
+            warningMessage,
+            warningTone);
+    }
+
+    private static (string Title, string Primary, string Secondary, PresenceTone Tone, bool ShowElapsed) Preview(
+        HealthSnapshot snapshot,
+        PrivacyConfig privacy,
+        bool published,
+        bool publishFailed,
+        string elapsed)
+    {
+        if (!published)
+        {
+            if (publishFailed)
+                return ("Discord rejected update", "Activity was not published", snapshot.RpcError!, PresenceTone.Danger, false);
+            if (!snapshot.PresenceEnabled)
+                return ("Presence paused", "Nothing is shared with Discord", "Resume when you are ready to publish again.", PresenceTone.Muted, false);
+            if (!snapshot.CodexRunning)
+                return ("Waiting for Codex", "Nothing is published yet", "Open a task in Codex to start a session.", PresenceTone.Muted, false);
+            return ("Publishing…", "Waiting for Discord", "The current presence update has not been acknowledged yet.", PresenceTone.Warning, false);
+        }
+
+        var russian = string.Equals(snapshot.Language, "ru", StringComparison.OrdinalIgnoreCase);
+        var showTask = privacy.ShowTaskTitle && snapshot.TaskTitleShared && !string.IsNullOrWhiteSpace(snapshot.Task);
+        string primary;
+        if (privacy.ShowProject && !string.IsNullOrWhiteSpace(snapshot.Project))
+            primary = russian ? $"Проект: {snapshot.Project}" : $"Project: {snapshot.Project}";
+        else if (showTask)
+            primary = russian ? $"Задача: {snapshot.Task}" : $"Task: {snapshot.Task}";
+        else
+            primary = russian ? "Работает в Codex" : "Working in Codex";
+
+        string secondary;
+        if (!privacy.ShowFile)
+            secondary = russian ? "Работает приватно" : "Working privately";
+        else if (string.IsNullOrWhiteSpace(snapshot.File))
+            secondary = russian ? "Активная сессия Codex" : "Active Codex session";
+        else
+        {
+            var path = string.Equals(privacy.FileMode, "name", StringComparison.OrdinalIgnoreCase)
+                ? FileName(snapshot.File!)
+                : snapshot.File!;
+            secondary = russian ? $"Файл: {path}" : $"Editing: {path}";
+        }
+
+        return ("Coding with Codex", primary, secondary, PresenceTone.Success,
+            privacy.ShowTimer && snapshot.CodexStartedAt is not null && elapsed.Length > 0);
+    }
+
+    private static (string? Title, string? Message, PresenceTone Tone) Warning(HealthSnapshot snapshot)
+    {
+        if (!string.IsNullOrWhiteSpace(snapshot.RpcError))
+            return ("Discord could not publish this update", snapshot.RpcError, PresenceTone.Danger);
+        if (!string.IsNullOrWhiteSpace(snapshot.LastRemoteError))
+            return ("SSH workspace needs attention", snapshot.LastRemoteError, PresenceTone.Warning);
+        if (snapshot.ConfigWarnings.FirstOrDefault(static warning => !string.IsNullOrWhiteSpace(warning)) is { } warning)
+            return ("Configuration warning", warning, PresenceTone.Warning);
+        return (null, null, PresenceTone.Muted);
+    }
+
+    private static string BuildSharingSummary(PrivacyConfig privacy)
+    {
+        var shared = new List<string>(4);
+        if (privacy.ShowProject) shared.Add("project");
+        if (privacy.ShowTaskTitle) shared.Add("task");
+        if (privacy.ShowFile) shared.Add("file");
+        if (privacy.ShowTimer) shared.Add("timer");
+        return shared.Count == 0 ? "Sharing nothing" : $"Sharing {string.Join(" · ", shared)}";
+    }
+
+    private static string FriendlySource(string? value) => value switch
+    {
+        "desktop-route+remote-session" => "Remote task",
+        "desktop-route+session" => "Selected task",
+        "desktop-route" => "Desktop route",
+        "hook" => "Live hook",
+        _ => "Session monitor",
+    };
+
+    private static string FileName(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var lastSlash = normalized.LastIndexOf('/');
+        return lastSlash >= 0 && lastSlash < normalized.Length - 1
+            ? normalized[(lastSlash + 1)..]
+            : normalized;
+    }
+
+    private static string FormatElapsed(DateTimeOffset? startedAt, DateTimeOffset now)
+    {
+        if (startedAt is null) return "No active session";
+        var value = now - startedAt.Value;
+        if (value < TimeSpan.Zero) value = TimeSpan.Zero;
+        return value.TotalHours >= 24
+            ? $"{(int)value.TotalDays}d {value:hh\\:mm\\:ss}"
+            : value.ToString("hh\\:mm\\:ss");
+    }
+}

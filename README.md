@@ -4,7 +4,7 @@
 
 # Codex Presence
 
-**A local-first Discord Rich Presence companion for Codex Desktop on Windows.**
+**A local-first WinUI 3 Discord Rich Presence companion for Codex Desktop on Windows.**
 
 [![Latest release](https://img.shields.io/github/v/release/trifonovsdev/codex-discord-presence?style=flat-square&color=ffffff&labelColor=171717)](https://github.com/trifonovsdev/codex-discord-presence/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/trifonovsdev/codex-discord-presence/.github/workflows/ci.yml?branch=main&style=flat-square&labelColor=171717)](https://github.com/trifonovsdev/codex-discord-presence/actions/workflows/ci.yml)
@@ -24,12 +24,12 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Stable session timer** — project, file, and task changes do not reset elapsed time.
 - **Remote-aware** — maps multiple SSH servers to workspace roots.
 - **Private by default** — no telemetry, tokens, prompt uploads, or cloud relay. The local service refuses any request a web page could send.
-- **Native product UI** — dark dashboard, custom controls, privacy presets, diagnostics, and verified updates.
+- **Native Fluent UI** — WinUI 3, Mica, system controls, keyboard navigation, privacy presets, diagnostics, and verified updates.
 - **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
-## v2.3 changes
+## Current highlights
 
-- The native dashboard, Settings, Doctor, dialogs, tray menu, icon system, and motion have been redesigned as one accessible graphite UI.
+- The dashboard, Settings, Doctor, and dialogs use one accessible graphite design system built on WinUI 3, Fluent controls, and Windows contrast-theme colors.
 - Route changes now require nearby workspace evidence, so sidebar/background tasks cannot steal the active Discord card.
 - Task titles are opt-in through `privacy.showTaskTitle` and remain hidden by default.
 - When no project can be resolved, the Discord card uses an honest generic Codex fallback instead of inventing a local project.
@@ -52,7 +52,7 @@ The shared Discord Application ID is `1526968377048956938`. Friends do not need 
   <img src="assets/demo.gif" alt="Dashboard, SSH settings, and system doctor" width="760">
 </div>
 
-Double-click the tray icon to open the dashboard. The tray menu offers pause/resume, settings, diagnostics, update checks, service restart, and clean shutdown. Closing the dashboard keeps the presence service running.
+Double-click the tray icon to open the dashboard. A native Windows notification-area menu offers pause/resume, settings, diagnostics, update checks, service restart, and clean shutdown. Closing the WinUI window keeps the presence service running.
 
 ## Privacy presets
 
@@ -98,7 +98,7 @@ Codex route logs ────────┐
 Codex lifecycle hooks ───┼──> local daemon ──> Discord IPC
 Selected session JSONL ──┘         ▲
                                    │ localhost only
-Windows tray UI ── settings / doctor / controls / updates
+WinUI 3 tray UI ── settings / doctor / controls / updates
                                    │
 Selected remote task ── system OpenSSH ──> incremental Python helper
 ```
@@ -140,7 +140,7 @@ their default and reported in **Doctor** instead of preventing the service from 
 
 ## Development
 
-Requirements: Windows, .NET 8 SDK, Node.js 24+, Python 3, and Inno Setup 6.7.3.
+Requirements: Windows, .NET 8 SDK, Node.js 24+, Python 3, and Inno Setup 6.7.3. Windows App SDK 2.4 is restored from NuGet.
 
 ```powershell
 git clone https://github.com/trifonovsdev/codex-discord-presence.git
@@ -150,11 +150,11 @@ dotnet build .\tray\CodexPresence.Tray.csproj -c Release
 .\build-release.ps1 -Version 2.3.3
 ```
 
-The build downloads the pinned official Node distribution, verifies its archive against both the reviewed SHA-256 pinned in the build script and Node.js `SHASUMS256.txt`, publishes a self-contained UI, compiles the installer, and emits SHA-256 checksums. Verified downloads are cached under `.build-cache/`.
+The build downloads the pinned official Node distribution, verifies its archive against both the reviewed SHA-256 pinned in the build script and Node.js `SHASUMS256.txt`, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. Verified downloads are cached under `.build-cache/`.
 
 `npm run check` runs the whole JavaScript suite — the path heuristics are pinned to Windows semantics, so the
-tests give identical results on Linux and macOS. The tray project sets `EnableWindowsTargeting`, so
-`dotnet build` compile-checks the UI on any platform; running it still requires Windows.
+tests give identical results on Linux and macOS. WinUI compilation and the installed-app smoke test run on
+Windows CI; building or running the desktop shell locally requires Windows.
 
 ### Release signing
 

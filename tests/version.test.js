@@ -29,7 +29,7 @@ test('release version stays aligned across shipped surfaces', () => {
   const versions = {
     'daemon runtime': capture('src/daemon.js', /const VERSION = '([^']+)'/, 'daemon version'),
     'tray project': capture('tray/CodexPresence.Tray.csproj', /<Version>([^<]+)<\/Version>/, 'tray version'),
-    'tray fallback': capture('tray/TrayApplicationContext.cs', /:\s*"(\d+\.\d+\.\d+)";/, 'tray fallback version'),
+    'tray fallback': capture('tray/AppCoordinator.cs', /:\s*"(\d+\.\d+\.\d+)";/, 'tray fallback version'),
     'updater fallback': captureVersionTuple(
       'tray/UpdateService.cs',
       /new Version\((\d+),\s*(\d+),\s*(\d+)\)/,

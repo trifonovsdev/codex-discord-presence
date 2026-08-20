@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="CodexPresence.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Codex Presence">
+
+    <Grid x:Name="RootLayout" Background="{ThemeResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar
+            x:Name="AppTitleBar"
+            Title="Codex Presence"
+            Subtitle="Discord activity"
+            AutomationProperties.Name="Codex Presence title bar">
+            <TitleBar.IconSource>
+                <FontIconSource FontFamily="Segoe Fluent Icons" Glyph="&#xE943;" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <ScrollViewer
+            Grid.Row="1"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <Grid
+                MaxWidth="860"
+                Padding="32,24,32,36"
+                HorizontalAlignment="Stretch">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="LayoutStates">
+                        <VisualState x:Name="CompactLayout" />
+                        <VisualState x:Name="WideLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="720" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="CommandBar.(Grid.Row)" Value="0" />
+                                <Setter Target="CommandBar.(Grid.Column)" Value="1" />
+                                <Setter Target="CommandBar.(Grid.ColumnSpan)" Value="1" />
+                                <Setter Target="CommandBar.Margin" Value="0" />
+                                <Setter Target="WorkspaceBlock.(Grid.Row)" Value="0" />
+                                <Setter Target="WorkspaceBlock.(Grid.Column)" Value="1" />
+                                <Setter Target="WorkspaceBlock.Margin" Value="0" />
+                                <Setter Target="SessionBlock.(Grid.Row)" Value="0" />
+                                <Setter Target="SessionBlock.(Grid.Column)" Value="2" />
+                                <Setter Target="SessionBlock.Margin" Value="0" />
+                                <Setter Target="FooterNote.(Grid.ColumnSpan)" Value="1" />
+                                <Setter Target="PauseButton.(Grid.Row)" Value="0" />
+                                <Setter Target="PauseButton.(Grid.Column)" Value="1" />
+                                <Setter Target="PauseButton.(Grid.ColumnSpan)" Value="1" />
+                                <Setter Target="PauseButton.Margin" Value="0" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        HorizontalAlignment="Left"
+                        MinHeight="36"
+                        Padding="12,6"
+                        Background="{ThemeResource SurfaceRaisedBrush}"
+                        BorderBrush="{ThemeResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="18">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <Ellipse
+                                x:Name="ConnectionDot"
+                                Width="8"
+                                Height="8"
+                                VerticalAlignment="Center"
+                                Fill="{ThemeResource TextMutedBrush}" />
+                            <TextBlock
+                                x:Name="ConnectionStatus"
+                                VerticalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Text="Connecting"
+                                AutomationProperties.LiveSetting="Polite" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel
+                        x:Name="CommandBar"
+                        Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        Margin="0,12,0,0"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <Button
+                            x:Name="DiagnosticsButton"
+                            Click="DiagnosticsButton_Click"
+                            AutomationProperties.HelpText="Checks the local service, Discord, Codex hooks, and SSH workspaces"
+                            AutomationProperties.Name="Run diagnostics"
+                            ToolTipService.ToolTip="Run diagnostics">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="Segoe Fluent Icons" FontSize="16" Glyph="&#xE9D9;" />
+                                <TextBlock Text="Doctor" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            x:Name="SettingsButton"
+                            Click="SettingsButton_Click"
+                            AutomationProperties.HelpText="Changes privacy, startup, language, and SSH workspaces"
+                            AutomationProperties.Name="Open settings"
+                            ToolTipService.ToolTip="Open settings">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="Segoe Fluent Icons" FontSize="16" Glyph="&#xE713;" />
+                                <TextBlock Text="Settings" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Margin="0,30,0,0" Spacing="8">
+                    <TextBlock
+                        x:Name="ActivityContext"
+                        Style="{StaticResource EyebrowTextStyle}"
+                        Text="Session monitor  ·  Local desktop" />
+                    <TextBlock
+                        x:Name="ProjectName"
+                        MaxLines="2"
+                        Style="{StaticResource PageTitleTextStyle}"
+                        Text="Waiting for Codex"
+                        TextTrimming="CharacterEllipsis"
+                        AutomationProperties.LiveSetting="Polite" />
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            x:Name="CurrentFile"
+                            VerticalAlignment="Center"
+                            MaxLines="1"
+                            Style="{StaticResource MonoTextStyle}"
+                            Text="No activity yet"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            x:Name="CopyStatus"
+                            Grid.Column="1"
+                            Margin="12,0,4,0"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource CaptionTextStyle}"
+                            Text="Path copied"
+                            Visibility="Collapsed"
+                            AutomationProperties.LiveSetting="Polite" />
+                        <Button
+                            x:Name="CopyPathButton"
+                            Grid.Column="2"
+                            Style="{StaticResource IconButtonStyle}"
+                            Click="CopyPathButton_Click"
+                            IsEnabled="False"
+                            AutomationProperties.Name="Copy current file path"
+                            ToolTipService.ToolTip="Copy current file path">
+                            <FontIcon FontFamily="Segoe Fluent Icons" FontSize="16" Glyph="&#xE8C8;" />
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <InfoBar
+                    x:Name="WarningBar"
+                    Grid.Row="2"
+                    Margin="0,22,0,0"
+                    IsClosable="False"
+                    IsOpen="False"
+                    Severity="Warning"
+                    Title="Presence needs attention"
+                    AutomationProperties.LiveSetting="Assertive">
+                    <InfoBar.ActionButton>
+                        <Button
+                            Click="DiagnosticsButton_Click"
+                            AutomationProperties.Name="Open Doctor for this warning"
+                            Content="Open Doctor" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <Border Grid.Row="3" Margin="0,22,0,0" Style="{StaticResource CardBorderStyle}">
+                    <Grid ColumnSpacing="20" RowSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Spacing="5">
+                            <TextBlock Style="{StaticResource CaptionTextStyle}" Text="Source" />
+                            <TextBlock x:Name="SourceValue" FontWeight="SemiBold" Text="Session monitor" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel x:Name="WorkspaceBlock" Grid.Row="1" Spacing="5">
+                            <TextBlock Style="{StaticResource CaptionTextStyle}" Text="Workspace" />
+                            <TextBlock x:Name="WorkspaceValue" FontWeight="SemiBold" Text="Local desktop" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel x:Name="SessionBlock" Grid.Row="2" Spacing="5">
+                            <TextBlock Style="{StaticResource CaptionTextStyle}" Text="Session" />
+                            <TextBlock x:Name="SessionValue" FontWeight="SemiBold" Text="No active task" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="4" Margin="0,28,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SectionTitleTextStyle}" Text="Discord now" />
+                    <TextBlock
+                        x:Name="SharingSummary"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CaptionTextStyle}"
+                        Text="Sharing project · file · timer" />
+                </Grid>
+
+                <StackPanel Grid.Row="5" Margin="0,10,0,0" Spacing="18">
+                    <Border
+                        x:Name="DiscordPreview"
+                        Padding="20"
+                        Background="{ThemeResource DiscordCanvasBrush}"
+                        BorderBrush="{ThemeResource DiscordDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        AutomationProperties.Name="Discord activity preview">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Width="56" Height="56" VerticalAlignment="Top">
+                                <Border Background="{ThemeResource DiscordSurfaceBrush}" CornerRadius="14">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontFamily="Segoe UI Variable Display"
+                                        FontSize="24"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource DiscordTextBrush}"
+                                        Text="C" />
+                                </Border>
+                                <Ellipse
+                                    x:Name="PreviewStatusDot"
+                                    Width="12"
+                                    Height="12"
+                                    Margin="0,0,-2,-2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Fill="{ThemeResource TextMutedBrush}"
+                                    Stroke="{ThemeResource DiscordCanvasBrush}"
+                                    StrokeThickness="3" />
+                            </Grid>
+
+                            <StackPanel Grid.Column="1" Spacing="3">
+                                <TextBlock
+                                    x:Name="PreviewTitle"
+                                    FontSize="15"
+                                    FontWeight="SemiBold"
+                                    Foreground="{ThemeResource DiscordTextBrush}"
+                                    Text="Coding with Codex" />
+                                <TextBlock
+                                    x:Name="PreviewPrimaryLine"
+                                    MaxLines="1"
+                                    Foreground="{ThemeResource DiscordTextBrush}"
+                                    Text="Working in Codex"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    x:Name="PreviewSecondaryLine"
+                                    MaxLines="2"
+                                    Foreground="{ThemeResource DiscordMutedBrush}"
+                                    Text="Active Codex session"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <StackPanel x:Name="PreviewTimerRow" Margin="0,10,0,0" Spacing="8">
+                                    <Border Height="1" Background="{ThemeResource DiscordDividerBrush}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="7" Height="7" VerticalAlignment="Center" Fill="{ThemeResource SuccessBrush}" />
+                                        <TextBlock
+                                            x:Name="PreviewElapsed"
+                                            Style="{StaticResource MonoTextStyle}"
+                                            Foreground="{ThemeResource SuccessBrush}"
+                                            Text="00:00:00" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            x:Name="FooterNote"
+                            Grid.ColumnSpan="2"
+                            MaxWidth="470"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource CaptionTextStyle}"
+                            Text="Closing this window keeps Presence running in the notification area." />
+                        <Button
+                            x:Name="PauseButton"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="PauseButton_Click"
+                            AutomationProperties.Name="Pause presence">
+                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                <FontIcon x:Name="PauseIcon" FontFamily="Segoe Fluent Icons" FontSize="16" Glyph="&#xE769;" />
+                                <TextBlock x:Name="PauseButtonText" Foreground="{ThemeResource AccentTextBrush}" Text="Pause presence" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

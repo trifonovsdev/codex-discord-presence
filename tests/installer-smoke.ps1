@@ -101,6 +101,17 @@ function Write-SmokeDiagnostics {
 
 try {
   New-Item -ItemType Directory -Path $env:LOCALAPPDATA,$env:CODEX_HOME -Force | Out-Null
+
+  $portableArchives = @(Get-ChildItem -LiteralPath (Join-Path $repository 'artifacts') -Filter 'CodexPresence-*-portable.zip' -File)
+  if ($portableArchives.Count -ne 1) { throw "Expected one portable archive; found $($portableArchives.Count)." }
+  $portableRoot = Join-Path $testRoot 'Portable'
+  Expand-Archive -LiteralPath $portableArchives[0].FullName -DestinationPath $portableRoot
+  foreach ($relativePath in @('CodexPresence.exe','codex-presence.ico','runtime\node.exe','app\daemon.js','app\config.default.json')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $portableRoot $relativePath))) { throw "Portable bundle is missing $relativePath." }
+  }
+  $portableSmoke = Start-Process (Join-Path $portableRoot 'CodexPresence.exe') -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
+  if ($portableSmoke.ExitCode -ne 0) { throw "Portable UI smoke test returned $($portableSmoke.ExitCode)." }
+
   $legacyDir = Join-Path $env:LOCALAPPDATA 'OpenAI\CodexDiscordPresence'
   New-Item -ItemType Directory -Path $legacyDir -Force | Out-Null
   $legacy = [ordered]@{
@@ -131,10 +142,11 @@ try {
   if (([regex]::Matches($normalizedHooks, [regex]::Escape($newHookPath))).Count -ne 16) { throw 'Expected eight dual-platform hook registrations.' }
   if ($normalizedHooks.IndexOf((Join-Path $legacyDir 'hook.js'), [StringComparison]::OrdinalIgnoreCase) -ge 0) { throw 'Legacy hook registration remains.' }
 
-  $uiSmoke = Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
+  $trayExecutable = Join-Path $installDir 'CodexPresence.exe'
+  $uiSmoke = Start-Process $trayExecutable -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
   if ($uiSmoke.ExitCode -ne 0) { throw "Desktop UI smoke test returned $($uiSmoke.ExitCode)." }
 
-  $trayProcess = Start-Process (Join-Path $installDir 'CodexPresence.exe') -ArgumentList '--background' -PassThru
+  $trayProcess = Start-Process $trayExecutable -ArgumentList '--background' -PassThru
   $health = $null
   $lastHealthError = $null
   for ($attempt = 0; $attempt -lt 40; $attempt++) {
@@ -152,6 +164,21 @@ try {
     Write-SmokeDiagnostics -TrayProcess $trayProcess -InstallDir $installDir -Port $Port -LastHealthError $lastHealthError
     throw "Installed daemon did not become healthy (expected v$expectedVersion, got '$($health.version)')."
   }
+
+  $activationProbe = Start-Process $trayExecutable -ArgumentList '--background' -PassThru -WindowStyle Hidden
+  if (-not $activationProbe.WaitForExit(5000)) {
+    Stop-Process -Id $activationProbe.Id -Force -ErrorAction SilentlyContinue
+    throw 'Activation probe did not hand off to the running tray within 5 seconds.'
+  }
+  if ($activationProbe.ExitCode -ne 0) { throw "Activation probe returned $($activationProbe.ExitCode)." }
+  Start-Sleep -Milliseconds 500
+  $ownedTrayProcesses = @(Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object {
+    try { [string]::Equals($_.Path, $trayExecutable, [StringComparison]::OrdinalIgnoreCase) } catch { $false }
+  })
+  if ($ownedTrayProcesses.Count -ne 1 -or $ownedTrayProcesses[0].Id -ne $trayProcess.Id) {
+    throw "Expected a single tray host after activation; found $($ownedTrayProcesses.Count)."
+  }
+
   $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}'
   $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'
   if ($pause.presenceEnabled -ne $false -or $resume.presenceEnabled -ne $true) { throw 'Pause/resume control failed.' }
@@ -166,7 +193,7 @@ try {
   if (@(Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" }).Count) { throw 'Tray process survived uninstall.' }
   try { $null = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1; throw 'Daemon survived uninstall.' } catch { if ($_.Exception.Message -eq 'Daemon survived uninstall.') { throw } }
 
-  [pscustomobject]@{ Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; UI = 'PASS'; Daemon = $health.version; Control = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
+  [pscustomobject]@{ Portable = 'PASS'; Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; UI = 'PASS'; Daemon = $health.version; Control = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
 }
 finally {
   Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" } | Stop-Process -Force -ErrorAction SilentlyContinue

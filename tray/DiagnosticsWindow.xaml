@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="CodexPresence.DiagnosticsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:CodexPresence"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Codex Presence Doctor"
+    mc:Ignorable="d">
+
+    <Grid
+        x:Name="RootLayout"
+        MinWidth="640"
+        MinHeight="520"
+        Background="{ThemeResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TitleBar
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Title="Doctor"
+            Subtitle="Codex Presence"
+            AutomationProperties.Name="Codex Presence Doctor title bar">
+            <TitleBar.IconSource>
+                <FontIconSource FontFamily="Segoe Fluent Icons" Glyph="&#xE9D9;" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <Grid
+            Grid.Row="1"
+            Padding="28,20,28,16"
+            RowSpacing="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border
+                Padding="24"
+                Background="{ThemeResource SurfaceBrush}"
+                BorderBrush="{ThemeResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            Style="{StaticResource PageTitleTextStyle}"
+                            Text="System health" />
+                        <TextBlock
+                            MaxWidth="560"
+                            Style="{StaticResource BodyTextStyle}"
+                            Text="Check the local runtime, Discord connection, Codex hooks, and configured SSH hosts."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        x:Name="SummaryPill"
+                        Grid.Column="1"
+                        MinHeight="36"
+                        Padding="12,6"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        AutomationProperties.LiveSetting="Polite"
+                        AutomationProperties.Name="{Binding Text, ElementName=SummaryText}"
+                        Background="{ThemeResource SurfaceRaisedBrush}"
+                        CornerRadius="18">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ProgressRing
+                                x:Name="RunningProgress"
+                                Width="18"
+                                Height="18"
+                                AutomationProperties.Name="Running diagnostics"
+                                IsActive="False"
+                                Visibility="Collapsed" />
+                            <Ellipse
+                                x:Name="SummaryDot"
+                                Width="8"
+                                Height="8"
+                                VerticalAlignment="Center"
+                                Fill="{ThemeResource TextSecondaryBrush}" />
+                            <TextBlock
+                                x:Name="SummaryText"
+                                VerticalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Text="Ready to check" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <ListView
+                    x:Name="ResultsList"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.LiveSetting="Polite"
+                    AutomationProperties.Name="Diagnostic results"
+                    IsItemClickEnabled="False"
+                    SelectionMode="None"
+                    Visibility="Collapsed">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="IsTabStop" Value="True" />
+                            <Setter Property="Margin" Value="0,0,0,8" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="UseSystemFocusVisuals" Value="True" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:DiagnosticResultViewModel">
+                            <Border
+                                MinHeight="72"
+                                Padding="18,14"
+                                AutomationProperties.AccessibilityView="Content"
+                                AutomationProperties.ItemStatus="{x:Bind StatusLabel}"
+                                AutomationProperties.Name="{x:Bind AccessibilityLabel}"
+                                Background="{ThemeResource SurfaceBrush}"
+                                BorderBrush="{ThemeResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Grid ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid
+                                        Width="24"
+                                        Height="24"
+                                        VerticalAlignment="Top">
+                                        <Ellipse
+                                            Fill="{x:Bind StatusBrush}"
+                                            Opacity="0.16" />
+                                        <FontIcon
+                                            FontSize="12"
+                                            Foreground="{x:Bind StatusBrush}"
+                                            Glyph="{x:Bind StatusGlyph}" />
+                                    </Grid>
+
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <TextBlock
+                                            FontWeight="SemiBold"
+                                            Foreground="{ThemeResource TextPrimaryBrush}"
+                                            Text="{x:Bind Name}" />
+                                        <TextBlock
+                                            Foreground="{ThemeResource TextSecondaryBrush}"
+                                            Text="{x:Bind Detail}"
+                                            TextWrapping="WrapWholeWords" />
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Margin="12,2,0,0"
+                                        VerticalAlignment="Top"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{x:Bind StatusBrush}"
+                                        Text="{x:Bind StatusLabel}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <StackPanel
+                    x:Name="EmptyState"
+                    MaxWidth="440"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Doctor is ready to run"
+                    Spacing="8">
+                    <FontIcon
+                        HorizontalAlignment="Center"
+                        FontSize="28"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        Glyph="&#xE9D9;" />
+                    <TextBlock
+                        x:Name="EmptyStateTitle"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Text="Ready for a system check" />
+                    <TextBlock
+                        x:Name="EmptyStateDescription"
+                        HorizontalAlignment="Center"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        Text="Doctor checks local dependencies without changing your configuration."
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <Border
+            Grid.Row="2"
+            Padding="28,16,28,20"
+            Background="{ThemeResource SurfaceBrush}"
+            BorderBrush="{ThemeResource BorderBrush}"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    x:Name="RunAgainButton"
+                    AutomationProperties.Name="Run diagnostics again"
+                    Click="RunAgainButton_Click"
+                    Content="Run again"
+                    Style="{StaticResource PrimaryButtonStyle}" />
+                <Button
+                    x:Name="CopyReportButton"
+                    Grid.Column="1"
+                    AutomationProperties.Name="Copy diagnostic report"
+                    Click="CopyReportButton_Click"
+                    Content="Copy report"
+                    IsEnabled="False" />
+                <Button
+                    x:Name="CloseButton"
+                    Grid.Column="3"
+                    AutomationProperties.Name="Close Doctor"
+                    Click="CloseButton_Click"
+                    Content="Close" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

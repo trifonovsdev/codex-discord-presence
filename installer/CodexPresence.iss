@@ -53,6 +53,7 @@ Source: "..\artifacts\stage\CodexPresence.exe"; DestDir: "{app}"; Flags: ignorev
 #endif
 Source: "..\artifacts\stage\runtime\node.exe"; DestDir: "{app}\runtime"; Flags: ignoreversion
 Source: "..\artifacts\stage\runtime\NODE_LICENSE"; DestDir: "{app}\runtime"; Flags: ignoreversion
+Source: "..\artifacts\stage\codex-presence.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\*.js"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\remote-monitor.py"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\config.default.json"; DestDir: "{app}\app"; Flags: ignoreversion
