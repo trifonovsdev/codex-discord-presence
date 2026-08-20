@@ -322,9 +322,9 @@ public sealed class TrayIcon : IDisposable
     {
         var candidates = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "codex-presence.ico"),
-            Path.Combine(AppContext.BaseDirectory, "assets", "codex-presence.ico"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "assets", "codex-presence.ico")),
+            Path.Combine(AppPaths.BaseDirectory, "codex-presence.ico"),
+            Path.Combine(AppPaths.BaseDirectory, "assets", "codex-presence.ico"),
+            Path.GetFullPath(Path.Combine(AppPaths.BaseDirectory, "..", "assets", "codex-presence.ico")),
         };
 
         foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))

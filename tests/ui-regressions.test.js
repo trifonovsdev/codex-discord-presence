@@ -8,12 +8,25 @@ const source = (relativePath) => fs.readFileSync(path.join(repository, relativeP
 
 test('desktop shell uses unpackaged self-contained WinUI 3', () => {
   const project = source('tray/CodexPresence.Tray.csproj');
+  const app = source('tray/App.xaml');
 
   assert.match(project, /<UseWinUI>true<\/UseWinUI>/);
   assert.match(project, /<WindowsPackageType>None<\/WindowsPackageType>/);
   assert.match(project, /<WindowsAppSDKSelfContained>true<\/WindowsAppSDKSelfContained>/);
   assert.match(project, /Microsoft\.WindowsAppSDK[^\n]+Version="2\.4\.0"/);
   assert.doesNotMatch(project, /<UseWindowsForms>true<\/UseWindowsForms>/);
+  assert.match(app, /<ResourceDictionary\.MergedDictionaries>/);
+  assert.match(app, /<XamlControlsResources\b/);
+});
+
+test('single-file runtime resolves payloads beside the launched executable', () => {
+  const paths = source('tray/AppPaths.cs');
+  const app = source('tray/App.xaml.cs');
+  const tray = source('tray/TrayIcon.cs');
+
+  assert.match(paths, /Environment\.ProcessPath/);
+  assert.match(app, /AppPaths\.BaseDirectory/);
+  assert.match(tray, /AppPaths\.BaseDirectory/);
 });
 
 test('app resources define one accessible graphite design system', () => {
@@ -147,7 +160,13 @@ test('WinUI smoke mode constructs every window before installer validation', () 
   assert.match(app, /new SettingsWindow/);
   assert.match(app, /new DiagnosticsWindow/);
   assert.match(app, /RunUiSmoke/);
+  assert.match(app, /codex-presence-ui-smoke\.log/);
+  assert.match(app, /WriteUiSmokeCheckpoint/);
   assert.match(smoke, /--ui-smoke/);
+  assert.match(smoke, /codex-presence-ui-smoke\.log/);
+  assert.match(smoke, /Get-Content[^\n]+\$uiSmokeLog/);
+  assert.match(smoke, /WaitForExit\(30000\)/);
+  assert.match(smoke, /timed out after 30 seconds/);
 });
 
 test('installer smoke exercises single-instance activation and keeps one tray host', () => {
@@ -162,6 +181,7 @@ test('release smoke validates the portable WinUI bundle too', () => {
   const smoke = source('tests/installer-smoke.ps1');
 
   assert.match(smoke, /CodexPresence-\*-portable\.zip/);
-  assert.match(smoke, /\$portableSmoke/);
-  assert.match(smoke, /Portable UI smoke test returned/);
+  assert.match(smoke, /Invoke-UiSmoke[^\n]+\$portableRoot/);
+  assert.match(smoke, /-Label 'Portable UI smoke test'/);
+  assert.match(smoke, /throw "\$Label \$failure/);
 });

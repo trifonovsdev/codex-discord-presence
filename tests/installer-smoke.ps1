@@ -20,6 +20,33 @@ $setupExit = $null
 $uninstallExit = $null
 $trayProcess = $null
 $smokeStartedAt = Get-Date
+$uiSmokeLog = Join-Path ([IO.Path]::GetTempPath()) 'codex-presence-ui-smoke.log'
+
+function Invoke-UiSmoke {
+  param(
+    [Parameter(Mandatory)][string]$Executable,
+    [Parameter(Mandatory)][string]$Label
+  )
+
+  Remove-Item -LiteralPath $uiSmokeLog -Force -ErrorAction SilentlyContinue
+  $process = Start-Process $Executable -ArgumentList '--ui-smoke' -PassThru -WindowStyle Hidden
+  if (-not $process.WaitForExit(30000)) {
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    $failure = 'timed out after 30 seconds'
+  } elseif ($process.ExitCode -ne 0) {
+    $failure = "returned $($process.ExitCode)"
+  } else {
+    return
+  }
+
+  Write-Host "--- $Label diagnostics ---"
+  if (Test-Path -LiteralPath $uiSmokeLog) {
+    Get-Content -LiteralPath $uiSmokeLog | ForEach-Object { Write-Host $_ }
+  } else {
+    Write-Host "UI smoke log was not created at $uiSmokeLog"
+  }
+  throw "$Label $failure."
+}
 
 function Write-SmokeDiagnostics {
   param(
@@ -109,8 +136,7 @@ try {
   foreach ($relativePath in @('CodexPresence.exe','codex-presence.ico','runtime\node.exe','app\daemon.js','app\config.default.json')) {
     if (-not (Test-Path -LiteralPath (Join-Path $portableRoot $relativePath))) { throw "Portable bundle is missing $relativePath." }
   }
-  $portableSmoke = Start-Process (Join-Path $portableRoot 'CodexPresence.exe') -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
-  if ($portableSmoke.ExitCode -ne 0) { throw "Portable UI smoke test returned $($portableSmoke.ExitCode)." }
+  Invoke-UiSmoke -Executable (Join-Path $portableRoot 'CodexPresence.exe') -Label 'Portable UI smoke test'
 
   $legacyDir = Join-Path $env:LOCALAPPDATA 'OpenAI\CodexDiscordPresence'
   New-Item -ItemType Directory -Path $legacyDir -Force | Out-Null
@@ -143,8 +169,7 @@ try {
   if ($normalizedHooks.IndexOf((Join-Path $legacyDir 'hook.js'), [StringComparison]::OrdinalIgnoreCase) -ge 0) { throw 'Legacy hook registration remains.' }
 
   $trayExecutable = Join-Path $installDir 'CodexPresence.exe'
-  $uiSmoke = Start-Process $trayExecutable -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
-  if ($uiSmoke.ExitCode -ne 0) { throw "Desktop UI smoke test returned $($uiSmoke.ExitCode)." }
+  Invoke-UiSmoke -Executable $trayExecutable -Label 'Desktop UI smoke test'
 
   $trayProcess = Start-Process $trayExecutable -ArgumentList '--background' -PassThru
   $health = $null
@@ -201,6 +226,7 @@ finally {
   $uninstaller = Join-Path $installDir 'unins000.exe'
   if (Test-Path -LiteralPath $uninstaller) { Start-Process $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -WindowStyle Hidden }
   if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force }
+  Remove-Item -LiteralPath $uiSmokeLog -Force -ErrorAction SilentlyContinue
   $env:LOCALAPPDATA = $originalLocalAppData
   $env:CODEX_HOME = $originalCodexHome
 }

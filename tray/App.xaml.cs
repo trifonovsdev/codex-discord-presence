@@ -8,6 +8,8 @@ namespace CodexPresence;
 /// <summary>Application entry lifecycle; the WinUI XAML compiler generates Main.</summary>
 public partial class App : Application
 {
+    private const string UiSmokeLogFileName = "codex-presence-ui-smoke.log";
+
     private Mutex? instanceMutex;
     private EventWaitHandle? activationSignal;
     private AppCoordinator? coordinator;
@@ -16,8 +18,17 @@ public partial class App : Application
 
     public App()
     {
-        InitializeComponent();
-        UnhandledException += OnUnhandledException;
+        try
+        {
+            if (IsUiSmokeMode()) WriteUiSmokeCheckpoint("App.InitializeComponent");
+            InitializeComponent();
+            UnhandledException += OnUnhandledException;
+        }
+        catch (Exception error)
+        {
+            if (IsUiSmokeMode()) WriteUiSmokeFailure("App.InitializeComponent", error);
+            throw;
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -73,10 +84,13 @@ public partial class App : Application
     private static bool HasArgument(IEnumerable<string> arguments, string expected) =>
         arguments.Contains(expected, StringComparer.OrdinalIgnoreCase);
 
+    private static bool IsUiSmokeMode() =>
+        HasArgument(Environment.GetCommandLineArgs(), "--ui-smoke");
+
     /// <summary>Scoped to the install directory so portable copies stay independent.</summary>
     private static string InstanceKey()
     {
-        var identity = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
+        var identity = AppPaths.BaseDirectory.ToUpperInvariant();
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(identity));
         return Convert.ToHexString(digest)[..16];
     }
@@ -86,20 +100,32 @@ public partial class App : Application
         MainWindow? dashboard = null;
         SettingsWindow? settings = null;
         DiagnosticsWindow? doctor = null;
+        var stage = "services";
         try
         {
+            WriteUiSmokeCheckpoint(stage);
             var store = new ConfigStore();
             var remote = new RemoteService();
             using var daemon = new DaemonService(store);
 
+            stage = "MainWindow.InitializeComponent";
+            WriteUiSmokeCheckpoint(stage);
             dashboard = new MainWindow("smoke");
             dashboard.UpdatePrivacy(new PrivacyConfig());
             dashboard.UpdateSnapshot(null);
+
+            stage = "SettingsWindow.InitializeComponent";
+            WriteUiSmokeCheckpoint(stage);
             settings = new SettingsWindow(store, remote);
+
+            stage = "DiagnosticsWindow.InitializeComponent";
+            WriteUiSmokeCheckpoint(stage);
             doctor = new DiagnosticsWindow(new DiagnosticsService(daemon, store, remote));
 
             // Construction runs InitializeComponent for every top-level view.
             // The smoke path deliberately avoids starting daemon/network work.
+            stage = "window cleanup";
+            WriteUiSmokeCheckpoint(stage);
             await Task.Yield();
             doctor.Close();
             doctor = null;
@@ -107,15 +133,45 @@ public partial class App : Application
             settings = null;
             dashboard.CloseForExit();
             dashboard = null;
+            WriteUiSmokeCheckpoint("completed");
             ExitApplication(0);
         }
         catch (Exception error)
         {
             Console.Error.WriteLine(error);
-            doctor?.Close();
-            settings?.Close();
-            dashboard?.CloseForExit();
+            WriteUiSmokeFailure(stage, error);
+            try { doctor?.Close(); } catch { }
+            try { settings?.Close(); } catch { }
+            try { dashboard?.CloseForExit(); } catch { }
             ExitApplication(1);
+        }
+    }
+
+    private static string UiSmokeLogPath => Path.Combine(Path.GetTempPath(), UiSmokeLogFileName);
+
+    private static void WriteUiSmokeCheckpoint(string stage)
+    {
+        try
+        {
+            File.WriteAllText(UiSmokeLogPath, $"Stage: {stage}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Smoke diagnostics must never change application behavior.
+        }
+    }
+
+    private static void WriteUiSmokeFailure(string stage, Exception error)
+    {
+        try
+        {
+            File.WriteAllText(
+                UiSmokeLogPath,
+                $"Stage: {stage}{Environment.NewLine}{error}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Smoke diagnostics must never hide the original failure.
         }
     }
 
@@ -133,6 +189,7 @@ public partial class App : Application
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs args)
     {
         Console.Error.WriteLine(args.Exception);
+        if (IsUiSmokeMode()) WriteUiSmokeFailure("UnhandledException", args.Exception);
         args.Handled = true;
 
         if (coordinator is not null)

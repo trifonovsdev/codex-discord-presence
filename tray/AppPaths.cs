@@ -2,7 +2,19 @@ namespace CodexPresence;
 
 public static class AppPaths
 {
-    public static string BaseDirectory => AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+    public static string BaseDirectory
+    {
+        get
+        {
+            var processPath = Environment.ProcessPath;
+            var executableDirectory = string.IsNullOrWhiteSpace(processPath)
+                ? null
+                : Path.GetDirectoryName(processPath);
+            return Path.TrimEndingDirectorySeparator(
+                Path.GetFullPath(executableDirectory ?? AppContext.BaseDirectory));
+        }
+    }
+
     public static string AppDirectory => Directory.Exists(Path.Combine(BaseDirectory, "app"))
         ? Path.Combine(BaseDirectory, "app")
         : FindRepositoryRoot() is { } root ? Path.Combine(root, "src") : BaseDirectory;
