@@ -12,49 +12,49 @@
             </ResourceDictionary.MergedDictionaries>
 
             <ResourceDictionary.ThemeDictionaries>
-                <!-- The app intentionally has one graphite theme; contrast colors remain user-controlled. -->
+                <!-- One quiet black theme; contrast colors remain user-controlled. -->
                 <ResourceDictionary x:Key="Default">
-                    <SolidColorBrush x:Key="CanvasBrush" Color="#0A0C0B" />
-                    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#E60F1210" />
-                    <SolidColorBrush x:Key="SurfaceBrush" Color="#151816" />
-                    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1D211E" />
-                    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#272D29" />
-                    <SolidColorBrush x:Key="BorderBrush" Color="#3C453E" />
-                    <SolidColorBrush x:Key="BorderStrongBrush" Color="#657067" />
+                    <SolidColorBrush x:Key="CanvasBrush" Color="#050606" />
+                    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F20B0C0D" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#111214" />
+                    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#161719" />
+                    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#1C1D20" />
+                    <SolidColorBrush x:Key="BorderBrush" Color="#24262A" />
+                    <SolidColorBrush x:Key="BorderStrongBrush" Color="#34363B" />
 
-                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2F5EF" />
-                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B8C0B8" />
-                    <SolidColorBrush x:Key="TextMutedBrush" Color="#929C93" />
-                    <SolidColorBrush x:Key="AccentBrush" Color="#E8ECE4" />
-                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#D6DDD2" />
-                    <SolidColorBrush x:Key="AccentPressedBrush" Color="#C4CEC0" />
-                    <SolidColorBrush x:Key="AccentTextBrush" Color="#111411" />
-                    <SolidColorBrush x:Key="SuccessBrush" Color="#5BDBA5" />
-                    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#17392D" />
-                    <SolidColorBrush x:Key="WarningBrush" Color="#E8BD69" />
-                    <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#352A18" />
-                    <SolidColorBrush x:Key="DangerBrush" Color="#F77E7E" />
-                    <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#3B2023" />
-                    <SolidColorBrush x:Key="FocusStrokeBrush" Color="#88E0B5" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2F2EF" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A5A6A3" />
+                    <SolidColorBrush x:Key="TextMutedBrush" Color="#747572" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#F0F0EC" />
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AccentPressedBrush" Color="#DCDDD8" />
+                    <SolidColorBrush x:Key="AccentTextBrush" Color="#0B0C0D" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#5FD49B" />
+                    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#142B22" />
+                    <SolidColorBrush x:Key="WarningBrush" Color="#D8AE62" />
+                    <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#2D2416" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#EC7777" />
+                    <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#321C20" />
+                    <SolidColorBrush x:Key="FocusStrokeBrush" Color="#A7A8A4" />
 
-                    <SolidColorBrush x:Key="DiscordCanvasBrush" Color="#1E1F22" />
-                    <SolidColorBrush x:Key="DiscordSurfaceBrush" Color="#2B2D31" />
+                    <SolidColorBrush x:Key="DiscordCanvasBrush" Color="#101113" />
+                    <SolidColorBrush x:Key="DiscordSurfaceBrush" Color="#191A1D" />
                     <SolidColorBrush x:Key="DiscordTextBrush" Color="#F2F3F5" />
-                    <SolidColorBrush x:Key="DiscordMutedBrush" Color="#B5BAC1" />
-                    <SolidColorBrush x:Key="DiscordDividerBrush" Color="#3F4147" />
+                    <SolidColorBrush x:Key="DiscordMutedBrush" Color="#A9ADB5" />
+                    <SolidColorBrush x:Key="DiscordDividerBrush" Color="#292B30" />
 
-                    <SolidColorBrush x:Key="ButtonBackground" Color="#1D211E" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#272D29" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#303832" />
-                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#121512" />
-                    <SolidColorBrush x:Key="ButtonForeground" Color="#F2F5EF" />
+                    <SolidColorBrush x:Key="ButtonBackground" Color="#161719" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#202125" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#27292E" />
+                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#101113" />
+                    <SolidColorBrush x:Key="ButtonForeground" Color="#F2F2EF" />
                     <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E8ECE4" />
-                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#687169" />
-                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#657067" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#657067" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#77837A" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#262C27" />
+                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E2E2DE" />
+                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#5F605E" />
+                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#34363B" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#464950" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#555860" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#202226" />
 
                     <SolidColorBrush x:Key="AccentButtonBackground" Color="#E8ECE4" />
                     <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#D6DDD2" />
@@ -218,6 +218,23 @@
             <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
                 <Setter Property="Width" Value="44" />
                 <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+
+            <Style x:Key="CompactButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                <Setter Property="MinHeight" Value="30" />
+                <Setter Property="MinWidth" Value="36" />
+                <Setter Property="Padding" Value="11,4" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Normal" />
+            </Style>
+
+            <Style x:Key="CompactIconButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="MinWidth" Value="30" />
+                <Setter Property="MinHeight" Value="30" />
                 <Setter Property="Padding" Value="0" />
             </Style>
 

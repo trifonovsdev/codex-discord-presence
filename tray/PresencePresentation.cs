@@ -165,7 +165,12 @@ internal sealed record PresencePresentation(
             secondary = russian ? $"Файл: {path}" : $"Editing: {path}";
         }
 
-        return ("Coding with Codex", primary, secondary, PresenceTone.Success,
+        var rawActivityName = snapshot.ActivityName?.Trim();
+        var activityName = rawActivityName is { Length: >= 2 }
+            ? rawActivityName[..Math.Min(rawActivityName.Length, 128)]
+            : "Coding with Codex";
+
+        return (activityName, primary, secondary, PresenceTone.Success,
             privacy.ShowTimer && snapshot.CodexStartedAt is not null && elapsed.Length > 0);
     }
 

@@ -7,6 +7,7 @@ public sealed class PresenceConfig
     [JsonPropertyName("clientId")] public string ClientId { get; set; } = "1526968377048956938";
     [JsonPropertyName("port")] public int Port { get; set; } = 37642;
     [JsonPropertyName("language")] public string Language { get; set; } = "en";
+    [JsonPropertyName("activityName")] public string ActivityName { get; set; } = "Coding with Codex";
     [JsonPropertyName("largeImageKey")] public string LargeImageKey { get; set; } = "codex";
     [JsonPropertyName("largeImageText")] public string LargeImageText { get; set; } = "OpenAI Codex";
     [JsonPropertyName("appProcess")] public string AppProcess { get; set; } = "ChatGPT";
@@ -54,9 +55,11 @@ public sealed class HealthSnapshot
     [JsonPropertyName("ok")] public bool Ok { get; set; }
     [JsonPropertyName("version")] public string? Version { get; set; }
     [JsonPropertyName("language")] public string? Language { get; set; }
+    [JsonPropertyName("activityName")] public string? ActivityName { get; set; }
     [JsonPropertyName("rpcReady")] public bool RpcReady { get; set; }
     [JsonPropertyName("rpcPublished")] public bool RpcPublished { get; set; }
     [JsonPropertyName("rpcError")] public string? RpcError { get; set; }
+    [JsonPropertyName("rpcTransport")] public string? RpcTransport { get; set; }
     [JsonPropertyName("codexRunning")] public bool CodexRunning { get; set; }
     [JsonPropertyName("configWarnings")] public List<string> ConfigWarnings { get; set; } = [];
     [JsonPropertyName("presenceEnabled")] public bool PresenceEnabled { get; set; }

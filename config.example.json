@@ -2,6 +2,7 @@
   "clientId": "1526968377048956938",
   "port": 37642,
   "language": "en",
+  "activityName": "Coding with Codex",
   "largeImageKey": "codex",
   "largeImageText": "OpenAI Codex",
   "appProcess": "ChatGPT",

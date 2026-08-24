@@ -27,7 +27,7 @@
             Subtitle="Codex Presence"
             AutomationProperties.Name="Codex Presence Doctor title bar">
             <TitleBar.IconSource>
-                <FontIconSource FontFamily="Segoe Fluent Icons" Glyph="&#xE9D9;" />
+                <BitmapIconSource UriSource="codex-app-icon.png" ShowAsMonochrome="False" />
             </TitleBar.IconSource>
         </TitleBar>
 

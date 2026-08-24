@@ -6,7 +6,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <AssemblyName>CodexPresence</AssemblyName>
     <RootNamespace>CodexPresence</RootNamespace>
-    <Version>2.3.4</Version>
+    <Version>2.4.0</Version>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <Content Include="..\assets\codex-app-icon.png" Link="codex-app-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\assets\codex-presence.ico" Link="codex-presence.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.UI.Xaml;
 
 namespace CodexPresence;
@@ -34,6 +35,12 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         var arguments = Environment.GetCommandLineArgs();
+
+        if (TryGetArgumentValue(arguments, "--discord-bridge") is { } applicationId)
+        {
+            _ = RunDiscordBridgeAsync(applicationId);
+            return;
+        }
 
         if (HasArgument(arguments, "--shutdown"))
         {
@@ -83,6 +90,36 @@ public partial class App : Application
 
     private static bool HasArgument(IEnumerable<string> arguments, string expected) =>
         arguments.Contains(expected, StringComparer.OrdinalIgnoreCase);
+
+    private static string? TryGetArgumentValue(IReadOnlyList<string> arguments, string expected)
+    {
+        for (var index = 0; index < arguments.Count - 1; index++)
+        {
+            if (string.Equals(arguments[index], expected, StringComparison.OrdinalIgnoreCase))
+                return arguments[index + 1];
+        }
+        return null;
+    }
+
+    private async Task RunDiscordBridgeAsync(string applicationId)
+    {
+        try
+        {
+            await DiscordBridge.RunAsync(applicationId);
+            ExitApplication(0);
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            Console.Out.WriteLine(JsonSerializer.Serialize(new
+            {
+                @event = "fatal",
+                message = $"Social SDK bridge failed: {error.Message}",
+            }));
+            Console.Out.Flush();
+            ExitApplication(1);
+        }
+    }
 
     private static bool IsUiSmokeMode() =>
         HasArgument(Environment.GetCommandLineArgs(), "--ui-smoke");

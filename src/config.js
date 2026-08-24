@@ -12,11 +12,15 @@ const FILE_MODES = ['name', 'relative'];
 const LANGUAGES = ['en', 'ru'];
 
 const DEFAULT_MONITOR_PATH = '~/.local/share/CodexDiscordPresence/remote-monitor.py';
+const DEFAULT_ACTIVITY_NAME = 'Coding with Codex';
+const MIN_ACTIVITY_NAME = 2;
+const MAX_ACTIVITY_NAME = 128;
 
 const DEFAULT_CONFIG = Object.freeze({
   clientId: '1526968377048956938',
   port: 37642,
   language: 'en',
+  activityName: DEFAULT_ACTIVITY_NAME,
   largeImageKey: 'codex',
   largeImageText: 'OpenAI Codex',
   appProcess: 'ChatGPT',
@@ -63,6 +67,27 @@ function pickInteger(value, { min, max, fallback }) {
   return number;
 }
 
+function truncateUtf16Safely(value, maxLength) {
+  let end = Math.min(value.length, maxLength);
+  const lastCodeUnit = value.charCodeAt(end - 1);
+  const nextCodeUnit = value.charCodeAt(end);
+  const splitsSurrogatePair = lastCodeUnit >= 0xD800 && lastCodeUnit <= 0xDBFF &&
+    nextCodeUnit >= 0xDC00 && nextCodeUnit <= 0xDFFF;
+  if (splitsSurrogatePair) end -= 1;
+  return value.slice(0, end);
+}
+
+function normalizeActivityName(value, fallback = DEFAULT_ACTIVITY_NAME) {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value
+    .toWellFormed()
+    .replace(/\p{Cc}+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  if (normalized.length < MIN_ACTIVITY_NAME) return fallback;
+  return truncateUtf16Safely(normalized, MAX_ACTIVITY_NAME);
+}
+
 /**
  * Reads the user config and returns a fully validated document. Invalid
  * individual fields fall back to their default instead of taking the whole
@@ -91,6 +116,9 @@ function readConfig(configPath) {
     clientId: pickString(raw.clientId, CLIENT_ID_PATTERN, DEFAULT_CONFIG.clientId),
     port: pickInteger(raw.port, { min: 1, max: 65535, fallback: DEFAULT_CONFIG.port }),
     language: pickEnum(raw.language, LANGUAGES, DEFAULT_CONFIG.language),
+    activityName: raw.activityName === undefined
+      ? DEFAULT_CONFIG.activityName
+      : normalizeActivityName(raw.activityName),
     largeImageKey: String(raw.largeImageKey ?? DEFAULT_CONFIG.largeImageKey).slice(0, 64),
     largeImageText: String(raw.largeImageText ?? DEFAULT_CONFIG.largeImageText).slice(0, 128),
     appProcess: pickString(raw.appProcess, PROCESS_PATTERN, DEFAULT_CONFIG.appProcess).replace(/\.exe$/i, ''),
@@ -114,6 +142,9 @@ function readConfig(configPath) {
   if (raw.port !== undefined && config.port !== Number(raw.port)) warnings.push(`port ${JSON.stringify(raw.port)} is out of range; using ${config.port}`);
   if (raw.appProcess !== undefined && config.appProcess !== String(raw.appProcess).replace(/\.exe$/i, '')) warnings.push('appProcess contains unsupported characters; using the default');
   if (raw.language !== undefined && config.language !== String(raw.language).toLowerCase()) warnings.push(`language ${JSON.stringify(raw.language)} is not supported; using ${config.language}`);
+  if (raw.activityName !== undefined && (typeof raw.activityName !== 'string' || config.activityName !== raw.activityName)) {
+    warnings.push('activityName was normalized to a single line between 2 and 128 characters');
+  }
 
   return { config, warnings };
 }
@@ -152,6 +183,8 @@ module.exports = {
   patchConfig,
   DEFAULT_CONFIG,
   DEFAULT_MONITOR_PATH,
+  DEFAULT_ACTIVITY_NAME,
+  normalizeActivityName,
   PRIVACY_PRESETS,
   PRESETS,
   FILE_MODES,

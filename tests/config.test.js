@@ -21,9 +21,48 @@ test('a missing config falls back to the documented defaults', () => {
     const { config, warnings } = readConfig(configPath);
     assert.equal(config.port, DEFAULT_CONFIG.port);
     assert.equal(config.language, 'en');
+    assert.equal(config.activityName, 'Coding with Codex');
     assert.deepEqual(warnings, []);
   } finally {
     cleanup();
+  }
+});
+
+test('the Discord activity name is normalized and bounded before publication', () => {
+  const normalized = withConfig(JSON.stringify({ activityName: '  Reviewing\nwith\tCodex  ' }));
+  try {
+    const { config, warnings } = readConfig(normalized.configPath);
+    assert.equal(config.activityName, 'Reviewing with Codex');
+    assert.equal(warnings.length, 1);
+  } finally {
+    normalized.cleanup();
+  }
+
+  const invalid = withConfig(JSON.stringify({ activityName: 'x' }));
+  try {
+    const { config, warnings } = readConfig(invalid.configPath);
+    assert.equal(config.activityName, DEFAULT_CONFIG.activityName);
+    assert.ok(warnings.some((warning) => warning.includes('activityName')));
+  } finally {
+    invalid.cleanup();
+  }
+
+  const long = withConfig(JSON.stringify({ activityName: 'a'.repeat(200) }));
+  try {
+    const { config, warnings } = readConfig(long.configPath);
+    assert.equal(config.activityName.length, 128);
+    assert.ok(warnings.some((warning) => warning.includes('activityName')));
+  } finally {
+    long.cleanup();
+  }
+
+  const unicodeBoundary = withConfig(JSON.stringify({ activityName: `${'a'.repeat(127)}😀` }));
+  try {
+    const { config } = readConfig(unicodeBoundary.configPath);
+    assert.equal(config.activityName.isWellFormed(), true, 'truncation must not split a Unicode surrogate pair');
+    assert.ok(config.activityName.length <= 128);
+  } finally {
+    unicodeBoundary.cleanup();
   }
 });
 

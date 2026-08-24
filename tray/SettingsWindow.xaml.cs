@@ -17,6 +17,9 @@ public sealed partial class SettingsWindow : Window
     [GeneratedRegex(@"^[A-Za-z0-9_./~-]+$", RegexOptions.CultureInvariant)]
     private static partial Regex RootPattern();
 
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
+    private static partial Regex WhitespacePattern();
+
     private static readonly (string Label, string Value)[] Languages =
     [
         ("English", "en"),
@@ -63,10 +66,17 @@ public sealed partial class SettingsWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        WindowSizing.ResizeInDips(this, 1080, 760);
+        WindowSizing.ResizeInDips(this, 860, 680);
         AppWindow.Closing += (_, _) => CancelRemoteAction();
         Closed += (_, _) => CancelRemoteAction();
         RootGrid.ActualThemeChanged += (_, _) => RefreshStatusBrush();
+        Motion.AttachButtonFeedback(
+            SaveButton,
+            CancelButton,
+            AddRemoteButton,
+            RemoveRemoteButton,
+            TestRemoteButton,
+            InstallRemoteButton);
 
         LanguageSelect.ItemsSource = Languages.Select(item => item.Label).ToArray();
         PresetSelect.ItemsSource = new[] { "minimal", "standard", "detailed" };
@@ -108,6 +118,7 @@ public sealed partial class SettingsWindow : Window
         try
         {
             PresenceToggle.IsOn = config.PresenceEnabled;
+            ActivityNameInput.Text = config.ActivityName;
             try
             {
                 StartupToggle.IsOn = store.StartsWithWindows;
@@ -272,6 +283,14 @@ public sealed partial class SettingsWindow : Window
 
     private async void SaveClicked(object sender, RoutedEventArgs args)
     {
+        var activityName = WhitespacePattern().Replace(ActivityNameInput.Text ?? string.Empty, " ").Trim();
+        if (activityName.Length < 2)
+        {
+            await ShowDialogAsync("Check the activity name", "Enter between 2 and 128 characters.");
+            ActivityNameInput.Focus(FocusState.Programmatic);
+            return;
+        }
+
         var filled = remoteRows.Where(row => !string.IsNullOrWhiteSpace(row.Host)).ToList();
         if (filled.Select(Validate).FirstOrDefault(problem => problem is not null) is { } invalid)
         {
@@ -280,6 +299,7 @@ public sealed partial class SettingsWindow : Window
         }
 
         config.PresenceEnabled = PresenceToggle.IsOn;
+        config.ActivityName = activityName;
         config.Updates.Enabled = UpdatesToggle.IsOn;
         config.Language = Languages.FirstOrDefault(item => item.Label == SelectedText(LanguageSelect, "English")).Value
             ?? "en";

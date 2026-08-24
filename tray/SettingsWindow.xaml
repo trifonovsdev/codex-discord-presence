@@ -52,7 +52,7 @@
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="False">
             <TitleBar.IconSource>
-                <FontIconSource FontFamily="Segoe Fluent Icons" Glyph="&#xE713;" />
+                <BitmapIconSource UriSource="codex-app-icon.png" ShowAsMonochrome="False" />
             </TitleBar.IconSource>
         </TitleBar>
 
@@ -125,6 +125,28 @@
                                             MinHeight="44"
                                             VerticalAlignment="Center"
                                             AutomationProperties.Name="Discord presence" />
+                                    </Grid>
+
+                                    <Border Height="1" Background="{ThemeResource SurfaceRaisedBrush}" />
+
+                                    <Grid MinHeight="80">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
+                                            <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
+                                            <TextBlock Text="Title shown above the project and file in Discord." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                        </StackPanel>
+                                        <TextBox
+                                            x:Name="ActivityNameInput"
+                                            Grid.Column="1"
+                                            Width="240"
+                                            MinHeight="44"
+                                            MaxLength="128"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.Name="Discord activity name"
+                                            PlaceholderText="Coding with Codex" />
                                     </Grid>
 
                                     <Border Height="1" Background="{ThemeResource SurfaceRaisedBrush}" />
@@ -531,6 +553,7 @@
                     Text="Changes apply after saving." />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button
+                        x:Name="CancelButton"
                         Content="Cancel"
                         Click="CancelClicked"
                         AutomationProperties.Name="Cancel settings changes" />

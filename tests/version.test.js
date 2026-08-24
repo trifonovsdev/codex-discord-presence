@@ -7,6 +7,7 @@ const { test } = require('node:test');
 
 const repository = path.resolve(__dirname, '..');
 const pinnedNodeSha256 = 'f2aa33b35b75aca5f3f7b85675a6f6423201053e9381911e64961f3bda2528ab';
+const pinnedDiscordSdkSha256 = '46170463bf263045972fde1ccaa51b380eb1443541036a809d24f4e6a9f9c388';
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repository, relativePath), 'utf8');
@@ -97,6 +98,20 @@ test('release build verifies the cached Node archive before extraction', () => {
   assert.match(script, /checksum mismatch/i);
   assert.match(script, new RegExp(`\\[string\\]\\$NodeSha256 = '${pinnedNodeSha256}'`));
   assert.match(script, /manifest checksum .* pinned checksum/i);
+});
+
+test('release build verifies the pinned Social SDK before staging it', () => {
+  const script = read('build-release.ps1');
+  const checksumIndex = script.indexOf('Get-FileHash -LiteralPath $discordSdkBinary');
+  const copyIndex = script.indexOf("Copy-Item -LiteralPath $discordSdkBinary");
+
+  assert.ok(checksumIndex >= 0, 'Discord Social SDK hash is not calculated');
+  assert.ok(copyIndex >= 0, 'Discord Social SDK is not staged');
+  assert.ok(checksumIndex < copyIndex, 'Discord Social SDK must be verified before staging');
+  assert.match(script, new RegExp(`\\[string\\]\\$DiscordSdkSha256 = '${pinnedDiscordSdkSha256}'`));
+  assert.match(script, /DiscordSdkCommit.*[0-9a-f]{40}/i);
+  assert.match(script, /Discord Social SDK binary checksum mismatch/);
+  assert.match(script, /Discord Social SDK notices checksum mismatch/);
 });
 
 test('release build rejects unsafe version strings before constructing paths', () => {

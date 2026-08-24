@@ -133,7 +133,7 @@ try {
   if ($portableArchives.Count -ne 1) { throw "Expected one portable archive; found $($portableArchives.Count)." }
   $portableRoot = Join-Path $testRoot 'Portable'
   Expand-Archive -LiteralPath $portableArchives[0].FullName -DestinationPath $portableRoot
-  foreach ($relativePath in @('CodexPresence.exe','codex-presence.ico','runtime\node.exe','app\daemon.js','app\config.default.json')) {
+  foreach ($relativePath in @('CodexPresence.exe','codex-presence.ico','discord_partner_sdk.dll','DISCORD_SOCIAL_SDK_NOTICES.txt','runtime\node.exe','app\daemon.js','app\config.default.json')) {
     if (-not (Test-Path -LiteralPath (Join-Path $portableRoot $relativePath))) { throw "Portable bundle is missing $relativePath." }
   }
   Invoke-UiSmoke -Executable (Join-Path $portableRoot 'CodexPresence.exe') -Label 'Portable UI smoke test'
@@ -189,6 +189,7 @@ try {
     Write-SmokeDiagnostics -TrayProcess $trayProcess -InstallDir $installDir -Port $Port -LastHealthError $lastHealthError
     throw "Installed daemon did not become healthy (expected v$expectedVersion, got '$($health.version)')."
   }
+  if ($health.rpcTransport -ne 'social-sdk') { throw "Installed daemon selected '$($health.rpcTransport)' instead of the Social SDK." }
 
   $activationProbe = Start-Process $trayExecutable -ArgumentList '--background' -PassThru -WindowStyle Hidden
   if (-not $activationProbe.WaitForExit(5000)) {
@@ -197,12 +198,15 @@ try {
   }
   if ($activationProbe.ExitCode -ne 0) { throw "Activation probe returned $($activationProbe.ExitCode)." }
   Start-Sleep -Milliseconds 500
-  $ownedTrayProcesses = @(Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object {
-    try { [string]::Equals($_.Path, $trayExecutable, [StringComparison]::OrdinalIgnoreCase) } catch { $false }
+  $ownedProcesses = @(Get-CimInstance Win32_Process -Filter "Name = 'CodexPresence.exe'" -ErrorAction SilentlyContinue | Where-Object {
+    [string]::Equals($_.ExecutablePath, $trayExecutable, [StringComparison]::OrdinalIgnoreCase)
   })
-  if ($ownedTrayProcesses.Count -ne 1 -or $ownedTrayProcesses[0].Id -ne $trayProcess.Id) {
+  $ownedTrayProcesses = @($ownedProcesses | Where-Object { $_.CommandLine -notmatch '(?i)--discord-bridge' })
+  $ownedBridgeProcesses = @($ownedProcesses | Where-Object { $_.CommandLine -match '(?i)--discord-bridge' })
+  if ($ownedTrayProcesses.Count -ne 1 -or $ownedTrayProcesses[0].ProcessId -ne $trayProcess.Id) {
     throw "Expected a single tray host after activation; found $($ownedTrayProcesses.Count)."
   }
+  if ($ownedBridgeProcesses.Count -ne 1) { throw "Expected a single Social SDK bridge; found $($ownedBridgeProcesses.Count)." }
 
   $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}'
   $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'

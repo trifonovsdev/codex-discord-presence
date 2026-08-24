@@ -32,15 +32,17 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         Title = "Codex Presence";
-        AppTitleBar.Subtitle = $"Version {this.version}";
+        AppTitleBar.Subtitle = "";
+        FooterVersion.Text = $"v{this.version}";
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
-        WindowSizing.ResizeInDips(this, 820, 720);
+        WindowSizing.ResizeInDips(this, 640, 454);
         AppWindow.Closing += AppWindow_Closing;
         Closed += MainWindow_Closed;
         RootLayout.ActualThemeChanged += (_, _) => Render();
+        Motion.AttachButtonFeedback(PauseButton, SettingsButton, DiagnosticsButton, CopyPathButton);
 
         sessionTimer.Tick += (_, _) => Render();
         Render();

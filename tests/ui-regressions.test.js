@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -83,6 +84,80 @@ test('dashboard is a focused Fluent surface with live state and essential action
   assert.match(xaml, /AutomationProperties\.Name="Run diagnostics"/);
   assert.match(code, /AppWindow\.Closing/);
   assert.match(code, /args\.Cancel\s*=\s*true/);
+});
+
+test('the compact shell uses the official Codex app artwork', () => {
+  const xaml = source('tray/MainWindow.xaml');
+  const code = source('tray/MainWindow.xaml.cs');
+  const project = source('tray/CodexPresence.Tray.csproj');
+  const icon = path.join(repository, 'assets', 'codex-app-icon.png');
+
+  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*640,\s*454\)/);
+  assert.match(xaml, /codex-app-icon\.png/);
+  assert.match(project, /codex-app-icon\.png/);
+  assert.ok(fs.statSync(icon).size > 20_000, 'the exact official artwork is bundled, not a placeholder glyph');
+  assert.equal(
+    crypto.createHash('sha256').update(fs.readFileSync(icon)).digest('hex'),
+    '1c926e380bfe6a50f40648dd9bc5de88da7271546491adf99ec72172e17df6a0',
+  );
+});
+
+test('activity title customization flows through config, health, settings, and preview', () => {
+  const models = source('tray/Models.cs');
+  const xaml = source('tray/SettingsWindow.xaml');
+  const code = source('tray/SettingsWindow.xaml.cs');
+  const preview = source('tray/PresencePresentation.cs');
+  const diagnostics = source('tray/DiagnosticsService.cs');
+  const paths = source('tray/AppPaths.cs');
+
+  assert.match(models, /JsonPropertyName\("activityName"\)/);
+  assert.match(xaml, /x:Name="ActivityNameInput"/);
+  assert.match(xaml, /MaxLength="128"/);
+  assert.match(code, /ActivityNameInput\.Text\s*=\s*config\.ActivityName/);
+  assert.match(code, /ActivityName\s*=\s*activityName/);
+  assert.match(preview, /snapshot\.ActivityName/);
+  assert.match(models, /JsonPropertyName\("rpcTransport"\)/);
+  assert.match(paths, /SocialSdkPath/);
+  assert.match(diagnostics, /Discord Social SDK/);
+  assert.match(diagnostics, /RpcTransport/);
+});
+
+test('release hosts activity-name publishing in an isolated Social SDK bridge', () => {
+  const bridgePath = path.join(repository, 'tray', 'DiscordBridge.cs');
+  const nativePath = path.join(repository, 'tray', 'DiscordSocialNative.cs');
+  assert.ok(fs.existsSync(bridgePath), 'the native Social SDK bridge must be implemented');
+  assert.ok(fs.existsSync(nativePath), 'the reviewed C ABI bindings must be implemented');
+
+  const bridge = source('tray/DiscordBridge.cs');
+  const native = source('tray/DiscordSocialNative.cs');
+  const app = source('tray/App.xaml.cs');
+  const build = source('build-release.ps1');
+  const installer = source('installer/CodexPresence.iss');
+
+  assert.match(app, /--discord-bridge/);
+  assert.match(bridge, /ActivityName/);
+  assert.match(bridge, /UpdateRichPresence/);
+  assert.match(bridge, /Discord Desktop is not reachable/);
+  assert.match(native, /Discord_Activity_SetName/);
+  assert.match(native, /Discord_Client_UpdateRichPresence/);
+  assert.match(build, /DiscordSdkSha256/);
+  assert.match(build, /discord_partner_sdk\.dll/);
+  assert.match(build, /Get-FileHash/);
+  assert.match(installer, /discord_partner_sdk\.dll/);
+});
+
+test('micro-interactions are restrained and respect Windows animation settings', () => {
+  const motion = source('tray/Motion.cs');
+  const main = source('tray/MainWindow.xaml.cs');
+  const settings = source('tray/SettingsWindow.xaml.cs');
+
+  assert.match(motion, /AnimationsEnabled/);
+  assert.match(motion, /CreateCubicBezierEasingFunction/);
+  assert.match(motion, /FromMilliseconds\(90\)/);
+  assert.match(motion, /FromMilliseconds\(140\)/);
+  assert.doesNotMatch(motion, /Spring|Bounce|AutoReverse/);
+  assert.match(main, /Motion\.AttachButtonFeedback/);
+  assert.match(settings, /Motion\.AttachButtonFeedback/);
 });
 
 test('WinUI windows size in logical pixels on high-DPI displays', () => {
@@ -175,12 +250,16 @@ test('installer smoke exercises single-instance activation and keeps one tray ho
   assert.match(smoke, /\$activationProbe/);
   assert.match(smoke, /Activation probe returned/);
   assert.match(smoke, /single tray host/i);
+  assert.match(smoke, /--discord-bridge/);
+  assert.match(smoke, /single Social SDK bridge/i);
 });
 
 test('release smoke validates the portable WinUI bundle too', () => {
   const smoke = source('tests/installer-smoke.ps1');
 
   assert.match(smoke, /CodexPresence-\*-portable\.zip/);
+  assert.match(smoke, /discord_partner_sdk\.dll/);
+  assert.match(smoke, /DISCORD_SOCIAL_SDK_NOTICES\.txt/);
   assert.match(smoke, /Invoke-UiSmoke[^\n]+\$portableRoot/);
   assert.match(smoke, /-Label 'Portable UI smoke test'/);
   assert.match(smoke, /throw "\$Label \$failure/);

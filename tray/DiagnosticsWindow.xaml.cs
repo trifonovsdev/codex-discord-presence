@@ -30,9 +30,10 @@ public sealed partial class DiagnosticsWindow : Window
         SetTitleBar(AppTitleBar);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
-        WindowSizing.ResizeInDips(this, 860, 720);
+        WindowSizing.ResizeInDips(this, 760, 620);
         AppWindow.Closing += OnWindowClosing;
         RootLayout.ActualThemeChanged += (_, _) => RefreshStatusBrushes();
+        Motion.AttachButtonFeedback(RunAgainButton, CopyReportButton, CloseButton);
     }
 
     /// <summary>Shows Doctor and starts its checks on the first presentation.</summary>

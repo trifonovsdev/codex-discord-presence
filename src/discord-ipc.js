@@ -62,6 +62,7 @@ class DiscordIpc extends EventEmitter {
     this.candidates = candidates;
     this.minUpdateIntervalMs = minUpdateIntervalMs;
     this.connectTimeoutMs = connectTimeoutMs;
+    this.transport = 'legacy-rpc';
 
     this.socket = null;
     this.ready = false;

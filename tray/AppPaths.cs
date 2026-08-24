@@ -22,6 +22,7 @@ public static class AppPaths
     public static string DaemonPath => Path.Combine(AppDirectory, "daemon.js");
     public static string HookPath => Path.Combine(AppDirectory, "hook.js");
     public static string RemoteMonitorPath => Path.Combine(AppDirectory, "remote-monitor.py");
+    public static string SocialSdkPath => Path.Combine(BaseDirectory, "discord_partner_sdk.dll");
     public static string NodePath => File.Exists(Path.Combine(BaseDirectory, "runtime", "node.exe"))
         ? Path.Combine(BaseDirectory, "runtime", "node.exe")
         : "node.exe";

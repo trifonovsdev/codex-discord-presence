@@ -6,7 +6,17 @@ const { test } = require('node:test');
 const { buildActivity, MAX_FIELD } = require('../src/presence');
 const { PRIVACY_PRESETS } = require('../src/config');
 
-const base = { largeImageKey: 'codex', largeImageText: 'OpenAI Codex' };
+const base = { activityName: 'Coding with Codex', largeImageKey: 'codex', largeImageText: 'OpenAI Codex' };
+
+test('the card publishes a customizable Discord activity name', () => {
+  const privacy = { ...PRIVACY_PRESETS.standard, preset: 'standard' };
+  const custom = buildActivity({ ...base, activityName: 'Reviewing with Codex', privacy });
+  assert.equal(custom.name, 'Reviewing with Codex');
+  assert.equal(custom.type, 0);
+
+  const invalid = buildActivity({ ...base, activityName: 'x', privacy });
+  assert.equal(invalid.name, 'Coding with Codex');
+});
 
 test('the card is written in one language, not a mix of two', () => {
   const english = buildActivity({ ...base, project: 'store', file: 'src/index.ts', privacy: { ...PRIVACY_PRESETS.standard, preset: 'standard' }, language: 'en' });

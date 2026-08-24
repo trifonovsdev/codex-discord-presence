@@ -25,11 +25,12 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Remote-aware** — maps multiple SSH servers to workspace roots.
 - **Private by default** — no telemetry, tokens, prompt uploads, or cloud relay. The local service refuses any request a web page could send.
 - **Native Fluent UI** — WinUI 3, Mica, system controls, keyboard navigation, privacy presets, diagnostics, and verified updates.
+- **Real custom activity name** — replace the top-line “Coding with Codex” text through Discord Social SDK in **Settings → General → Activity name**.
 - **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
 ## Current highlights
 
-- The dashboard, Settings, Doctor, and dialogs use one accessible graphite design system built on WinUI 3, Fluent controls, and Windows contrast-theme colors.
+- The compact black dashboard uses the official Codex app artwork, restrained 90–140 ms motion, and Windows contrast-theme colors.
 - Route changes now require nearby workspace evidence, so sidebar/background tasks cannot steal the active Discord card.
 - Task titles are opt-in through `privacy.showTaskTitle` and remain hidden by default.
 - When no project can be resolved, the Discord card uses an honest generic Codex fallback instead of inventing a local project.
@@ -79,7 +80,7 @@ The helper reads only the selected task, stores an incremental byte offset, and 
 
 ## Doctor
 
-Doctor checks configuration, bundled runtime files, daemon health, Discord IPC, ChatGPT/Codex detection, hooks, Windows startup, and configured SSH hosts. Reports are copyable; review local paths and hostnames before sharing them publicly.
+Doctor checks configuration, bundled runtime files, the Discord Social SDK publisher, ChatGPT/Codex detection, hooks, Windows startup, and configured SSH hosts. Reports are copyable; review local paths and hostnames before sharing them publicly.
 
 ## Updates and integrity
 
@@ -95,8 +96,8 @@ Each release contains:
 
 ```text
 Codex route logs ────────┐
-Codex lifecycle hooks ───┼──> local daemon ──> Discord IPC
-Selected session JSONL ──┘         ▲
+Codex lifecycle hooks ───┼──> local daemon ──> isolated Social SDK bridge ──> Discord Desktop
+Selected session JSONL ──┘         ▲                └─ legacy RPC fallback
                                    │ localhost only
 WinUI 3 tray UI ── settings / doctor / controls / updates
                                    │
@@ -104,7 +105,8 @@ Selected remote task ── system OpenSSH ──> incremental Python helper
 ```
 
 The daemon is split into focused modules under `src/`: `config.js` (validation and atomic writes),
-`discord-ipc.js` (framing, keepalive, reconnect and rate limiting), `codex-paths.js` (project and file
+`discord-publisher.js` (Social SDK bridge lifecycle, acknowledgement tracking, retries and fallback),
+`discord-ipc.js` (legacy framing and keepalive), `codex-paths.js` (project and file
 heuristics), `desktop-selection.js` (which task is selected), `codex-state.js` (read-only selected-task metadata), `presence.js` (card text) and `logger.js`
 (rotating log). `daemon.js` wires them to the HTTP control surface.
 
@@ -132,6 +134,7 @@ their default and reported in **Doctor** instead of preventing the service from 
 - `minimal` скрывает имя файла;
 - `standard` показывает проект и относительный путь;
 - общий таймер не сбрасывается при переключении задач;
+- строка `Coding with Codex` меняется в **Settings → General → Activity name**;
 - язык карточки в Discord переключается в **Settings → General → Card language** (English / Русский);
 - SSH-серверы настраиваются в **Settings → SSH workspaces**;
 - **Doctor** проверяет установку и объясняет, что именно не работает.
@@ -147,10 +150,10 @@ git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.3.4
+.\build-release.ps1 -Version 2.4.0
 ```
 
-The build downloads the pinned official Node distribution, verifies its archive against both the reviewed SHA-256 pinned in the build script and Node.js `SHASUMS256.txt`, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. Verified downloads are cached under `.build-cache/`.
+The build downloads the pinned official Node distribution and the pinned Discord Social SDK 1.9.16441 runtime, verifies both native archives against reviewed SHA-256 values, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. The SDK binary is fetched from a commit-pinned vendor mirror because Discord’s official archive requires an authenticated Developer Portal download; its bundled open-source notices ship as `DISCORD_SOCIAL_SDK_NOTICES.txt`. Verified downloads are cached under `.build-cache/`.
 
 `npm run check` runs the whole JavaScript suite — the path heuristics are pinned to Windows semantics, so the
 tests give identical results on Linux and macOS. WinUI compilation and the installed-app smoke test run on
@@ -167,4 +170,4 @@ The release workflow signs the executable, uninstaller, and setup when these Git
 
 Read [SECURITY.md](SECURITY.md) before reporting a vulnerability. Issues and focused pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-This is an unofficial community project and is not affiliated with or endorsed by OpenAI or Discord. Released under the [MIT License](LICENSE).
+This is an unofficial community project and is not affiliated with or endorsed by OpenAI or Discord. The Codex name and app icon belong to OpenAI and are used here only to identify compatibility. Released under the [MIT License](LICENSE).

@@ -1,8 +1,12 @@
 [CmdletBinding()]
 param(
-  [string]$Version = '2.3.4',
+  [string]$Version = '2.4.0',
   [string]$NodeVersion = '24.17.0',
   [string]$NodeSha256 = 'f2aa33b35b75aca5f3f7b85675a6f6423201053e9381911e64961f3bda2528ab',
+  [string]$DiscordSdkVersion = '1.9.16441',
+  [string]$DiscordSdkCommit = '79b03948f0299931ef5477d033758fb4c3761c33',
+  [string]$DiscordSdkSha256 = '46170463bf263045972fde1ccaa51b380eb1443541036a809d24f4e6a9f9c388',
+  [string]$DiscordSdkNoticesSha256 = 'e8afa66340c225431e69768543cc34a7240f3494a9d759189fe118620ea8eebf',
   [switch]$SkipInstaller
 )
 
@@ -10,6 +14,10 @@ $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid release version: $Version" }
 if ($NodeVersion -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid Node version: $NodeVersion" }
 if ($NodeSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'NodeSha256 must be a 64-character SHA-256 digest.' }
+if ($DiscordSdkVersion -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw "Invalid Discord SDK version: $DiscordSdkVersion" }
+if ($DiscordSdkCommit -notmatch '^[0-9a-fA-F]{40}$') { throw 'DiscordSdkCommit must be a 40-character Git commit.' }
+if ($DiscordSdkSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'DiscordSdkSha256 must be a 64-character SHA-256 digest.' }
+if ($DiscordSdkNoticesSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'DiscordSdkNoticesSha256 must be a 64-character SHA-256 digest.' }
 $root = [IO.Path]::GetFullPath($PSScriptRoot)
 $packageVersion = (Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw | ConvertFrom-Json).version
 if ($Version -ne $packageVersion) { throw "Release version $Version must match package.json version $packageVersion." }
@@ -75,6 +83,22 @@ if (-not (Test-Path -LiteralPath $nodeExtract) -or $cachedExtractHash -ne $actua
 }
 Copy-Item -LiteralPath (Join-Path $nodeExtract 'node.exe') -Destination (Join-Path $stage 'runtime\node.exe')
 Copy-Item -LiteralPath (Join-Path $nodeExtract 'LICENSE') -Destination (Join-Path $stage 'runtime\NODE_LICENSE')
+
+# Discord distributes the Social SDK from its authenticated Developer Portal.
+# This pinned vendor mirror makes release builds reproducible without storing a
+# native binary in Git; both the artifact and its notices are hash-verified.
+$discordSdkBaseUri = "https://media.githubusercontent.com/media/blazium-games/discord-social-sdk/$DiscordSdkCommit"
+$discordSdkBinary = Join-Path $cache "discord_partner_sdk-$DiscordSdkVersion.dll"
+$discordSdkNotices = Join-Path $cache "discord-social-sdk-$DiscordSdkVersion-notices.txt"
+Save-CachedDownload -Uri "$discordSdkBaseUri/bin/release/discord_partner_sdk.dll" -Destination $discordSdkBinary
+Save-CachedDownload -Uri "https://raw.githubusercontent.com/blazium-games/discord-social-sdk/$DiscordSdkCommit/License-Notices.txt" -Destination $discordSdkNotices
+
+$actualDiscordSdkHash = (Get-FileHash -LiteralPath $discordSdkBinary -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualDiscordSdkHash -ne $DiscordSdkSha256.ToLowerInvariant()) { throw 'Discord Social SDK binary checksum mismatch.' }
+$actualDiscordNoticesHash = (Get-FileHash -LiteralPath $discordSdkNotices -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualDiscordNoticesHash -ne $DiscordSdkNoticesSha256.ToLowerInvariant()) { throw 'Discord Social SDK notices checksum mismatch.' }
+Copy-Item -LiteralPath $discordSdkBinary -Destination (Join-Path $stage 'discord_partner_sdk.dll')
+Copy-Item -LiteralPath $discordSdkNotices -Destination (Join-Path $stage 'DISCORD_SOCIAL_SDK_NOTICES.txt')
 
 if (-not $SkipInstaller) {
   $registeredInno = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |

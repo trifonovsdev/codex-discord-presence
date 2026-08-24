@@ -1,5 +1,7 @@
 'use strict';
 
+const { DEFAULT_ACTIVITY_NAME, normalizeActivityName } = require('./config');
+
 // Discord rejects `details`/`state` shorter than 2 or longer than 128 characters.
 const MIN_FIELD = 2;
 const MAX_FIELD = 128;
@@ -44,6 +46,7 @@ function clamp(value, fallback) {
  * here so the rest of the daemon never has to carry display strings around.
  */
 function buildActivity({
+  activityName = DEFAULT_ACTIVITY_NAME,
   project = null,
   task = null,
   file = null,
@@ -71,6 +74,8 @@ function buildActivity({
   }
 
   const activity = {
+    name: normalizeActivityName(activityName),
+    type: 0,
     details: clamp(details, text.genericDetails),
     state: clamp(visibleState, text.fallbackState),
     instance: false,

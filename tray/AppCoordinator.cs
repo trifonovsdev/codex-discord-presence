@@ -33,7 +33,7 @@ public sealed class AppCoordinator : IDisposable
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}"
-        : "2.3.4";
+        : "2.4.0";
 
     /// <summary>Raised after all app-owned resources and the daemon are stopped.</summary>
     public event EventHandler? ExitCompleted;

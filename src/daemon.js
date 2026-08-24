@@ -9,7 +9,7 @@ const { StringDecoder } = require('string_decoder');
 
 const { readConfig, patchConfig } = require('./config');
 const { createLogger } = require('./logger');
-const { DiscordIpc } = require('./discord-ipc');
+const { createDiscordPublisher } = require('./discord-publisher');
 const { DesktopSelection, parseDesktopLogLine } = require('./desktop-selection');
 const { buildActivity, stringsFor } = require('./presence');
 const { readThreadContext } = require('./codex-state');
@@ -23,7 +23,7 @@ const {
   toolPayloadFromRecord,
 } = require('./codex-paths');
 
-const VERSION = '2.3.4';
+const VERSION = '2.4.0';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
@@ -82,7 +82,7 @@ let selectedRemoteName = null;
 let lastHookAt = null;
 let publishedDesktopRouteKey = null;
 
-const ipc = new DiscordIpc({ clientId: CONFIG.clientId, log });
+const ipc = createDiscordPublisher({ clientId: CONFIG.clientId, log });
 ipc.on('ready', () => (presenceEnabled ? queuePresence(true) : ipc.setActivity(null, { immediate: true })));
 
 function remoteForCwd(cwd) {
@@ -93,6 +93,7 @@ function remoteForCwd(cwd) {
 
 function currentActivity() {
   return buildActivity({
+    activityName: CONFIG.activityName,
     project: currentProject,
     task: currentTaskTitle,
     file: currentFile,
@@ -645,9 +646,11 @@ function healthSnapshot() {
     ok: true,
     version: VERSION,
     language: CONFIG.language,
+    activityName: CONFIG.activityName,
     rpcReady: ipc.ready,
     rpcPublished: ipc.published,
     rpcError: ipc.lastError,
+    rpcTransport: ipc.transport,
     presenceEnabled,
     project: currentProject,
     task: CONFIG.privacy.showTaskTitle ? currentTaskTitle : null,

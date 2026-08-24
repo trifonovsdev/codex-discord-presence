@@ -76,6 +76,7 @@ async function withDaemon(configPatch, run) {
 
 test('daemon exposes health, hooks, remotes, and pause control', async () => {
   await withDaemon({
+    activityName: 'Reviewing with Codex',
     remote: {
       hosts: [
         { name: 'server-a', host: 'user@server-a', roots: ['/srv/a'] },
@@ -85,12 +86,14 @@ test('daemon exposes health, hooks, remotes, and pause control', async () => {
   }, async ({ port, root, configPath }) => {
     const initial = await waitForHealth(port);
     assert.equal(initial.ok, true);
-    assert.equal(initial.version, '2.3.4');
+    assert.equal(initial.version, '2.4.0');
     assert.equal(initial.project, null, 'health must expose unresolved state instead of a fake project');
     assert.equal(initial.details, 'Working in Codex');
+    assert.equal(initial.activityName, 'Reviewing with Codex');
     assert.equal(initial.taskTitleShared, false);
     assert.equal(initial.rpcPublished, false, 'health distinguishes a connected socket from an acknowledged card');
     assert.equal(initial.rpcError, null, 'health exposes Discord publish failures as an explicit state');
+    assert.equal(initial.rpcTransport, 'legacy-rpc', 'development mode reports the active publisher transport');
     assert.deepEqual(initial.remoteHosts, ['server-a', 'server-b']);
 
     const hookResponse = await json(port, '/hook', {

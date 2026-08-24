@@ -50,6 +50,7 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
 
         result.Add(new("Runtime", File.Exists(AppPaths.NodePath) || AppPaths.NodePath == "node.exe", SafePath(AppPaths.NodePath)));
         result.Add(new("Daemon script", File.Exists(AppPaths.DaemonPath), SafePath(AppPaths.DaemonPath)));
+        result.Add(new("Discord Social SDK", File.Exists(AppPaths.SocialSdkPath), SafePath(AppPaths.SocialSdkPath)));
 
         var health = await daemon.HealthAsync(cancellationToken);
         result.Add(new("Local daemon", health?.Ok == true, health is null ? "Not reachable" : $"v{health.Version} on 127.0.0.1:{config?.Port}"));
@@ -60,7 +61,13 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
             result.Add(new("Configuration values", false, string.Join("; ", warnings)));
         }
 
-        result.Add(new("Discord RPC", health?.RpcReady == true, health?.RpcReady == true ? "Connected" : "Open Discord Desktop and enable Activity Privacy"));
+        var publisher = health?.RpcTransport == "social-sdk" ? "Social SDK" : "legacy RPC fallback";
+        result.Add(new(
+            "Discord publisher",
+            health?.RpcReady == true,
+            health?.RpcReady == true
+                ? $"Connected through {publisher}"
+                : health?.RpcError ?? "Open Discord Desktop and enable Activity Privacy"));
 
         var appProcess = config?.AppProcess ?? "ChatGPT";
         result.Add(new("ChatGPT/Codex", IsProcessRunning(appProcess), $"Process: {appProcess}"));
