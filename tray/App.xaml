@@ -44,29 +44,29 @@
                     <SolidColorBrush x:Key="DiscordDividerBrush" Color="#292B30" />
 
                     <SolidColorBrush x:Key="ButtonBackground" Color="#161719" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#202125" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#27292E" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#1B1C1F" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#202125" />
                     <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#101113" />
                     <SolidColorBrush x:Key="ButtonForeground" Color="#F2F2EF" />
-                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F7F7F4" />
                     <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E2E2DE" />
                     <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#5F605E" />
                     <SolidColorBrush x:Key="ButtonBorderBrush" Color="#34363B" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#464950" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#555860" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#3C3E44" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#464950" />
                     <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#202226" />
 
                     <SolidColorBrush x:Key="AccentButtonBackground" Color="#E8ECE4" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#D6DDD2" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#C4CEC0" />
+                    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#F2F4EF" />
+                    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#D9DED5" />
                     <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="#454C46" />
                     <SolidColorBrush x:Key="AccentButtonForeground" Color="#111411" />
                     <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#111411" />
                     <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#111411" />
                     <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="#8C958D" />
                     <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="#E8ECE4" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="#D6DDD2" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="#C4CEC0" />
+                    <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="#F2F4EF" />
+                    <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="#D9DED5" />
                     <SolidColorBrush x:Key="AccentButtonBorderBrushDisabled" Color="#454C46" />
                 </ResourceDictionary>
 

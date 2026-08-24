@@ -66,7 +66,7 @@ public sealed partial class SettingsWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        WindowSizing.ResizeInDips(this, 860, 680);
+        WindowSizing.ResizeInDips(this, 700, 590);
         AppWindow.Closing += (_, _) => CancelRemoteAction();
         Closed += (_, _) => CancelRemoteAction();
         RootGrid.ActualThemeChanged += (_, _) => RefreshStatusBrush();

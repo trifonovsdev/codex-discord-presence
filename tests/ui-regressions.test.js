@@ -94,12 +94,20 @@ test('the compact shell uses the official Codex app artwork', () => {
 
   assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*640,\s*454\)/);
   assert.match(xaml, /codex-app-icon\.png/);
+  assert.match(xaml, /x:Name="PreviewIconViewport"/);
+  assert.match(xaml, /Width="54"\s+Height="54"/);
   assert.match(project, /codex-app-icon\.png/);
   assert.ok(fs.statSync(icon).size > 20_000, 'the exact official artwork is bundled, not a placeholder glyph');
   assert.equal(
     crypto.createHash('sha256').update(fs.readFileSync(icon)).digest('hex'),
     '1c926e380bfe6a50f40648dd9bc5de88da7271546491adf99ec72172e17df6a0',
   );
+
+  for (const window of ['MainWindow.xaml', 'SettingsWindow.xaml', 'DiagnosticsWindow.xaml']) {
+    const titleBar = source(`tray/${window}`);
+    assert.match(titleBar, /<TitleBar\.LeftHeader>/, `${window} must render the mark without its transparent padding`);
+    assert.match(titleBar, /Width="24"\s+Height="24"/, `${window} must overscan the official source inside the clipped title icon`);
+  }
 });
 
 test('activity title customization flows through config, health, settings, and preview', () => {
@@ -138,6 +146,8 @@ test('release hosts activity-name publishing in an isolated Social SDK bridge', 
   assert.match(bridge, /ActivityName/);
   assert.match(bridge, /UpdateRichPresence/);
   assert.match(bridge, /Discord Desktop is not reachable/);
+  assert.match(bridge, /Task\.Run\(ReadInputLoop\)/);
+  assert.doesNotMatch(bridge, /Console\.In\.ReadLineAsync/);
   assert.match(native, /Discord_Activity_SetName/);
   assert.match(native, /Discord_Client_UpdateRichPresence/);
   assert.match(build, /DiscordSdkSha256/);
@@ -146,15 +156,17 @@ test('release hosts activity-name publishing in an isolated Social SDK bridge', 
   assert.match(installer, /discord_partner_sdk\.dll/);
 });
 
-test('micro-interactions are restrained and respect Windows animation settings', () => {
+test('micro-interactions keep button hitboxes fixed and respect Windows animation settings', () => {
   const motion = source('tray/Motion.cs');
   const main = source('tray/MainWindow.xaml.cs');
   const settings = source('tray/SettingsWindow.xaml.cs');
 
   assert.match(motion, /AnimationsEnabled/);
   assert.match(motion, /CreateCubicBezierEasingFunction/);
-  assert.match(motion, /FromMilliseconds\(90\)/);
-  assert.match(motion, /FromMilliseconds\(140\)/);
+  assert.match(motion, /StartAnimation\("Opacity"/);
+  assert.match(motion, /PointerPressed/);
+  assert.match(motion, /PointerReleased/);
+  assert.doesNotMatch(motion, /PointerEntered|PointerExited|CenterPoint|Scale/);
   assert.doesNotMatch(motion, /Spring|Bounce|AutoReverse/);
   assert.match(main, /Motion\.AttachButtonFeedback/);
   assert.match(settings, /Motion\.AttachButtonFeedback/);
@@ -170,12 +182,15 @@ test('WinUI windows size in logical pixels on high-DPI displays', () => {
   }
 });
 
-test('settings use left NavigationView and preserve all configuration surfaces', () => {
+test('settings use a compact top navigation and preserve all configuration surfaces', () => {
   const xaml = source('tray/SettingsWindow.xaml');
   const code = source('tray/SettingsWindow.xaml.cs');
 
   assert.match(xaml, /<NavigationView\b/);
-  assert.match(xaml, /PaneDisplayMode="Left"/);
+  assert.match(xaml, /PaneDisplayMode="Top"/);
+  assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
+  assert.match(xaml, /x:Key="SettingsRowStyle"/);
+  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*700,\s*590\)/);
   for (const tag of ['general', 'privacy', 'remote']) {
     assert.match(xaml, new RegExp(`Tag="${tag}"`));
   }

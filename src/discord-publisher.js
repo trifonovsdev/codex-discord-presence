@@ -9,6 +9,7 @@ const { StringDecoder } = require('node:string_decoder');
 const { DiscordIpc } = require('./discord-ipc');
 
 const MIN_UPDATE_INTERVAL_MS = 4200;
+const ACK_TIMEOUT_MS = 12_000;
 const MAX_BRIDGE_LINE_BYTES = 1024 * 1024;
 const MAX_PENDING_ACKS = 32;
 
@@ -24,6 +25,7 @@ class DiscordSocial extends EventEmitter {
     log = () => {},
     spawnProcess = spawn,
     minUpdateIntervalMs = MIN_UPDATE_INTERVAL_MS,
+    ackTimeoutMs = ACK_TIMEOUT_MS,
   }) {
     super();
     this.clientId = String(clientId);
@@ -31,6 +33,9 @@ class DiscordSocial extends EventEmitter {
     this.log = log;
     this.spawnProcess = spawnProcess;
     this.minUpdateIntervalMs = minUpdateIntervalMs;
+    this.ackTimeoutMs = Number.isFinite(ackTimeoutMs)
+      ? Math.max(1, ackTimeoutMs)
+      : ACK_TIMEOUT_MS;
     this.transport = 'social-sdk';
 
     this.child = null;
@@ -51,6 +56,7 @@ class DiscordSocial extends EventEmitter {
     this.flushTimer = null;
     this.retryTimer = null;
     this.reconnectTimer = null;
+    this.ackTimer = null;
     this.attempt = 0;
   }
 
@@ -84,9 +90,11 @@ class DiscordSocial extends EventEmitter {
     clearTimeout(this.flushTimer);
     clearTimeout(this.retryTimer);
     clearTimeout(this.reconnectTimer);
+    clearTimeout(this.ackTimer);
     this.flushTimer = null;
     this.retryTimer = null;
     this.reconnectTimer = null;
+    this.ackTimer = null;
 
     const child = this.child;
     this.#resetBridgeState();
@@ -157,8 +165,10 @@ class DiscordSocial extends EventEmitter {
     this.lastAckedSequence = 0;
     clearTimeout(this.flushTimer);
     clearTimeout(this.retryTimer);
+    clearTimeout(this.ackTimer);
     this.flushTimer = null;
     this.retryTimer = null;
+    this.ackTimer = null;
   }
 
   #scheduleReconnect() {
@@ -216,6 +226,10 @@ class DiscordSocial extends EventEmitter {
     const pending = this.pendingAcks.get(id);
     if (!pending) return;
     this.pendingAcks.delete(id);
+    if (pending.sequence === this.sendSequence) {
+      clearTimeout(this.ackTimer);
+      this.ackTimer = null;
+    }
 
     if (message.event === 'error') {
       if (pending.sequence === this.sendSequence && pending.json === JSON.stringify(this.desired ?? null)) {
@@ -251,6 +265,24 @@ class DiscordSocial extends EventEmitter {
     this.retryTimer.unref?.();
   }
 
+  #armAcknowledgementTimeout(id) {
+    clearTimeout(this.ackTimer);
+    this.ackTimer = setTimeout(() => {
+      this.ackTimer = null;
+      const pending = this.pendingAcks.get(id);
+      if (!pending || pending.sequence !== this.sendSequence) return;
+      this.pendingAcks.delete(id);
+      if (pending.json !== JSON.stringify(this.desired ?? null)) return;
+
+      this.lastError = 'Discord did not acknowledge the presence update in time.';
+      this.lastSentJson = '';
+      this.log(this.lastError);
+      this.emit('activityError', this.lastError);
+      this.#scheduleRetry(this.ackTimeoutMs);
+    }, this.ackTimeoutMs);
+    this.ackTimer.unref?.();
+  }
+
   #scheduleFlush() {
     if (!this.ready || this.flushTimer) return;
     const wait = Math.max(0, this.minUpdateIntervalMs - (Date.now() - this.lastSentAt));
@@ -283,6 +315,7 @@ class DiscordSocial extends EventEmitter {
     }
     this.lastSentJson = json;
     this.lastSentAt = Date.now();
+    this.#armAcknowledgementTimeout(id);
   }
 }
 

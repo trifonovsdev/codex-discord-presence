@@ -21,10 +21,12 @@ internal sealed class DiscordBridge : IDisposable
     };
 
     private readonly object outputLock = new();
+    private readonly ConcurrentQueue<string> inputLines = new();
     private readonly ConcurrentDictionary<nint, byte> pendingHandles = new();
     private DiscordSocialNative.ObjectHandle client;
     private bool initialized;
     private bool disposed;
+    private volatile bool inputClosed;
 
     private DiscordBridge(ulong applicationId)
     {
@@ -60,17 +62,33 @@ internal sealed class DiscordBridge : IDisposable
 
     private async Task ProcessInputAsync()
     {
-        var readTask = Console.In.ReadLineAsync();
+        _ = Task.Run(ReadInputLoop);
         while (!disposed)
         {
-            await Task.WhenAny(readTask, Task.Delay(10));
+            while (inputLines.TryDequeue(out var line)) HandleLine(line);
             DiscordSocialNative.Discord_RunCallbacks();
-            if (!readTask.IsCompleted) continue;
+            if (inputClosed && inputLines.IsEmpty && pendingHandles.IsEmpty) return;
+            await Task.Delay(10);
+        }
+    }
 
-            var line = await readTask;
-            if (line is null) return;
-            HandleLine(line);
-            readTask = Console.In.ReadLineAsync();
+    private void ReadInputLoop()
+    {
+        try
+        {
+            while (Console.In.ReadLine() is { } line) inputLines.Enqueue(line);
+        }
+        catch (Exception error)
+        {
+            WriteResponse(new
+            {
+                @event = "fatal",
+                message = $"Social SDK bridge input failed: {error.Message}",
+            });
+        }
+        finally
+        {
+            inputClosed = true;
         }
     }
 

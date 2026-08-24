@@ -33,6 +33,15 @@ function fakeBridgeProcess() {
   return { child, input };
 }
 
+async function waitFor(condition, message, timeoutMs = 500) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  assert.fail(message);
+}
+
 test('Social SDK bridge publishes and acknowledges the custom activity name', async () => {
   assert.ok(fs.existsSync(publisherPath), 'the Social SDK publisher transport must exist');
   const { DiscordSocial } = require(publisherPath);
@@ -88,6 +97,28 @@ test('Social SDK bridge exposes native publish errors and recovers on the next u
   assert.equal(publisher.lastError, null);
   bridge.child.stdout.write(`${JSON.stringify({ event: 'ack', id: bridge.input.at(-1).id })}\n`);
   assert.equal(publisher.published, true);
+  publisher.destroy();
+});
+
+test('Social SDK bridge times out and retries instead of waiting forever for an acknowledgement', async () => {
+  const { DiscordSocial } = require(publisherPath);
+  const bridge = fakeBridgeProcess();
+  const publisher = new DiscordSocial({
+    clientId: '1',
+    bridgePath: 'bridge.exe',
+    spawnProcess: () => bridge.child,
+    minUpdateIntervalMs: 20,
+    ackTimeoutMs: 20,
+  });
+
+  publisher.connect();
+  bridge.child.stdout.write('{"event":"ready"}\n');
+  publisher.setActivity({ name: 'Coding with Codex', details: 'Project: timeout' }, { immediate: true });
+
+  await waitFor(() => publisher.lastError !== null, 'a missing native callback must become an explicit error');
+  assert.match(publisher.lastError, /did not acknowledge/i);
+  await waitFor(() => bridge.input.length >= 2, 'the timed-out activity must be retried');
+  assert.equal(publisher.published, false);
   publisher.destroy();
 });
 
