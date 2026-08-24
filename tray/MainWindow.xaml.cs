@@ -44,7 +44,7 @@ public sealed partial class MainWindow : Window
         RootLayout.ActualThemeChanged += (_, _) => Render();
         Motion.AttachButtonFeedback(PauseButton, SettingsButton, DiagnosticsButton, CopyPathButton);
 
-        sessionTimer.Tick += (_, _) => Render();
+        sessionTimer.Tick += (_, _) => RenderTime();
         Render();
     }
 
@@ -203,6 +203,14 @@ public sealed partial class MainWindow : Window
         PauseButtonText.Text = presentation.PauseText;
         PauseIcon.Glyph = snapshot?.PresenceEnabled == false ? "\uE768" : "\uE769";
         AutomationProperties.SetName(PauseButton, presentation.PauseText);
+    }
+
+    private void RenderTime()
+    {
+        var presentation = PresencePresentation.Create(snapshot, privacy, DateTimeOffset.Now);
+        SessionValue.Text = presentation.Session;
+        PreviewElapsed.Text = presentation.PreviewElapsed;
+        PreviewTimerRow.Visibility = presentation.ShowPreviewElapsed ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private Brush ToneBrush(PresenceTone tone)

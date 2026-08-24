@@ -27,7 +27,7 @@
             Subtitle="Codex Presence"
             AutomationProperties.Name="Codex Presence Doctor title bar">
             <TitleBar.LeftHeader>
-                <Grid Width="18" Height="18">
+                <Grid Width="18" Height="18" Margin="4,0,0,0">
                     <Grid.Clip>
                         <RectangleGeometry Rect="0,0,18,18" />
                     </Grid.Clip>

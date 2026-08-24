@@ -107,6 +107,7 @@ test('the compact shell uses the official Codex app artwork', () => {
     const titleBar = source(`tray/${window}`);
     assert.match(titleBar, /<TitleBar\.LeftHeader>/, `${window} must render the mark without its transparent padding`);
     assert.match(titleBar, /Width="24"\s+Height="24"/, `${window} must overscan the official source inside the clipped title icon`);
+    assert.match(titleBar, /Margin="4,0,0,0"/, `${window} must optically align the title mark away from the window edge`);
   }
 });
 
@@ -160,6 +161,7 @@ test('micro-interactions keep button hitboxes fixed and respect Windows animatio
   const motion = source('tray/Motion.cs');
   const main = source('tray/MainWindow.xaml.cs');
   const settings = source('tray/SettingsWindow.xaml.cs');
+  const resources = source('tray/App.xaml');
 
   assert.match(motion, /AnimationsEnabled/);
   assert.match(motion, /CreateCubicBezierEasingFunction/);
@@ -170,6 +172,11 @@ test('micro-interactions keep button hitboxes fixed and respect Windows animatio
   assert.doesNotMatch(motion, /Spring|Bounce|AutoReverse/);
   assert.match(main, /Motion\.AttachButtonFeedback/);
   assert.match(settings, /Motion\.AttachButtonFeedback/);
+  assert.match(resources, /x:Key="QuietButtonTemplate"/);
+  assert.match(resources, /x:Key="QuietAccentButtonTemplate"/);
+  assert.doesNotMatch(resources, /BrushTransition/, 'hover feedback must not cross-fade or flash');
+  assert.match(resources, /<VisualState x:Name="PointerOver">\s*<VisualState\.Setters>/);
+  assert.match(main, /sessionTimer\.Tick \+= \(_, _\) => RenderTime\(\)/);
 });
 
 test('WinUI windows size in logical pixels on high-DPI displays', () => {

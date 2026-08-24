@@ -150,7 +150,7 @@ git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.4.1
+.\build-release.ps1 -Version 2.4.2
 ```
 
 The build downloads the pinned official Node distribution and the pinned Discord Social SDK 1.9.16441 runtime, verifies both native archives against reviewed SHA-256 values, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. The SDK binary is fetched from a commit-pinned vendor mirror because Discord’s official archive requires an authenticated Developer Portal download; its bundled open-source notices ship as `DISCORD_SOCIAL_SDK_NOTICES.txt`. Verified downloads are cached under `.build-cache/`.

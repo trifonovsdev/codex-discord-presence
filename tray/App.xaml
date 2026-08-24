@@ -176,6 +176,94 @@
                 <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
             </Style>
 
+            <ControlTemplate x:Key="QuietButtonTemplate" TargetType="Button">
+                <ContentPresenter
+                    x:Name="ButtonPresenter"
+                    AutomationProperties.AccessibilityView="Raw"
+                    Background="{TemplateBinding Background}"
+                    BackgroundSizing="{TemplateBinding BackgroundSizing}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Content="{TemplateBinding Content}"
+                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Foreground="{TemplateBinding Foreground}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    Padding="{TemplateBinding Padding}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal" />
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Target="ButtonPresenter.Background" Value="{ThemeResource ButtonBackgroundPointerOver}" />
+                                    <Setter Target="ButtonPresenter.BorderBrush" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
+                                    <Setter Target="ButtonPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Target="ButtonPresenter.Background" Value="{ThemeResource ButtonBackgroundPressed}" />
+                                    <Setter Target="ButtonPresenter.BorderBrush" Value="{ThemeResource ButtonBorderBrushPressed}" />
+                                    <Setter Target="ButtonPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Target="ButtonPresenter.Background" Value="{ThemeResource ButtonBackgroundDisabled}" />
+                                    <Setter Target="ButtonPresenter.BorderBrush" Value="{ThemeResource ButtonBorderBrushDisabled}" />
+                                    <Setter Target="ButtonPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </ContentPresenter>
+            </ControlTemplate>
+
+            <ControlTemplate x:Key="QuietAccentButtonTemplate" TargetType="Button">
+                <ContentPresenter
+                    x:Name="AccentButtonPresenter"
+                    AutomationProperties.AccessibilityView="Raw"
+                    Background="{TemplateBinding Background}"
+                    BackgroundSizing="{TemplateBinding BackgroundSizing}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Content="{TemplateBinding Content}"
+                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Foreground="{TemplateBinding Foreground}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    Padding="{TemplateBinding Padding}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal" />
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Target="AccentButtonPresenter.Background" Value="{ThemeResource AccentButtonBackgroundPointerOver}" />
+                                    <Setter Target="AccentButtonPresenter.BorderBrush" Value="{ThemeResource AccentButtonBorderBrushPointerOver}" />
+                                    <Setter Target="AccentButtonPresenter.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Target="AccentButtonPresenter.Background" Value="{ThemeResource AccentButtonBackgroundPressed}" />
+                                    <Setter Target="AccentButtonPresenter.BorderBrush" Value="{ThemeResource AccentButtonBorderBrushPressed}" />
+                                    <Setter Target="AccentButtonPresenter.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Target="AccentButtonPresenter.Background" Value="{ThemeResource AccentButtonBackgroundDisabled}" />
+                                    <Setter Target="AccentButtonPresenter.BorderBrush" Value="{ThemeResource AccentButtonBorderBrushDisabled}" />
+                                    <Setter Target="AccentButtonPresenter.Foreground" Value="{ThemeResource AccentButtonForegroundDisabled}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </ContentPresenter>
+            </ControlTemplate>
+
             <Style x:Key="BaseButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="MinHeight" Value="44" />
                 <Setter Property="MinWidth" Value="44" />
@@ -193,6 +281,7 @@
                 <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource CanvasBrush}" />
                 <Setter Property="FocusVisualPrimaryThickness" Value="2" />
                 <Setter Property="FocusVisualSecondaryThickness" Value="1" />
+                <Setter Property="Template" Value="{StaticResource QuietButtonTemplate}" />
             </Style>
 
             <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}" />
@@ -213,6 +302,7 @@
                 <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource CanvasBrush}" />
                 <Setter Property="FocusVisualPrimaryThickness" Value="2" />
                 <Setter Property="FocusVisualSecondaryThickness" Value="1" />
+                <Setter Property="Template" Value="{StaticResource QuietAccentButtonTemplate}" />
             </Style>
 
             <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
