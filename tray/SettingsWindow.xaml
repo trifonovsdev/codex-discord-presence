@@ -10,67 +10,368 @@
 
     <Grid x:Name="RootGrid" Background="{ThemeResource WindowBackgroundBrush}">
         <Grid.Resources>
-            <Style x:Key="SettingsSectionStyle" TargetType="Border">
-                <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
-                <Setter Property="BorderBrush" Value="{ThemeResource BorderBrush}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="10" />
-                <Setter Property="Padding" Value="0" />
-            </Style>
+            <ResourceDictionary>
+                <StaticResource x:Key="ComboBoxBackground" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="BorderStrongBrush" />
+                <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="FocusStrokeBrush" />
+                <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="BorderStrongBrush" />
+                <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="BorderBrush" />
+                <StaticResource x:Key="ComboBoxBackgroundBorderBrushFocused" ResourceKey="FocusStrokeBrush" />
+                <StaticResource x:Key="ComboBoxForeground" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxForegroundPressed" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="BorderStrongBrush" />
+                <StaticResource x:Key="ComboBoxDropDownForeground" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemPillFillBrush" ResourceKey="AccentBrush" />
+                <StaticResource x:Key="ComboBoxItemBackground" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundDisabled" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundSelectedUnfocused" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBackgroundSelectedDisabled" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxItemForeground" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundDisabled" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundSelectedUnfocused" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="ComboBoxItemForegroundSelectedDisabled" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrush" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushPressed" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushDisabled" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushSelected" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedUnfocused" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedPressed" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedDisabled" ResourceKey="SurfaceBrush" />
 
-            <Style x:Key="SettingsPageHeaderStyle" TargetType="StackPanel">
-                <Setter Property="Spacing" Value="3" />
-            </Style>
+                <StaticResource x:Key="TextControlForeground" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TextPrimaryBrush" />
+                <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="TextControlBackground" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
+                <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="SurfaceRaisedBrush" />
+                <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="SurfaceBrush" />
+                <StaticResource x:Key="TextControlBorderBrush" ResourceKey="BorderStrongBrush" />
+                <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="FocusStrokeBrush" />
+                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="FocusStrokeBrush" />
+                <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="BorderBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextMutedBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextSecondaryBrush" />
+                <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="TextMutedBrush" />
+                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
 
-            <Style x:Key="SettingsPageTitleStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
-                <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
-                <Setter Property="FontSize" Value="20" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="CharacterSpacing" Value="-12" />
-            </Style>
+                <Style x:Key="SettingsPageHeaderStyle" TargetType="StackPanel">
+                    <Setter Property="Spacing" Value="2" />
+                </Style>
 
-            <Style x:Key="SettingsRowStyle" TargetType="Grid">
-                <Setter Property="MinHeight" Value="60" />
-                <Setter Property="Padding" Value="16,7" />
-            </Style>
+                <Style x:Key="SettingsPageTitleStyle" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                    <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
+                    <Setter Property="FontSize" Value="19" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="CharacterSpacing" Value="-10" />
+                    <Setter Property="LineHeight" Value="24" />
+                </Style>
 
-            <Style x:Key="SettingsRowTitleStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
-                <Setter Property="FontSize" Value="13" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
+                <Style x:Key="SettingsGroupTitleStyle" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{ThemeResource TextMutedBrush}" />
+                    <Setter Property="FontSize" Value="11" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="CharacterSpacing" Value="24" />
+                    <Setter Property="Margin" Value="0,0,0,2" />
+                </Style>
 
-            <Style x:Key="SettingsRowDescriptionStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
-                <Setter Property="FontSize" Value="11" />
-                <Setter Property="LineHeight" Value="16" />
-                <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
+                <Style x:Key="SettingsRowContainerStyle" TargetType="Border">
+                    <Setter Property="MinHeight" Value="48" />
+                    <Setter Property="Padding" Value="0,6" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderBrush" Value="{ThemeResource BorderBrush}" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                </Style>
 
-            <Style x:Key="SettingsInputStyle" TargetType="ComboBox">
-                <Setter Property="Width" Value="176" />
-                <Setter Property="MinHeight" Value="36" />
-                <Setter Property="HorizontalAlignment" Value="Right" />
-            </Style>
+                <Style x:Key="SettingsRowLayoutStyle" TargetType="Grid">
+                    <Setter Property="ColumnSpacing" Value="18" />
+                </Style>
 
-            <Style x:Key="SettingsTextBoxStyle" TargetType="TextBox">
-                <Setter Property="Width" Value="224" />
-                <Setter Property="MinHeight" Value="36" />
-                <Setter Property="HorizontalAlignment" Value="Right" />
-            </Style>
+                <Style x:Key="SettingsRowTitleStyle" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
 
-            <Style x:Key="SettingsToggleStyle" TargetType="ToggleSwitch">
-                <Setter Property="MinHeight" Value="36" />
-                <Setter Property="HorizontalAlignment" Value="Right" />
-            </Style>
+                <Style x:Key="SettingsRowDescriptionStyle" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+                    <Setter Property="FontSize" Value="11" />
+                    <Setter Property="LineHeight" Value="15" />
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+
+                <ControlTemplate x:Key="SettingsNavButtonTemplate" TargetType="ToggleButton">
+                    <Border
+                        x:Name="NavRoot"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Control.IsTemplateFocusTarget="True">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="NavRoot.Background" Value="{ThemeResource SurfaceHoverBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="NavRoot.Opacity" Value="0.82" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="NavRoot.Opacity" Value="0.42" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Unchecked">
+                                    <VisualState.Setters>
+                                        <Setter Target="NavRail.Opacity" Value="0" />
+                                        <Setter Target="NavLabel.Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="NavRoot.Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                                        <Setter Target="NavRail.Opacity" Value="1" />
+                                        <Setter Target="NavLabel.Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate" />
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Grid>
+                            <Border
+                                x:Name="NavRail"
+                                Width="2"
+                                Height="16"
+                                Margin="1,0,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="{ThemeResource AccentBrush}"
+                                CornerRadius="1"
+                                IsHitTestVisible="False"
+                                Opacity="0" />
+                            <ContentPresenter
+                                x:Name="NavLabel"
+                                Margin="13,0,8,0"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding Content}"
+                                Foreground="{TemplateBinding Foreground}" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+
+                <Style x:Key="SettingsNavButtonStyle" TargetType="ToggleButton">
+                    <Setter Property="Height" Value="34" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="CornerRadius" Value="6" />
+                    <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+                    <Setter Property="FontFamily" Value="Segoe UI Variable Text" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="UseSystemFocusVisuals" Value="True" />
+                    <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource FocusStrokeBrush}" />
+                    <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource CanvasBrush}" />
+                    <Setter Property="Template" Value="{StaticResource SettingsNavButtonTemplate}" />
+                </Style>
+
+                <ControlTemplate x:Key="SettingsToggleTemplate" TargetType="ToggleButton">
+                    <Grid
+                        x:Name="ToggleRoot"
+                        Width="40"
+                        Height="28"
+                        Background="Transparent"
+                        Control.IsTemplateFocusTarget="True">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="ToggleRoot.Opacity" Value="0.9" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="ToggleRoot.Opacity" Value="0.72" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="ToggleRoot.Opacity" Value="0.4" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Unchecked">
+                                    <VisualState.Setters>
+                                        <Setter Target="ToggleTrack.Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                                        <Setter Target="ToggleTrack.BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
+                                        <Setter Target="ToggleThumb.Fill" Value="{ThemeResource TextSecondaryBrush}" />
+                                        <Setter Target="ToggleThumb.HorizontalAlignment" Value="Left" />
+                                        <Setter Target="ToggleThumb.Margin" Value="2,0,0,0" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="ToggleTrack.Background" Value="{ThemeResource AccentBrush}" />
+                                        <Setter Target="ToggleTrack.BorderBrush" Value="{ThemeResource AccentBrush}" />
+                                        <Setter Target="ToggleThumb.Fill" Value="{ThemeResource AccentTextBrush}" />
+                                        <Setter Target="ToggleThumb.HorizontalAlignment" Value="Right" />
+                                        <Setter Target="ToggleThumb.Margin" Value="0,0,2,0" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate" />
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Border
+                            x:Name="ToggleTrack"
+                            Width="36"
+                            Height="20"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource SurfaceRaisedBrush}"
+                            BorderBrush="{ThemeResource BorderStrongBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                            <Ellipse
+                                x:Name="ToggleThumb"
+                                Width="14"
+                                Height="14"
+                                Margin="2,0,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Fill="{ThemeResource TextSecondaryBrush}" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+
+                <Style x:Key="SettingsToggleStyle" TargetType="ToggleButton">
+                    <Setter Property="Width" Value="40" />
+                    <Setter Property="Height" Value="32" />
+                    <Setter Property="MinWidth" Value="40" />
+                    <Setter Property="MinHeight" Value="32" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                    <Setter Property="UseSystemFocusVisuals" Value="True" />
+                    <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource FocusStrokeBrush}" />
+                    <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource CanvasBrush}" />
+                    <Setter Property="Template" Value="{StaticResource SettingsToggleTemplate}" />
+                </Style>
+
+                <Style
+                    x:Key="SettingsComboBoxItemStyle"
+                    TargetType="ComboBoxItem"
+                    BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+                    <Setter Property="MinHeight" Value="32" />
+                    <Setter Property="Padding" Value="10,5" />
+                    <Setter Property="CornerRadius" Value="5" />
+                    <Setter Property="FontSize" Value="12" />
+                </Style>
+
+                <Style
+                    x:Key="SettingsInputStyle"
+                    TargetType="ComboBox"
+                    BasedOn="{StaticResource DefaultComboBoxStyle}">
+                    <Setter Property="Width" Value="196" />
+                    <Setter Property="MinHeight" Value="32" />
+                    <Setter Property="MaxHeight" Value="32" />
+                    <Setter Property="Padding" Value="11,5,34,5" />
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                    <Setter Property="Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Setter Property="CornerRadius" Value="6" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="ItemContainerStyle" Value="{StaticResource SettingsComboBoxItemStyle}" />
+                </Style>
+
+                <Style
+                    x:Key="SettingsTextBoxStyle"
+                    TargetType="TextBox"
+                    BasedOn="{StaticResource DefaultTextBoxStyle}">
+                    <Setter Property="Width" Value="196" />
+                    <Setter Property="MinHeight" Value="32" />
+                    <Setter Property="MaxHeight" Value="32" />
+                    <Setter Property="Padding" Value="10,5" />
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                    <Setter Property="Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Setter Property="CornerRadius" Value="6" />
+                    <Setter Property="FontSize" Value="12" />
+                </Style>
+
+                <Style
+                    x:Key="SettingsInlineTextBoxStyle"
+                    TargetType="TextBox"
+                    BasedOn="{StaticResource DefaultTextBoxStyle}">
+                    <Setter Property="MinHeight" Value="30" />
+                    <Setter Property="MaxHeight" Value="30" />
+                    <Setter Property="Padding" Value="8,4" />
+                    <Setter Property="Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                    <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{ThemeResource BorderBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <Setter Property="CornerRadius" Value="5" />
+                    <Setter Property="FontSize" Value="11" />
+                </Style>
+
+                <Style
+                    x:Key="SettingsFooterButtonStyle"
+                    TargetType="Button"
+                    BasedOn="{StaticResource CompactButtonStyle}">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
+                </Style>
+            </ResourceDictionary>
         </Grid.Resources>
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TitleBar
@@ -96,505 +397,523 @@
             </TitleBar.LeftHeader>
         </TitleBar>
 
-        <NavigationView
-            x:Name="SettingsNavigation"
-            Grid.Row="1"
-            AlwaysShowHeader="False"
-            Background="Transparent"
-            IsBackButtonVisible="Collapsed"
-            IsPaneToggleButtonVisible="False"
-            IsSettingsVisible="False"
-            PaneDisplayMode="Top"
-            SelectionChanged="NavigationSelectionChanged">
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="144" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-            <NavigationView.MenuItems>
-                <NavigationViewItem Content="General" IsSelected="True" Tag="general" />
-                <NavigationViewItem Content="Privacy" Tag="privacy" />
-                <NavigationViewItem Content="SSH" Tag="remote" />
-            </NavigationView.MenuItems>
+            <Border
+                x:Name="SettingsSidebar"
+                Grid.Column="0"
+                Background="{ThemeResource CanvasBrush}"
+                BorderBrush="{ThemeResource BorderBrush}"
+                BorderThickness="0,1,1,0">
+                <StackPanel Padding="12,16,12,0" Spacing="4">
+                    <TextBlock
+                        Margin="8,0,0,9"
+                        Foreground="{ThemeResource TextMutedBrush}"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Text="Settings" />
+                    <ToggleButton
+                        x:Name="GeneralNavButton"
+                        AutomationProperties.Name="General settings"
+                        Click="SectionButtonClicked"
+                        Content="General"
+                        IsChecked="True"
+                        Style="{StaticResource SettingsNavButtonStyle}"
+                        Tag="general" />
+                    <ToggleButton
+                        x:Name="PrivacyNavButton"
+                        AutomationProperties.Name="Privacy settings"
+                        Click="SectionButtonClicked"
+                        Content="Privacy"
+                        Style="{StaticResource SettingsNavButtonStyle}"
+                        Tag="privacy" />
+                    <ToggleButton
+                        x:Name="RemoteNavButton"
+                        AutomationProperties.Name="SSH settings"
+                        Click="SectionButtonClicked"
+                        Content="SSH"
+                        Style="{StaticResource SettingsNavButtonStyle}"
+                        Tag="remote" />
+                </StackPanel>
+            </Border>
 
-            <Grid Background="Transparent">
-                <ScrollViewer
-                    x:Name="GeneralPage"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto">
-                    <Border
-                        MaxWidth="700"
-                        Padding="24,16,24,28"
-                        HorizontalAlignment="Center"
-                        Background="Transparent">
-                        <StackPanel Spacing="16">
-                            <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
-                                <TextBlock Text="General" Style="{StaticResource SettingsPageTitleStyle}" />
-                                <TextBlock
-                                    Text="Startup, updates, and how your Discord presence behaves."
-                                    Style="{StaticResource SettingsRowDescriptionStyle}"
-                                    TextWrapping="Wrap" />
-                            </StackPanel>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                            <Border Style="{StaticResource SettingsSectionStyle}">
-                                <StackPanel>
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Discord presence" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Publish activity while Codex is open." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="PresenceToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Discord presence" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Title shown above the project and file in Discord." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <TextBox
-                                            x:Name="ActivityNameInput"
-                                            Grid.Column="1"
-                                            MaxLength="128"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsTextBoxStyle}"
-                                            AutomationProperties.Name="Discord activity name"
-                                            PlaceholderText="Coding with Codex" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Launch at sign in" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Keep presence available after Windows starts." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="StartupToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Launch at sign in" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Automatic updates" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Check verified GitHub releases once a day." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="UpdatesToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Automatic updates" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Card language" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Language of the text published to Discord." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ComboBox
-                                            x:Name="LanguageSelect"
-                                            Grid.Column="1"
-                                            AutomationProperties.Name="Card language"
-                                            Style="{StaticResource SettingsInputStyle}" />
-                                    </Grid>
+                <Grid Grid.Row="0">
+                    <ScrollViewer
+                        x:Name="GeneralPage"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <Border Padding="26,18,26,22">
+                            <StackPanel Spacing="17">
+                                <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
+                                    <TextBlock Text="General" Style="{StaticResource SettingsPageTitleStyle}" />
+                                    <TextBlock
+                                        Text="Presence, startup, and update behavior."
+                                        Style="{StaticResource SettingsRowDescriptionStyle}" />
                                 </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </ScrollViewer>
 
-                <ScrollViewer
-                    x:Name="PrivacyPage"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto"
-                    Visibility="Collapsed">
-                    <Border
-                        MaxWidth="700"
-                        Padding="24,16,24,28"
-                        HorizontalAlignment="Center"
-                        Background="Transparent">
-                        <StackPanel Spacing="16">
-                            <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
-                                <TextBlock Text="Privacy" Style="{StaticResource SettingsPageTitleStyle}" />
-                                <TextBlock
-                                    Text="Choose exactly which Codex signals Discord receives."
-                                    Style="{StaticResource SettingsRowDescriptionStyle}"
-                                    TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <Border Style="{StaticResource SettingsSectionStyle}">
-                                <Grid Style="{StaticResource SettingsRowStyle}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                        <TextBlock Text="Privacy preset" Style="{StaticResource SettingsRowTitleStyle}" />
-                                        <TextBlock Text="Quick baseline; task titles always require explicit opt-in." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                    </StackPanel>
-                                    <ComboBox
-                                        x:Name="PresetSelect"
-                                        Grid.Column="1"
-                                        AutomationProperties.Name="Privacy preset"
-                                        SelectionChanged="PresetSelectionChanged"
-                                        Style="{StaticResource SettingsInputStyle}" />
-                                </Grid>
-                            </Border>
-
-                            <Border Style="{StaticResource SettingsSectionStyle}">
                                 <StackPanel>
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Task title" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Share the selected Codex task title when available." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="TaskTitleToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Share task title" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Project name" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Share the active workspace on your Discord card." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="ProjectToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Share project name" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Edited file" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Share the latest file touched in the selected task." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="FileToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Share edited file" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="Session timer" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Use one stable timer for the whole Codex session." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ToggleSwitch
-                                            x:Name="TimerToggle"
-                                            Grid.Column="1"
-                                            VerticalAlignment="Center"
-                                            Style="{StaticResource SettingsToggleStyle}"
-                                            AutomationProperties.Name="Share session timer" />
-                                    </Grid>
-
-                                    <Border Height="1" Background="{ThemeResource BorderBrush}" />
-
-                                    <Grid Style="{StaticResource SettingsRowStyle}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                            <TextBlock Text="File display" Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock Text="Filename only or repository-relative path." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                        <ComboBox
-                                            x:Name="FileModeSelect"
-                                            Grid.Column="1"
-                                            AutomationProperties.Name="File display mode"
-                                            Style="{StaticResource SettingsInputStyle}" />
-                                    </Grid>
+                                    <TextBlock Text="Presence" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Discord presence" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Publish activity while Codex is open." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="PresenceToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Discord presence"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Title shown on your Discord card." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <TextBox
+                                                x:Name="ActivityNameInput"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Discord activity name"
+                                                MaxLength="128"
+                                                PlaceholderText="Coding with Codex"
+                                                Style="{StaticResource SettingsTextBoxStyle}" />
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </ScrollViewer>
 
-                <ScrollViewer
-                    x:Name="RemotePage"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto"
-                    Visibility="Collapsed">
-                    <Border
-                        MaxWidth="720"
-                        Padding="24,16,24,28"
-                        HorizontalAlignment="Center"
-                        Background="Transparent">
-                        <StackPanel Spacing="16">
-                            <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
-                                <TextBlock Text="SSH workspaces" Style="{StaticResource SettingsPageTitleStyle}" />
-                                <TextBlock
-                                    Text="Map remote roots to servers. The most specific root wins."
-                                    Style="{StaticResource SettingsRowDescriptionStyle}"
-                                    TextWrapping="Wrap" />
+                                <StackPanel>
+                                    <TextBlock Text="Application" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Launch at sign in" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Keep presence ready after Windows starts." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="StartupToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Launch at sign in"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Automatic updates" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Check verified releases once a day." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="UpdatesToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Automatic updates"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Card language" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Language used in Discord." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="LanguageSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Card language"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
                             </StackPanel>
+                        </Border>
+                    </ScrollViewer>
 
-                            <Border Padding="0" Style="{StaticResource SettingsSectionStyle}">
+                    <ScrollViewer
+                        x:Name="PrivacyPage"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
+                        <Border Padding="26,18,26,22">
+                            <StackPanel Spacing="17">
+                                <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
+                                    <TextBlock Text="Privacy" Style="{StaticResource SettingsPageTitleStyle}" />
+                                    <TextBlock
+                                        Text="Choose exactly what Discord receives."
+                                        Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="Preset" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Privacy preset" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Apply a sensible sharing baseline." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="PresetSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Privacy preset"
+                                                SelectionChanged="PresetSelectionChanged"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="Shared details" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Task title" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Share the selected Codex task title." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="TaskTitleToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Share task title"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Project name" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Share the active workspace." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="ProjectToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Share project name"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Edited file" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Share the latest edited file." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="FileToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Share edited file"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Session timer" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Use one timer for the Codex session." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleButton
+                                                x:Name="TimerToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Share session timer"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="File display" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Filename or repository-relative path." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="FileModeSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="File display mode"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+
+                    <ScrollViewer
+                        x:Name="RemotePage"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
+                        <Border Padding="26,18,26,22">
+                            <StackPanel Spacing="17">
+                                <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
+                                    <TextBlock Text="SSH workspaces" Style="{StaticResource SettingsPageTitleStyle}" />
+                                    <TextBlock
+                                        Text="Follow Codex sessions running on remote machines."
+                                        Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="Workspaces" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border
+                                        Background="{ThemeResource SurfaceBrush}"
+                                        BorderBrush="{ThemeResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="7">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                            </Grid.RowDefinitions>
+
+                                            <Border
+                                                Grid.Row="0"
+                                                Padding="11,8"
+                                                Background="{ThemeResource SurfaceRaisedBrush}"
+                                                BorderBrush="{ThemeResource BorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                CornerRadius="6,6,0,0">
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.05*" />
+                                                        <ColumnDefinition Width="1.4*" />
+                                                        <ColumnDefinition Width="1.8*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Name" Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                    <TextBlock Grid.Column="1" Text="User@host" Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                    <TextBlock Grid.Column="2" Text="Workspace roots" Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                </Grid>
+                                            </Border>
+
+                                            <Grid Grid.Row="1" MinHeight="164">
+                                                <ListView
+                                                    x:Name="RemoteList"
+                                                    Padding="5"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    SelectionMode="Single"
+                                                    AutomationProperties.Name="SSH workspaces">
+                                                    <ListView.ItemContainerStyle>
+                                                        <Style TargetType="ListViewItem">
+                                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                            <Setter Property="MinHeight" Value="42" />
+                                                            <Setter Property="Padding" Value="5,4" />
+                                                            <Setter Property="CornerRadius" Value="5" />
+                                                        </Style>
+                                                    </ListView.ItemContainerStyle>
+                                                    <ListView.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid ColumnSpacing="8">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="1.05*" />
+                                                                    <ColumnDefinition Width="1.4*" />
+                                                                    <ColumnDefinition Width="1.8*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBox
+                                                                    AutomationProperties.Name="Workspace name"
+                                                                    PlaceholderText="Remote"
+                                                                    Style="{StaticResource SettingsInlineTextBoxStyle}"
+                                                                    Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                <TextBox
+                                                                    Grid.Column="1"
+                                                                    AutomationProperties.Name="SSH user and host"
+                                                                    PlaceholderText="dev@example.com"
+                                                                    Style="{StaticResource SettingsInlineTextBoxStyle}"
+                                                                    Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                <TextBox
+                                                                    Grid.Column="2"
+                                                                    AutomationProperties.Name="Workspace roots"
+                                                                    PlaceholderText="/srv/store; ~/work"
+                                                                    Style="{StaticResource SettingsInlineTextBoxStyle}"
+                                                                    Text="{Binding Roots, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ListView.ItemTemplate>
+                                                </ListView>
+
+                                                <StackPanel
+                                                    x:Name="RemoteEmptyState"
+                                                    Width="300"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    IsHitTestVisible="False"
+                                                    Spacing="3">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        Text="No SSH workspaces"
+                                                        Style="{StaticResource SettingsRowTitleStyle}" />
+                                                    <TextBlock
+                                                        Text="Add one to follow a remote Codex session."
+                                                        TextAlignment="Center"
+                                                        Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Button
+                                            x:Name="AddRemoteButton"
+                                            AutomationProperties.Name="Add SSH workspace"
+                                            Click="AddRemoteClicked"
+                                            Content="Add"
+                                            Style="{StaticResource CompactButtonStyle}" />
+                                        <Button
+                                            x:Name="RemoveRemoteButton"
+                                            AutomationProperties.Name="Remove selected SSH workspace"
+                                            Click="RemoveRemoteClicked"
+                                            Content="Remove"
+                                            Style="{StaticResource CompactButtonStyle}" />
+                                        <Button
+                                            x:Name="TestRemoteButton"
+                                            AutomationProperties.Name="Test selected SSH workspace"
+                                            Click="TestRemoteClicked"
+                                            Content="Test SSH"
+                                            Style="{StaticResource CompactButtonStyle}" />
+                                        <Button
+                                            x:Name="InstallRemoteButton"
+                                            AutomationProperties.Name="Install helper on selected SSH workspace"
+                                            Click="InstallRemoteClicked"
+                                            Content="Install helper"
+                                            Style="{StaticResource CompactButtonStyle}" />
+                                    </StackPanel>
 
-                                    <Border
-                                        Grid.Row="0"
-                                        Padding="14,9"
-                                        Background="{ThemeResource SurfaceRaisedBrush}"
-                                        CornerRadius="9,9,0,0">
-                                        <Grid ColumnSpacing="12">
+                                    <StackPanel
+                                        Grid.Row="1"
+                                        Margin="2,9,0,0"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                        <ProgressRing
+                                            x:Name="RemoteProgress"
+                                            Width="16"
+                                            Height="16"
+                                            IsActive="False"
+                                            Visibility="Collapsed" />
+                                        <TextBlock
+                                            x:Name="RemoteActionStatus"
+                                            VerticalAlignment="Center"
+                                            AutomationProperties.LiveSetting="Polite"
+                                            Foreground="{ThemeResource TextSecondaryBrush}"
+                                            Style="{StaticResource SettingsRowDescriptionStyle}"
+                                            Visibility="Collapsed" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel>
+                                    <TextBlock Text="Monitoring" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.1*" />
-                                                <ColumnDefinition Width="1.45*" />
-                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Name" Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                            <TextBlock Grid.Column="1" Text="User@host" Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                            <TextBlock Grid.Column="2" Text="Workspace roots (; separated)" Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Refresh interval" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="How often the remote task is checked." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="PollIntervalSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Remote refresh interval"
+                                                Style="{StaticResource SettingsInputStyle}" />
                                         </Grid>
                                     </Border>
-
-                                    <Grid Grid.Row="1" MinHeight="190">
-                                        <ListView
-                                            x:Name="RemoteList"
-                                            Padding="6"
-                                            HorizontalContentAlignment="Stretch"
-                                            SelectionMode="Single"
-                                            AutomationProperties.Name="SSH workspaces">
-                                            <ListView.ItemContainerStyle>
-                                                <Style TargetType="ListViewItem">
-                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                    <Setter Property="MinHeight" Value="50" />
-                                                    <Setter Property="Padding" Value="6,5" />
-                                                    <Setter Property="CornerRadius" Value="6" />
-                                                </Style>
-                                            </ListView.ItemContainerStyle>
-                                            <ListView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid ColumnSpacing="12">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="1.1*" />
-                                                            <ColumnDefinition Width="1.45*" />
-                                                            <ColumnDefinition Width="2*" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBox
-                                                            MinHeight="36"
-                                                            Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            PlaceholderText="Remote"
-                                                            AutomationProperties.Name="Workspace name" />
-                                                        <TextBox
-                                                            Grid.Column="1"
-                                                            MinHeight="36"
-                                                            Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            PlaceholderText="dev@example.com"
-                                                            AutomationProperties.Name="SSH user and host" />
-                                                        <TextBox
-                                                            Grid.Column="2"
-                                                            MinHeight="36"
-                                                            Text="{Binding Roots, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                            PlaceholderText="/srv/store; ~/work"
-                                                            AutomationProperties.Name="Workspace roots" />
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListView.ItemTemplate>
-                                        </ListView>
-
-                                        <StackPanel
-                                            x:Name="RemoteEmptyState"
-                                            Width="320"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            IsHitTestVisible="False"
-                                            Spacing="8">
-                                            <FontIcon
-                                                HorizontalAlignment="Center"
-                                                FontFamily="Segoe Fluent Icons"
-                                                FontSize="28"
-                                                Foreground="{ThemeResource TextSecondaryBrush}"
-                                                Glyph="&#xE968;" />
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                Text="No SSH workspaces yet"
-                                                Style="{StaticResource SettingsRowTitleStyle}" />
-                                            <TextBlock
-                                                Text="Add one to follow remote Codex tasks."
-                                                TextAlignment="Center"
-                                                Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Grid>
-                            </Border>
-
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button
-                                        x:Name="AddRemoteButton"
-                                        Content="Add"
-                                        Click="AddRemoteClicked"
-                                        Style="{StaticResource CompactButtonStyle}"
-                                        AutomationProperties.Name="Add SSH workspace" />
-                                    <Button
-                                        x:Name="RemoveRemoteButton"
-                                        Content="Remove"
-                                        Click="RemoveRemoteClicked"
-                                        Style="{StaticResource CompactButtonStyle}"
-                                        AutomationProperties.Name="Remove selected SSH workspace" />
-                                    <Button
-                                        x:Name="TestRemoteButton"
-                                        Content="Test SSH"
-                                        Click="TestRemoteClicked"
-                                        Style="{StaticResource CompactButtonStyle}"
-                                        AutomationProperties.Name="Test selected SSH workspace" />
-                                    <Button
-                                        x:Name="InstallRemoteButton"
-                                        Content="Install helper"
-                                        Click="InstallRemoteClicked"
-                                        Style="{StaticResource CompactButtonStyle}"
-                                        AutomationProperties.Name="Install helper on selected SSH workspace" />
                                 </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+                </Grid>
 
-                                <StackPanel
-                                    Grid.Row="1"
-                                    Margin="2,12,0,0"
-                                    Orientation="Horizontal"
-                                    Spacing="10">
-                                    <ProgressRing
-                                        x:Name="RemoteProgress"
-                                        Width="18"
-                                        Height="18"
-                                        IsActive="False"
-                                        Visibility="Collapsed" />
-                                    <TextBlock
-                                        x:Name="RemoteActionStatus"
-                                        VerticalAlignment="Center"
-                                        AutomationProperties.LiveSetting="Polite"
-                                        Foreground="{ThemeResource TextSecondaryBrush}"
-                                        Style="{StaticResource SettingsRowDescriptionStyle}"
-                                        Visibility="Collapsed" />
-                                </StackPanel>
-                            </Grid>
-
-                            <Border Style="{StaticResource SettingsSectionStyle}">
-                                <Grid Style="{StaticResource SettingsRowStyle}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,24,0" VerticalAlignment="Center" Spacing="3">
-                                        <TextBlock Text="Refresh interval" Style="{StaticResource SettingsRowTitleStyle}" />
-                                        <TextBlock Text="How often the selected remote task is checked." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                    </StackPanel>
-                                    <ComboBox
-                                        x:Name="PollIntervalSelect"
-                                        Grid.Column="1"
-                                        AutomationProperties.Name="Remote refresh interval"
-                                        Style="{StaticResource SettingsInputStyle}" />
-                                </Grid>
-                            </Border>
+                <Border
+                    x:Name="SettingsFooter"
+                    Grid.Row="1"
+                    Padding="26,9"
+                    Background="{ThemeResource CanvasBrush}"
+                    BorderBrush="{ThemeResource BorderBrush}"
+                    BorderThickness="0,1,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="Changes apply after saving."
+                            Style="{StaticResource SettingsRowDescriptionStyle}" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                            <Button
+                                x:Name="CancelButton"
+                                AutomationProperties.Name="Cancel settings changes"
+                                Click="CancelClicked"
+                                Content="Cancel"
+                                Style="{StaticResource SettingsFooterButtonStyle}" />
+                            <Button
+                                x:Name="SaveButton"
+                                MinHeight="32"
+                                Padding="14,5"
+                                AutomationProperties.Name="Save settings changes"
+                                Click="SaveClicked"
+                                Content="Save changes"
+                                CornerRadius="6"
+                                FontSize="12"
+                                Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
-                    </Border>
-                </ScrollViewer>
+                    </Grid>
+                </Border>
             </Grid>
-        </NavigationView>
-
-        <Border
-            Grid.Row="2"
-            Padding="20,10"
-            Background="{ThemeResource SurfaceBrush}"
-            BorderBrush="{ThemeResource BorderBrush}"
-            BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock
-                    VerticalAlignment="Center"
-                    Foreground="{ThemeResource TextSecondaryBrush}"
-                    Style="{StaticResource SettingsRowDescriptionStyle}"
-                    Text="Changes apply after saving." />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Button
-                        x:Name="CancelButton"
-                        Content="Cancel"
-                        Click="CancelClicked"
-                        Style="{StaticResource CompactButtonStyle}"
-                        AutomationProperties.Name="Cancel settings changes" />
-                    <Button
-                        x:Name="SaveButton"
-                        Content="Save changes"
-                        Click="SaveClicked"
-                        Style="{StaticResource PrimaryButtonStyle}"
-                        MinHeight="32"
-                        Padding="14,5"
-                        CornerRadius="6"
-                        FontSize="12"
-                        AutomationProperties.Name="Save settings changes" />
-                </StackPanel>
-            </Grid>
-        </Border>
+        </Grid>
     </Grid>
 </Window>

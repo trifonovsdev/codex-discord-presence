@@ -189,17 +189,29 @@ test('WinUI windows size in logical pixels on high-DPI displays', () => {
   }
 });
 
-test('settings use a compact top navigation and preserve all configuration surfaces', () => {
+test('settings use a compact Linear-style sidebar and preserve all configuration surfaces', () => {
   const xaml = source('tray/SettingsWindow.xaml');
   const code = source('tray/SettingsWindow.xaml.cs');
 
-  assert.match(xaml, /<NavigationView\b/);
-  assert.match(xaml, /PaneDisplayMode="Top"/);
+  assert.doesNotMatch(xaml, /<NavigationView\b/);
+  assert.match(xaml, /x:Name="SettingsSidebar"/);
+  assert.match(xaml, /x:Name="SettingsFooter"/);
+  assert.match(xaml, /x:Key="SettingsNavButtonTemplate"/);
+  assert.match(xaml, /x:Key="SettingsToggleTemplate"/);
+  assert.match(xaml, /x:Key="SettingsComboBoxItemStyle"/);
+  assert.match(xaml, /x:Key="ComboBoxDropDownBackground"/);
+  assert.match(xaml, /x:Key="ComboBoxItemPillFillBrush"/);
+  assert.doesNotMatch(xaml, /OnContent=|OffContent=/);
   assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
-  assert.match(xaml, /x:Key="SettingsRowStyle"/);
-  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*700,\s*590\)/);
+  assert.match(xaml, /x:Key="SettingsRowContainerStyle"/);
+  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*680,\s*550\)/);
+  assert.match(code, /SectionButtonClicked/);
+  assert.match(code, /SetActiveSection/);
   for (const tag of ['general', 'privacy', 'remote']) {
     assert.match(xaml, new RegExp(`Tag="${tag}"`));
+  }
+  for (const navButton of ['GeneralNavButton', 'PrivacyNavButton', 'RemoteNavButton']) {
+    assert.match(xaml, new RegExp(`x:Name="${navButton}"`));
   }
   for (const control of [
     'PresenceToggle',

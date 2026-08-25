@@ -66,7 +66,7 @@ public sealed partial class SettingsWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        WindowSizing.ResizeInDips(this, 700, 590);
+        WindowSizing.ResizeInDips(this, 680, 550);
         AppWindow.Closing += (_, _) => CancelRemoteAction();
         Closed += (_, _) => CancelRemoteAction();
         RootGrid.ActualThemeChanged += (_, _) => RefreshStatusBrush();
@@ -86,7 +86,6 @@ public sealed partial class SettingsWindow : Window
         remoteRows.CollectionChanged += (_, _) => UpdateRemoteEmptyState();
 
         LoadValues();
-        SettingsNavigation.SelectedItem = SettingsNavigation.MenuItems[0];
         ShowPage("general");
     }
 
@@ -99,9 +98,9 @@ public sealed partial class SettingsWindow : Window
         Activate();
     }
 
-    private void NavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void SectionButtonClicked(object sender, RoutedEventArgs args)
     {
-        if (args.SelectedItemContainer?.Tag?.ToString() is { } tag) ShowPage(tag);
+        if (sender is ToggleButton { Tag: string tag }) ShowPage(tag);
     }
 
     private void ShowPage(string tag)
@@ -110,6 +109,14 @@ public sealed partial class SettingsWindow : Window
         GeneralPage.Visibility = tag == "general" ? Visibility.Visible : Visibility.Collapsed;
         PrivacyPage.Visibility = tag == "privacy" ? Visibility.Visible : Visibility.Collapsed;
         RemotePage.Visibility = tag == "remote" ? Visibility.Visible : Visibility.Collapsed;
+        SetActiveSection(tag);
+    }
+
+    private void SetActiveSection(string tag)
+    {
+        GeneralNavButton.IsChecked = tag == "general";
+        PrivacyNavButton.IsChecked = tag == "privacy";
+        RemoteNavButton.IsChecked = tag == "remote";
     }
 
     private void LoadValues()
@@ -117,25 +124,25 @@ public sealed partial class SettingsWindow : Window
         suppressPresetChange = true;
         try
         {
-            PresenceToggle.IsOn = config.PresenceEnabled;
+            PresenceToggle.IsChecked = config.PresenceEnabled;
             ActivityNameInput.Text = config.ActivityName;
             try
             {
-                StartupToggle.IsOn = store.StartsWithWindows;
+                StartupToggle.IsChecked = store.StartsWithWindows;
             }
             catch
             {
-                StartupToggle.IsOn = false;
+                StartupToggle.IsChecked = false;
             }
 
-            UpdatesToggle.IsOn = config.Updates.Enabled;
+            UpdatesToggle.IsChecked = config.Updates.Enabled;
             LanguageSelect.SelectedItem = Languages.FirstOrDefault(item => item.Value == config.Language).Label
                 ?? Languages[0].Label;
             PresetSelect.SelectedItem = NormalizeOption(config.Privacy.Preset, "standard", "minimal", "standard", "detailed");
-            TaskTitleToggle.IsOn = config.Privacy.ShowTaskTitle;
-            ProjectToggle.IsOn = config.Privacy.ShowProject;
-            FileToggle.IsOn = config.Privacy.ShowFile;
-            TimerToggle.IsOn = config.Privacy.ShowTimer;
+            TaskTitleToggle.IsChecked = config.Privacy.ShowTaskTitle;
+            ProjectToggle.IsChecked = config.Privacy.ShowProject;
+            FileToggle.IsChecked = config.Privacy.ShowFile;
+            TimerToggle.IsChecked = config.Privacy.ShowTimer;
             FileModeSelect.SelectedItem = NormalizeOption(config.Privacy.FileMode, "relative", "name", "relative");
 
             var configuredSeconds = Math.Clamp(config.Remote.PollIntervalMs / 1000, 3, 60);
@@ -172,10 +179,10 @@ public sealed partial class SettingsWindow : Window
 
     private void ApplyPreset(string value)
     {
-        TaskTitleToggle.IsOn = false;
-        ProjectToggle.IsOn = true;
-        FileToggle.IsOn = value != "minimal";
-        TimerToggle.IsOn = true;
+        TaskTitleToggle.IsChecked = false;
+        ProjectToggle.IsChecked = true;
+        FileToggle.IsChecked = value != "minimal";
+        TimerToggle.IsChecked = true;
         FileModeSelect.SelectedItem = value == "minimal" ? "name" : "relative";
     }
 
@@ -298,18 +305,18 @@ public sealed partial class SettingsWindow : Window
             return;
         }
 
-        config.PresenceEnabled = PresenceToggle.IsOn;
+        config.PresenceEnabled = PresenceToggle.IsChecked == true;
         config.ActivityName = activityName;
-        config.Updates.Enabled = UpdatesToggle.IsOn;
+        config.Updates.Enabled = UpdatesToggle.IsChecked == true;
         config.Language = Languages.FirstOrDefault(item => item.Label == SelectedText(LanguageSelect, "English")).Value
             ?? "en";
         config.Privacy = new PrivacyConfig
         {
             Preset = SelectedText(PresetSelect, "standard"),
-            ShowTaskTitle = TaskTitleToggle.IsOn,
-            ShowProject = ProjectToggle.IsOn,
-            ShowFile = FileToggle.IsOn,
-            ShowTimer = TimerToggle.IsOn,
+            ShowTaskTitle = TaskTitleToggle.IsChecked == true,
+            ShowProject = ProjectToggle.IsChecked == true,
+            ShowFile = FileToggle.IsChecked == true,
+            ShowTimer = TimerToggle.IsChecked == true,
             FileMode = SelectedText(FileModeSelect, "relative"),
         };
         config.Remote.Host = string.Empty;
@@ -319,7 +326,7 @@ public sealed partial class SettingsWindow : Window
         try
         {
             store.Save(config);
-            store.StartsWithWindows = StartupToggle.IsOn;
+            store.StartsWithWindows = StartupToggle.IsChecked == true;
         }
         catch (Exception error)
         {
