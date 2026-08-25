@@ -205,6 +205,7 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
   assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
   assert.match(xaml, /x:Key="SettingsRowContainerStyle"/);
   assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*680,\s*550\)/);
+  assert.match(code, /using Microsoft\.UI\.Xaml\.Controls\.Primitives;/);
   assert.match(code, /SectionButtonClicked/);
   assert.match(code, /SetActiveSection/);
   for (const tag of ['general', 'privacy', 'remote']) {
