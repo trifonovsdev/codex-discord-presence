@@ -15,7 +15,7 @@
 
 Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its project and most recently edited file, and mirrors that activity to Discord. Background tasks cannot silently replace the card, and switching projects never resets the whole-app timer.
 
-![Codex Presence 2.5.2 dashboard: published activity, current file, and session details](assets/dashboard.png)
+![Codex Presence 2.5.3 dashboard: published activity, current file, and session details](assets/dashboard.png)
 
 ## Why this one
 
@@ -25,11 +25,17 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Keeps you in control.** No telemetry or cloud relay; task titles stay private unless enabled. Pause sharing from the tray.
 - **Fits Windows.** WinUI controls, keyboard navigation, contrast themes, verified updates, and English or Russian Discord cards with a custom activity name.
 
-## Fixed in 2.5.2: status and interactions
+## Fixed in 2.5.3: steady hover and responsive presses
+
+- **Smooth feedback without brush flashes.** App-owned color resources keep hover feedback from falling back to the Windows accent. Each button has a permanent base and separate hover/press surfaces. Hover eases over 140 ms; a pointer press gently compresses the label over 90 ms and returns over 160 ms. Fast reversals continue from the current visual value; text keeps its color and the pointer target stays fixed.
+- **Consistent controls.** Toolbar buttons, primary actions, and settings navigation share the same motion. Save and Cancel align at 34 px. Off-state switches now use the graphite hover colors. Keyboard activation, disabled states, Windows animation preferences, and contrast themes remain supported.
+- **A steady live dashboard.** Changing the current file updates the preview without dimming the entire card. Connection and updater fixes from 2.5.1–2.5.2 are included.
+
+## Fixed in 2.5.2: accurate status
 
 - **A working service no longer looks offline behind a proxy.** Local status and pause/resume requests connect directly to loopback. HTTP and response errors now appear in Doctor.
 - **An unreachable status is unverified.** The dashboard keeps the last confirmed context, freezes its public timer, and retries. Doctor marks dependent Discord checks as unknown instead of suggesting unrelated privacy changes.
-- **Native control motion.** Switches use WinUI's sliding thumb and keyboard behavior. Buttons use a single native state transition; the extra whole-button dimming is gone. Settings navigation has one selection layer, so hover cannot leave multiple rows highlighted.
+- **Native switches and navigation.** Switches use WinUI's sliding thumb and keyboard behavior. Settings sections form a single keyboard-navigable selection group.
 - **Stable layout.** Aligned margins, consistent settings rows, minimum window widths, and copy feedback that does not move the file path. Warnings appear after the preview instead of pushing it down.
 - **Useful project names.** Codex visualization, attachment, and session directories are excluded from workspace guesses; real Codex worktrees still work.
 
@@ -46,7 +52,7 @@ If your older build cannot finish updating, [download Setup once](https://github
 - **More room to read:** larger project title, a roomier Discord card, brighter secondary labels, and 34 px compact action targets.
 - **Honest publication state:** “Published” appears only after Discord acknowledges the activity. Paused and waiting states say “Not published”; unavailable local status is explicitly “Status unknown” or “Last confirmed”.
 - **Useful session context:** activity source, workspace, and elapsed time are visible together. Long project names and paths have tooltips.
-- **Predictable controls:** pause/resume shows progress and ignores duplicate requests. Native controls own pointer and keyboard feedback and respect Windows' animation setting. Timer ticks update only time labels; they no longer rebuild the whole presentation.
+- **Predictable controls:** pause/resume shows progress and ignores duplicate requests. Native controls own pointer and keyboard input; the visual feedback respects Windows' animation setting. Timer ticks update only time labels; they no longer rebuild the whole presentation.
 - **Reproducible previews:** Windows CI renders the actual WinUI screens with synthetic data; no Discord account or private workspace is used.
 
 ## Install
@@ -63,10 +69,10 @@ The shared Discord Application ID is `1526968377048956938`. Friends do not need 
 ## See it in action
 
 <div align="center">
-  <img src="assets/interactions.gif" alt="Native WinUI switches responding to repeated changes in the existing settings layout" width="760">
+  <img src="assets/interactions.gif" alt="Real Windows button hover, press, cancellation, and switch transitions" width="760">
 </div>
 
-These are captures of the real WinUI application on Windows with **illustrative local data**. The GIF records native switch transitions, including a quick reversal, from the Windows compositor. It does not connect to Discord or measure animation performance on your hardware.
+These are captures of the real WinUI application on Windows with **illustrative local data**. The GIF records button hover, press and cancellation followed by switch transitions from the Windows compositor. Frames retain their capture timing. It does not connect to Discord or measure animation performance on your hardware.
 
 | Choose what you share | Connect SSH workspaces |
 |---|---|
@@ -172,7 +178,7 @@ cd codex-discord-presence
 npm run check
 dotnet run --project .\tests\presentation\PresentationTests.csproj -c Release
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.5.2
+.\build-release.ps1 -Version 2.5.3
 ```
 
 The build downloads the pinned official Node distribution and the pinned Discord Social SDK 1.9.16441 runtime, verifies both native archives against reviewed SHA-256 values, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. The SDK binary is fetched from a commit-pinned vendor mirror because Discord’s official archive requires an authenticated Developer Portal download; its bundled open-source notices ship as `DISCORD_SOCIAL_SDK_NOTICES.txt`. Verified downloads are cached under `.build-cache/`.
@@ -189,9 +195,9 @@ After a Windows build, run the generated `CodexPresence.exe` with:
 .\CodexPresence.exe --capture-preview C:\Temp\presence-screenshots
 ```
 
-This writes six PNGs (published, paused, unverified status, and the three Settings sections), native interaction checks, and timestamped motion frames and exits. It starts no daemon, makes no Discord or SSH connections, and does not save configuration. CI uploads these as `native-screenshots` for visual review. Keep the preview window unobstructed while capturing; the images come from the real desktop compositor.
+This writes six PNGs (published, paused, unverified status, and the three Settings sections), native interaction checks, and timestamped motion frames and exits. It starts no daemon, makes no Discord or SSH connections, and does not save configuration. CI uploads these as `native-screenshots` for visual review. This opt-in capture moves the pointer and sends test clicks and keys to the preview, then restores the pointer. Keep the preview window unobstructed and leave the mouse and keyboard idle until it exits; images come from the real desktop compositor.
 
-The JavaScript tests validate the daemon, privacy boundaries, and UI contracts. C# test executables exercise presentation states, a real daemon behind a rejecting system proxy, pause/resume, reconnect errors, and verified updater downloads. Windows CI additionally compiles XAML, captures all six screens, exercises repeated tab/toggle changes and minimum-width layouts, and checks C# formatting. Release builds must pass the installer and portable smoke tests before publication. High-DPI interaction, screen-reader behavior, and animation frame times still need checks on physical Windows hardware.
+The JavaScript tests validate the daemon, privacy boundaries, and UI contracts. C# test executables exercise presentation states, a real daemon behind a rejecting system proxy, pause/resume, reconnect errors, and verified updater downloads. Windows CI additionally compiles XAML, captures all six screens, checks real pointer hover at the center and edge, rapid reversals, endpoint color bounds, held-state stability, click cancellation, Space/Enter, repeated tab/toggle changes, and minimum-width layouts, and checks C# formatting. Release builds must pass the installer and portable smoke tests before publication. High-DPI interaction, screen-reader behavior, and animation frame times still need checks on physical Windows hardware.
 
 ### Release signing
 

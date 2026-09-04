@@ -27,6 +27,8 @@ internal static class PreviewCapture
             dashboard.UpdateSnapshot(snapshot);
             dashboard.Activate();
             await CaptureAsync(dashboard, directory, "dashboard");
+            await NativeHoverChecks.RunAsync(dashboard, directory, "SettingsButton", "PauseButton");
+            await NativeHoverChecks.CheckPressAsync(dashboard, directory);
             snapshot.PresenceEnabled = false;
             dashboard.UpdateSnapshot(snapshot);
             await CaptureAsync(dashboard, directory, "paused");
@@ -39,12 +41,14 @@ internal static class PreviewCapture
             settings = new SettingsWindow(new ConfigStore(), new RemoteService(), new PresenceConfig());
             settings.Activate();
             await Task.Delay(700);
+            await NativeHoverChecks.RunAsync(settings, directory, "SaveButton", "CancelButton", "PrivacyNavButton");
             await NativeInteractionChecks.RunAsync(settings, directory);
             foreach (var section in new[] { "general", "privacy", "remote" })
             {
                 settings.ShowPage(section);
                 await CaptureAsync(settings, directory, section == "remote" ? "settings-ssh" : $"settings-{section}");
             }
+            NativeHoverChecks.ThrowIfFailed(directory);
         }
         finally
         {

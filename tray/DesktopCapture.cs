@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Windows.Graphics.Imaging;
@@ -13,7 +14,7 @@ internal static class DesktopCapture
 
     public static Task SaveAsync(Window window, string path) => SaveAsync(Capture(window), path);
 
-    public static Frame Capture(Window window)
+    public static Frame Capture(Window window, bool includeCursor = false)
     {
         var hwnd = WindowNative.GetWindowHandle(window);
         if (!GetClientRect(hwnd, out var bounds)) throw new InvalidOperationException("Cannot read preview bounds.");
@@ -31,6 +32,7 @@ internal static class DesktopCapture
         {
             if (bitmap == 0 || !BitBlt(target, 0, 0, width, height, screen, origin.X, origin.Y, 0x00CC0020))
                 throw new InvalidOperationException("Cannot capture native compositor output.");
+            if (includeCursor) DrawCursor(target, origin);
             Marshal.Copy(pixels, data, 0, data.Length);
         }
         finally
@@ -53,8 +55,41 @@ internal static class DesktopCapture
         await encoder.FlushAsync();
     }
 
+    public static async Task SaveSequenceAsync(string directory, IReadOnlyList<Frame> frames, IReadOnlyList<double> seconds)
+    {
+        Directory.CreateDirectory(directory);
+        var concat = new List<string>();
+        for (var i = 0; i < frames.Count; i++)
+        {
+            await SaveAsync(frames[i], Path.Combine(directory, $"frame-{i:D4}.png"));
+            concat.Add($"file 'frame-{i:D4}.png'");
+            var duration = i + 1 < seconds.Count ? seconds[i + 1] - seconds[i] : 0.4;
+            concat.Add("duration " + duration.ToString("F6", CultureInfo.InvariantCulture));
+        }
+        concat.Add($"file 'frame-{frames.Count - 1:D4}.png'");
+        File.WriteAllLines(Path.Combine(directory, "frames.txt"), concat);
+    }
+
+    private static void DrawCursor(nint target, Point origin)
+    {
+        var cursor = new CursorInfo { Size = (uint)Marshal.SizeOf<CursorInfo>() };
+        if (!GetCursorInfo(ref cursor) || cursor.Flags != 1 || !GetIconInfo(cursor.Handle, out var icon)) return;
+        try
+        {
+            DrawIconEx(target, cursor.Position.X - origin.X - (int)icon.HotspotX,
+                cursor.Position.Y - origin.Y - (int)icon.HotspotY, cursor.Handle, 0, 0, 0, 0, 3);
+        }
+        finally
+        {
+            if (icon.Mask != 0) DeleteObject(icon.Mask);
+            if (icon.Color != 0) DeleteObject(icon.Color);
+        }
+    }
+
     [StructLayout(LayoutKind.Sequential)] private struct Point { public int X, Y; }
     [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] private struct CursorInfo { public uint Size, Flags; public nint Handle; public Point Position; }
+    [StructLayout(LayoutKind.Sequential)] private struct IconInfo { public int IsIcon; public uint HotspotX, HotspotY; public nint Mask, Color; }
     [StructLayout(LayoutKind.Sequential)]
     private struct BitmapInfo
     {
@@ -69,6 +104,9 @@ internal static class DesktopCapture
     [DllImport("user32.dll")] private static extern bool ClientToScreen(nint hwnd, ref Point point);
     [DllImport("user32.dll")] private static extern nint GetDC(nint hwnd);
     [DllImport("user32.dll")] private static extern int ReleaseDC(nint hwnd, nint dc);
+    [DllImport("user32.dll")] private static extern bool GetCursorInfo(ref CursorInfo cursor);
+    [DllImport("user32.dll")] private static extern bool GetIconInfo(nint icon, out IconInfo info);
+    [DllImport("user32.dll")] private static extern bool DrawIconEx(nint dc, int x, int y, nint icon, int width, int height, uint step, nint brush, uint flags);
     [DllImport("gdi32.dll")] private static extern nint CreateCompatibleDC(nint dc);
     [DllImport("gdi32.dll")] private static extern nint CreateDIBSection(nint dc, ref BitmapInfo info, uint usage, out nint bits, nint section, uint offset);
     [DllImport("gdi32.dll")] private static extern nint SelectObject(nint dc, nint obj);

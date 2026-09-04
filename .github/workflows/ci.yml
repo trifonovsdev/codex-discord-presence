@@ -62,13 +62,14 @@ jobs:
           $exe = Get-ChildItem tray/bin/Release -Recurse -Filter CodexPresence.exe | Select-Object -First 1
           $output = Join-Path $env:RUNNER_TEMP 'presence-screenshots'
           $process = Start-Process $exe.FullName -ArgumentList "--capture-preview `"$output`"" -PassThru
-          if (-not $process.WaitForExit(45000)) { $process.Kill(); throw 'Screenshot capture timed out.' }
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Screenshot capture timed out.' }
           if ($process.ExitCode -ne 0) {
             Get-Content (Join-Path $env:TEMP 'codex-presence-ui-smoke.log') -ErrorAction SilentlyContinue
             throw "Screenshot capture failed: $($process.ExitCode)"
           }
           if ((Get-ChildItem $output -Filter '*.png').Count -ne 6) { throw 'Expected six native screenshots.' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
         with:
           name: native-screenshots
           path: ${{ runner.temp }}/presence-screenshots/

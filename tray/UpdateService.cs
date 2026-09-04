@@ -12,7 +12,7 @@ public sealed class UpdateService : IDisposable
     private readonly string updateDirectory;
     private readonly string installDirectory;
     private static readonly TimeSpan DownloadTimeout = TimeSpan.FromMinutes(10);
-    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 5, 2);
+    public Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(2, 5, 3);
 
     public UpdateService() : this(new HttpClient(), info =>
     {

@@ -54,7 +54,7 @@ test('app resources define one accessible graphite design system', () => {
 test('custom surfaces follow Windows High Contrast colors', () => {
   const app = source('tray/App.xaml');
 
-  assert.match(app, /<ResourceDictionary x:Key="Default">/);
+  assert.match(app, /<ResourceDictionary x:Key="Dark">/);
   assert.match(app, /<ResourceDictionary x:Key="HighContrast">/);
   assert.match(app, /\{ThemeResource SystemColorWindowColor\}/);
   assert.match(app, /\{ThemeResource SystemColorWindowTextColor\}/);
@@ -157,15 +157,20 @@ test('release hosts activity-name publishing in an isolated Social SDK bridge', 
   assert.match(installer, /discord_partner_sdk\.dll/);
 });
 
-test('interaction feedback uses native states without competing whole-button animations', () => {
+test('control feedback retains native input and avoids competing brush transitions', () => {
   const motion = source('tray/Motion.cs');
   const app = source('tray/App.xaml');
   const settings = source('tray/SettingsWindow.xaml');
+  const states = source('tray/InteractionStateManager.cs');
   assert.match(motion, /AnimationsEnabled/);
   assert.match(motion, /CreateCubicBezierEasingFunction/);
-  assert.doesNotMatch(motion, /AttachButtonFeedback|PointerPressed|KeyDown|Scale/);
+  assert.doesNotMatch(motion + states, /AttachButtonFeedback|PointerPressed\s*\+=|PointerEntered\s*\+=|PointerExited\s*\+=|KeyDown\s*\+=/);
+  assert.match(states, /: VisualStateManager/);
+  assert.match(states, /FocusState.Keyboard/);
+  assert.match(states, /AccessibilitySettings/);
+  assert.doesNotMatch(app, /BrushTransition/, 'button surfaces must not swap animated brushes');
   assert.match(app, /BasedOn="\{StaticResource DefaultButtonStyle\}"/);
-  assert.doesNotMatch(app, /QuietButtonTemplate|QuietAccentButtonTemplate/);
+  assert.doesNotMatch(source('tray/MainWindow.xaml.cs'), /Motion\.Reveal/, 'polling must not dim the preview');
   assert.match(settings, /TargetType="ToggleSwitch" BasedOn="\{StaticResource DefaultToggleSwitchStyle\}"/);
   assert.doesNotMatch(settings, /ToggleThumb.HorizontalAlignment|ToggleThumb.Margin/);
   assert.match(settings, /RadioButton GroupName="SettingsSections"/);
