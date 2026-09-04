@@ -46,6 +46,7 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "autostart"; Description: "Start Codex Presence with Windows"; GroupDescription: "Startup:"; Flags: checkedonce
 
 [Files]
+Source: "configure.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
 #ifdef SIGN_BUILD
 Source: "..\artifacts\stage\CodexPresence.exe"; DestDir: "{app}"; Flags: ignoreversion signonce
 #else
@@ -59,7 +60,6 @@ Source: "..\artifacts\stage\codex-presence.ico"; DestDir: "{app}"; Flags: ignore
 Source: "..\artifacts\stage\app\*.js"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\remote-monitor.py"; DestDir: "{app}\app"; Flags: ignoreversion
 Source: "..\artifacts\stage\app\config.default.json"; DestDir: "{app}\app"; Flags: ignoreversion
-Source: "configure.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -85,27 +85,27 @@ begin
   Result := WizardSilent and (ExpandConstant('{param:AUTOUPDATE|0}') = '1');
 end;
 
-procedure StopRunningTray();
+function StopRunningTray(): String;
 var
   ResultCode: Integer;
   Script: String;
 begin
   // Use the new helper even when upgrading an older version whose --shutdown
   // kills its entire process tree (including its child installer).
+  Result := '';
   ExtractTemporaryFile('configure.ps1');
   Script := ExpandConstant('{tmp}\configure.ps1');
   if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + Script +
     '" -InstallDir "' + ExpandConstant('{app}') + '" -StopOnly', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-    RaiseException('Could not stop Codex Presence before installation. Close it and try again.');
-  if ResultCode <> 0 then
-    RaiseException('Could not stop the previous Codex Presence installation. Close it and try again.');
+    Result := 'Could not stop Codex Presence before installation. Close it and try again.';
+  if (Result = '') and (ResultCode <> 0) then
+    Result := 'Could not stop the previous Codex Presence installation. Close it and try again.';
   Sleep(400);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  StopRunningTray();
-  Result := '';
+  Result := StopRunningTray();
 end;
 
 function InitializeUninstall(): Boolean;

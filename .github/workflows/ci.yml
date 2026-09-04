@@ -63,6 +63,7 @@ jobs:
         run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore
 
   installer-smoke:
+    timeout-minutes: 15
     if: github.event_name == 'pull_request'
     runs-on: windows-latest
     steps:
