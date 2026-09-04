@@ -12,7 +12,7 @@ internal static class PreviewCapture
     public static async Task RunAsync(string directory)
     {
         Directory.CreateDirectory(directory);
-        var dashboard = new MainWindow("2.5.0");
+        var dashboard = new MainWindow(AppCoordinator.Version);
         SettingsWindow? settings = null;
         try
         {

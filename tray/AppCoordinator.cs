@@ -14,6 +14,7 @@ public sealed class AppCoordinator : IDisposable
     private readonly ConfigStore configStore = new();
     private readonly RemoteService remote = new();
     private readonly UpdateService updates = new();
+    private readonly CancellationTokenSource updateCancellation = new();
     private readonly DaemonService daemon;
     private readonly DiagnosticsService diagnostics;
     private readonly MainWindow dashboard;
@@ -35,7 +36,7 @@ public sealed class AppCoordinator : IDisposable
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}"
-        : "2.5.0";
+        : "2.5.1";
 
     /// <summary>Raised after all app-owned resources and the daemon are stopped.</summary>
     public event EventHandler? ExitCompleted;
@@ -272,10 +273,11 @@ public sealed class AppCoordinator : IDisposable
     private async Task CheckUpdatesAsync(bool interactive)
     {
         if (exiting || Interlocked.CompareExchange(ref updateInProgress, 1, 0) != 0) return;
+        var installRequested = false;
         try
         {
             var config = configStore.Load();
-            var release = await updates.CheckAsync(config.Updates.Repository);
+            var release = await updates.CheckAsync(config.Updates.Repository, updateCancellation.Token);
             MarkUpdateCheck();
             if (exiting) return;
 
@@ -285,7 +287,15 @@ public sealed class AppCoordinator : IDisposable
                 var body = $"{release.Name} is available.\n\nYou are running {Version}. " +
                            "The installer is downloaded from GitHub Releases and verified against SHA256SUMS.txt before it runs.";
                 if (await dashboard.ConfirmAsync("Update available", body, "Install update"))
-                    await updates.DownloadAndInstallAsync(release);
+                {
+                    installRequested = true;
+                    var progress = new Progress<UpdateProgress>(value =>
+                    {
+                        if (!exiting && Volatile.Read(ref updateInProgress) != 0)
+                            dashboard.SetUpdateProgress(value);
+                    });
+                    await updates.DownloadAndInstallAsync(release, updateCancellation.Token, progress);
+                }
             }
             else if (interactive)
             {
@@ -295,11 +305,13 @@ public sealed class AppCoordinator : IDisposable
         }
         catch (Exception error)
         {
-            if (interactive && !exiting) await ShowErrorAsync("Update check failed", error);
+            if ((interactive || installRequested) && !exiting)
+                await ShowErrorAsync(installRequested ? "Update failed" : "Update check failed", error);
         }
         finally
         {
             Interlocked.Exchange(ref updateInProgress, 0);
+            if (!exiting) dashboard.SetUpdateProgress(null);
         }
     }
 
@@ -329,6 +341,7 @@ public sealed class AppCoordinator : IDisposable
     {
         if (Interlocked.Exchange(ref exitStarted, 1) != 0) return;
         exiting = true;
+        updateCancellation.Cancel();
         timer.Stop();
         activationWait?.Unregister(null);
 
@@ -398,6 +411,7 @@ public sealed class AppCoordinator : IDisposable
     {
         if (Volatile.Read(ref disposed) != 0) return;
         exiting = true;
+        updateCancellation.Cancel();
         timer.Stop();
         activationWait?.Unregister(null);
         try
@@ -419,5 +433,6 @@ public sealed class AppCoordinator : IDisposable
         trayIcon.Dispose();
         daemon.Dispose();
         updates.Dispose();
+        updateCancellation.Dispose();
     }
 }

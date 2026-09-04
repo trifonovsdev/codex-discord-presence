@@ -1,6 +1,6 @@
 #define MyAppName "Codex Presence"
 #ifndef MyAppVersion
-#define MyAppVersion "2.5.0"
+#define MyAppVersion "2.5.1"
 #endif
 #define MyAppPublisher "trifonovsdev"
 #define MyAppURL "https://github.com/trifonovsdev/codex-discord-presence"
@@ -72,6 +72,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\configure.ps1"" -InstallDir ""{app}"""; Flags: runhidden waituntilterminated
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--background"; Flags: nowait runhidden; Check: IsAutoUpdate
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch Codex Presence"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
@@ -79,17 +80,26 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "--shutdown"; Flags: runhidden wa
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\configure.ps1"" -InstallDir ""{app}"" -Uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "CodexPresenceRemoveHooks"
 
 [Code]
+function IsAutoUpdate(): Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:AUTOUPDATE|0}') = '1');
+end;
+
 procedure StopRunningTray();
 var
   ResultCode: Integer;
-  Executable: String;
+  Script: String;
 begin
-  Executable := ExpandConstant('{app}\CodexPresence.exe');
-  if FileExists(Executable) then
-  begin
-    Exec(Executable, '--shutdown', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(400);
-  end;
+  // Use the new helper even when upgrading an older version whose --shutdown
+  // kills its entire process tree (including its child installer).
+  ExtractTemporaryFile('configure.ps1');
+  Script := ExpandConstant('{tmp}\configure.ps1');
+  if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + Script +
+    '" -InstallDir "' + ExpandConstant('{app}') + '" -StopOnly', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    RaiseException('Could not stop Codex Presence before installation. Close it and try again.');
+  if ResultCode <> 0 then
+    RaiseException('Could not stop the previous Codex Presence installation. Close it and try again.');
+  Sleep(400);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -99,7 +109,11 @@ begin
 end;
 
 function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
 begin
-  StopRunningTray();
-  Result := True;
+  Result := Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' +
+    ExpandConstant('{app}\installer\configure.ps1') + '" -InstallDir "' +
+    ExpandConstant('{app}') + '" -StopOnly', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if Result then Result := ResultCode = 0;
 end;
