@@ -172,7 +172,7 @@
                         <Grid>
                             <Border x:Name="NavSelection" Background="{ThemeResource SurfaceRaisedBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
                             <Border x:Name="HoverSurface" Background="{ThemeResource SurfaceHoverBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
-                            <Border x:Name="PressedSurface" Background="{ThemeResource ButtonBackgroundPressed}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="PressedSurface" Background="{ThemeResource PresenceButtonBackgroundPressed}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
                             <Border
                                 x:Name="NavRail"
                                 Width="2"

@@ -44,31 +44,32 @@
                     <SolidColorBrush x:Key="DiscordMutedBrush" Color="#A9ADB5" />
                     <SolidColorBrush x:Key="DiscordDividerBrush" Color="#292B30" />
 
-                    <SolidColorBrush x:Key="ButtonBackground" Color="#161719" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#222428" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#292C32" />
-                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#101113" />
-                    <SolidColorBrush x:Key="ButtonForeground" Color="#F2F2EF" />
-                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F2F2EF" />
-                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#F2F2EF" />
-                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#5F605E" />
-                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#34363B" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#484C55" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#555A65" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#202226" />
+                    <!-- App-owned keys avoid WinUI Button* resources shadowed in control/theme scopes. -->
+                    <SolidColorBrush x:Key="PresenceButtonBackground" Color="#161719" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundPointerOver" Color="#222428" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundPressed" Color="#292C32" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundDisabled" Color="#101113" />
+                    <SolidColorBrush x:Key="PresenceButtonForeground" Color="#F2F2EF" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundPointerOver" Color="#F2F2EF" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundPressed" Color="#F2F2EF" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundDisabled" Color="#5F605E" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrush" Color="#34363B" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushPointerOver" Color="#484C55" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushPressed" Color="#555A65" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushDisabled" Color="#202226" />
 
-                    <SolidColorBrush x:Key="AccentButtonBackground" Color="#F0F0EC" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#DCDDD8" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="#454C46" />
-                    <SolidColorBrush x:Key="AccentButtonForeground" Color="#0B0C0D" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#0B0C0D" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#0B0C0D" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="#8C958D" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="#F0F0EC" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="#DCDDD8" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushDisabled" Color="#454C46" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackground" Color="#F0F0EC" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundPointerOver" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundPressed" Color="#DCDDD8" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundDisabled" Color="#454C46" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForeground" Color="#0B0C0D" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundPointerOver" Color="#0B0C0D" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundPressed" Color="#0B0C0D" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundDisabled" Color="#8C958D" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrush" Color="#F0F0EC" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushPointerOver" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushPressed" Color="#DCDDD8" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushDisabled" Color="#454C46" />
                     <!-- Native off-state animations consume Color resources, not Brush resources. -->
                     <Color x:Key="ToggleSwitchFillOffPointerOver">#222428</Color>
                     <Color x:Key="ToggleSwitchFillOffPressed">#292C32</Color>
@@ -106,31 +107,31 @@
                     <SolidColorBrush x:Key="DiscordMutedBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
                     <SolidColorBrush x:Key="DiscordDividerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
-                    <SolidColorBrush x:Key="ButtonBackground" Color="{ThemeResource SystemColorButtonFaceColor}" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="{ThemeResource SystemColorButtonFaceColor}" />
-                    <SolidColorBrush x:Key="ButtonForeground" Color="{ThemeResource SystemColorButtonTextColor}" />
-                    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
-                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBackground" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundPressed" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBackgroundDisabled" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonForeground" Color="{ThemeResource SystemColorButtonTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceButtonBorderBrushDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
 
-                    <SolidColorBrush x:Key="AccentButtonBackground" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="{ThemeResource SystemColorHighlightColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="{ThemeResource SystemColorButtonFaceColor}" />
-                    <SolidColorBrush x:Key="AccentButtonForeground" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
-                    <SolidColorBrush x:Key="AccentButtonBorderBrushDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackground" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundPointerOver" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundPressed" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBackgroundDisabled" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForeground" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonForegroundDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrush" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="PresenceAccentButtonBorderBrushDisabled" Color="{ThemeResource SystemColorGrayTextColor}" />
                     <StaticResource x:Key="ToggleSwitchFillOffPointerOver" ResourceKey="SystemColorWindowColor" />
                     <StaticResource x:Key="ToggleSwitchFillOffPressed" ResourceKey="SystemColorWindowColor" />
                     <StaticResource x:Key="ToggleSwitchStrokeOffPointerOver" ResourceKey="SystemColorHighlightColor" />
@@ -212,17 +213,17 @@
                             <VisualState x:Name="Normal" />
                             <VisualState x:Name="PointerOver">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceButtonForegroundPointerOver}" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Pressed">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceButtonForegroundPressed}" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Disabled">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceButtonForegroundDisabled}" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -236,24 +237,24 @@
                         IsHitTestVisible="False" />
                     <Border
                         x:Name="HoverSurface"
-                        Background="{ThemeResource ButtonBackgroundPointerOver}"
-                        BorderBrush="{ThemeResource ButtonBorderBrushPointerOver}"
+                        Background="{ThemeResource PresenceButtonBackgroundPointerOver}"
+                        BorderBrush="{ThemeResource PresenceButtonBorderBrushPointerOver}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"
                         Opacity="0" />
                     <Border
                         x:Name="PressedSurface"
-                        Background="{ThemeResource ButtonBackgroundPressed}"
-                        BorderBrush="{ThemeResource ButtonBorderBrushPressed}"
+                        Background="{ThemeResource PresenceButtonBackgroundPressed}"
+                        BorderBrush="{ThemeResource PresenceButtonBorderBrushPressed}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"
                         Opacity="0" />
                     <Border
                         x:Name="DisabledSurface"
-                        Background="{ThemeResource ButtonBackgroundDisabled}"
-                        BorderBrush="{ThemeResource ButtonBorderBrushDisabled}"
+                        Background="{ThemeResource PresenceButtonBackgroundDisabled}"
+                        BorderBrush="{ThemeResource PresenceButtonBorderBrushDisabled}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"
@@ -283,17 +284,17 @@
                             <VisualState x:Name="Normal" />
                             <VisualState x:Name="PointerOver">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceAccentButtonForegroundPointerOver}" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Pressed">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceAccentButtonForegroundPressed}" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Disabled">
                                 <VisualState.Setters>
-                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource AccentButtonForegroundDisabled}" />
+                                    <Setter Target="InteractionContent.Foreground" Value="{ThemeResource PresenceAccentButtonForegroundDisabled}" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -307,24 +308,24 @@
                         IsHitTestVisible="False" />
                     <Border
                         x:Name="HoverSurface"
-                        Background="{ThemeResource AccentButtonBackgroundPointerOver}"
-                        BorderBrush="{ThemeResource AccentButtonBorderBrushPointerOver}"
+                        Background="{ThemeResource PresenceAccentButtonBackgroundPointerOver}"
+                        BorderBrush="{ThemeResource PresenceAccentButtonBorderBrushPointerOver}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"
                         Opacity="0" />
                     <Border
                         x:Name="PressedSurface"
-                        Background="{ThemeResource AccentButtonBackgroundPressed}"
-                        BorderBrush="{ThemeResource AccentButtonBorderBrushPressed}"
+                        Background="{ThemeResource PresenceAccentButtonBackgroundPressed}"
+                        BorderBrush="{ThemeResource PresenceAccentButtonBorderBrushPressed}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"
                         Opacity="0" />
                     <Border
                         x:Name="DisabledSurface"
-                        Background="{ThemeResource AccentButtonBackgroundDisabled}"
-                        BorderBrush="{ThemeResource AccentButtonBorderBrushDisabled}"
+                        Background="{ThemeResource PresenceAccentButtonBackgroundDisabled}"
+                        BorderBrush="{ThemeResource PresenceAccentButtonBorderBrushDisabled}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         IsHitTestVisible="False"

@@ -27,7 +27,7 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 
 ## Fixed in 2.5.3: steady hover and responsive presses
 
-- **Smooth feedback without brush flashes.** An explicit dark theme keeps hover colors from falling back to the Windows accent. Each button has a permanent base and separate hover/press surfaces. Hover eases over 140 ms; a pointer press gently compresses the label over 90 ms and returns over 160 ms. Fast reversals continue from the current visual value; text keeps its color and the pointer target stays fixed.
+- **Smooth feedback without brush flashes.** App-owned color resources keep hover feedback from falling back to the Windows accent. Each button has a permanent base and separate hover/press surfaces. Hover eases over 140 ms; a pointer press gently compresses the label over 90 ms and returns over 160 ms. Fast reversals continue from the current visual value; text keeps its color and the pointer target stays fixed.
 - **Consistent controls.** Toolbar buttons, primary actions, and settings navigation share the same motion. Save and Cancel align at 34 px. Off-state switches now use the graphite hover colors. Keyboard activation, disabled states, Windows animation preferences, and contrast themes remain supported.
 - **A steady live dashboard.** Changing the current file updates the preview without dimming the entire card. Connection and updater fixes from 2.5.1–2.5.2 are included.
 
