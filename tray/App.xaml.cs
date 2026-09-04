@@ -49,6 +49,12 @@ public partial class App : Application
             return;
         }
 
+        if (TryGetArgumentValue(arguments, "--capture-preview") is { } previewDirectory)
+        {
+            _ = CapturePreviewAsync(previewDirectory);
+            return;
+        }
+
         if (HasArgument(arguments, "--ui-smoke"))
         {
             _ = RunUiSmokeAsync();
@@ -99,6 +105,21 @@ public partial class App : Application
                 return arguments[index + 1];
         }
         return null;
+    }
+
+    private async Task CapturePreviewAsync(string directory)
+    {
+        try
+        {
+            await PreviewCapture.RunAsync(directory);
+            ExitApplication(0);
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            WriteUiSmokeFailure("preview capture", error);
+            ExitApplication(1);
+        }
     }
 
     private async Task RunDiscordBridgeAsync(string applicationId)

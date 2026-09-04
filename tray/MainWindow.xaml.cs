@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
     private PrivacyConfig privacy = new();
     private CancellationTokenSource? copyFeedbackCancellation;
     private bool closeForExit;
+    private bool presenceActionPending;
 
     public event EventHandler? PauseRequested;
     public event EventHandler? SettingsRequested;
@@ -45,6 +46,12 @@ public sealed partial class MainWindow : Window
         Motion.AttachButtonFeedback(PauseButton, SettingsButton, DiagnosticsButton, CopyPathButton);
 
         sessionTimer.Tick += (_, _) => RenderTime();
+        Render();
+    }
+
+    public void SetPresenceActionPending(bool pending)
+    {
+        presenceActionPending = pending;
         Render();
     }
 
@@ -175,6 +182,8 @@ public sealed partial class MainWindow : Window
         ProjectName.Text = presentation.Project;
         CurrentFile.Text = presentation.CurrentFile;
         ToolTipService.SetToolTip(CurrentFile, presentation.CurrentFile);
+        ToolTipService.SetToolTip(ProjectName, presentation.Project);
+        ToolTipService.SetToolTip(WorkspaceValue, presentation.Workspace);
         CopyPathButton.IsEnabled = presentation.CopyPath is not null;
 
         SourceValue.Text = presentation.Source;
@@ -189,6 +198,7 @@ public sealed partial class MainWindow : Window
             ? InfoBarSeverity.Error
             : InfoBarSeverity.Warning;
 
+        PreviewLabel.Text = presentation.PreviewLabel;
         PreviewTitle.Text = presentation.PreviewTitle;
         PreviewPrimaryLine.Text = presentation.PreviewPrimary;
         PreviewSecondaryLine.Text = presentation.PreviewSecondary;
@@ -199,8 +209,8 @@ public sealed partial class MainWindow : Window
             DiscordPreview,
             $"Discord activity preview. {presentation.PreviewTitle}. {presentation.PreviewPrimary}. {presentation.PreviewSecondary}");
 
-        PauseButton.IsEnabled = presentation.PauseEnabled;
-        PauseButtonText.Text = presentation.PauseText;
+        PauseButton.IsEnabled = presentation.PauseEnabled && !presenceActionPending;
+        PauseButtonText.Text = presenceActionPending ? "Updating…" : presentation.PauseText;
         PauseIcon.Glyph = snapshot?.PresenceEnabled == false ? "\uE768" : "\uE769";
         AutomationProperties.SetName(PauseButton, presentation.PauseText);
     }

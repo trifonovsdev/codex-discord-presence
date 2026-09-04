@@ -299,3 +299,23 @@ test('release smoke validates the portable WinUI bundle too', () => {
   assert.match(smoke, /-Label 'Portable UI smoke test'/);
   assert.match(smoke, /throw "\$Label \$failure/);
 });
+
+test('secondary text remains readable on every default custom surface', () => {
+  const app = source('tray/App.xaml').split('<ResourceDictionary x:Key="HighContrast">')[0];
+  const color = (key) => app.match(new RegExp(`x:Key="${key}" Color="#([A-Fa-f0-9]{6})"`))[1];
+  const luminance = (hex) => hex.match(/../g).map((part) => parseInt(part, 16) / 255)
+    .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+    .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  for (const surface of ['CanvasBrush', 'SurfaceBrush', 'SurfaceRaisedBrush', 'SurfaceHoverBrush']) {
+    const ratio = (luminance(color('TextMutedBrush')) + 0.05) / (luminance(color(surface)) + 0.05);
+    assert.ok(ratio >= 4.5, `secondary text contrast on ${surface}: ${ratio.toFixed(2)}:1`);
+  }
+});
+
+test('presence actions cannot race and release their pending state after failures', () => {
+  const code = source('tray/AppCoordinator.cs');
+  assert.match(code, /if \(exiting \|\| presenceActionPending\) return/);
+  assert.match(code, /finally\s*\{\s*presenceActionPending = false/);
+  assert.match(source('tray/MainWindow.xaml.cs'), /presentation\.PauseEnabled && !presenceActionPending/);
+  assert.doesNotMatch(source('tray/MainWindow.xaml'), /LIVE CARD/);
+});

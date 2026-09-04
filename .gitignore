@@ -6,6 +6,8 @@ artifacts/
 .build-cache/
 tray/bin/
 tray/obj/
+tests/presentation/bin/
+tests/presentation/obj/
 tray/*.user
 node_modules/
 __pycache__/

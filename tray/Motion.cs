@@ -15,6 +15,18 @@ internal static class Motion
     {
         foreach (var button in buttons)
         {
+            button.KeyDown += (_, args) =>
+            {
+                if (args.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
+                    AnimateOpacity(button, 0.88f, PressDuration);
+            };
+            button.KeyUp += (_, args) =>
+            {
+                if (args.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
+                    AnimateOpacity(button, 1f, SettleDuration);
+            };
+            button.LostFocus += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
+            button.IsEnabledChanged += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
             button.PointerPressed += (_, _) => AnimateOpacity(button, 0.88f, PressDuration);
             button.PointerReleased += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
             button.PointerCanceled += (_, _) => AnimateOpacity(button, 1f, SettleDuration);

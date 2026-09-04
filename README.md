@@ -28,13 +28,15 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Real custom activity name** — replace the top-line “Coding with Codex” text through Discord Social SDK in **Settings → General → Activity name**.
 - **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
-## Current highlights
+## New in 2.5
 
-- The compact black dashboard uses the official Codex app artwork, restrained 90–140 ms motion, and Windows contrast-theme colors.
-- Route changes now require nearby workspace evidence, so sidebar/background tasks cannot steal the active Discord card.
-- Task titles are opt-in through `privacy.showTaskTitle` and remain hidden by default.
-- When no project can be resolved, the Discord card uses an honest generic Codex fallback instead of inventing a local project.
-- Remote project detection resolves repositories below account roots without exposing the account name or cached paths to other users.
+A calmer dashboard, clearer feedback, and a preview you can trust.
+
+- **More room to read:** larger project title, a roomier Discord card, brighter secondary labels, and 34 px compact action targets.
+- **Honest publication state:** “Published” appears only after Discord acknowledges the activity. Paused, offline, and waiting states say “Not published”.
+- **Useful session context:** activity source, workspace, and elapsed time are visible together. Long project names and paths have tooltips.
+- **Predictable controls:** pause/resume shows progress and ignores duplicate requests. Mouse and keyboard feedback uses short, interruptible opacity animations and respects Windows' animation setting.
+- **Reproducible previews:** Windows CI renders the actual WinUI screens with synthetic data; no Discord account or private workspace is used.
 
 ## Install
 
@@ -47,13 +49,23 @@ The shared Discord Application ID is `1526968377048956938`. Friends do not need 
 
 > Community builds are currently unsigned and can trigger Windows SmartScreen. The release workflow is ready for Authenticode signing when a certificate is configured.
 
-## Interface
+## See it in action
+
+![Codex Presence 2.5 dashboard: published activity, current file, and session details](assets/dashboard.png)
 
 <div align="center">
-  <img src="assets/demo.gif" alt="Dashboard, SSH settings, and system doctor" width="760">
+  <img src="assets/demo.gif" alt="Native dashboard switching between published, paused, and offline states, followed by General, Privacy, and SSH settings" width="760">
 </div>
 
-Double-click the tray icon to open the dashboard. A native Windows notification-area menu offers pause/resume, settings, diagnostics, update checks, service restart, and clean shutdown. Closing the WinUI window keeps the presence service running.
+These are captures of the real WinUI application, rendered on Windows with **illustrative local data**. The preview does not connect to Discord. The animation is a walkthrough of screenshots, not a frame-rate benchmark.
+
+| Choose what you share | Connect SSH workspaces |
+|---|---|
+| ![Privacy settings with task titles hidden by default](assets/settings-privacy.png) | ![SSH settings with an empty workspace list and setup actions](assets/settings-ssh.png) |
+
+Double-click the tray icon to open the dashboard. Use **Pause presence** to stop publishing, **Settings** to choose what is shared, and **Doctor** to diagnose a connection. Closing the window keeps the service running in the notification area.
+
+Keyboard users can Tab through controls and activate buttons with Space or Enter. Settings sections switch immediately; they do not wait for an animation. Windows contrast themes retain their system colors.
 
 ## Privacy presets
 
@@ -149,8 +161,9 @@ Requirements: Windows, .NET 8 SDK, Node.js 24+, Python 3, and Inno Setup 6.7.3. 
 git clone https://github.com/trifonovsdev/codex-discord-presence.git
 cd codex-discord-presence
 npm run check
+dotnet run --project .\tests\presentation\PresentationTests.csproj -c Release
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.4.3
+.\build-release.ps1 -Version 2.5.0
 ```
 
 The build downloads the pinned official Node distribution and the pinned Discord Social SDK 1.9.16441 runtime, verifies both native archives against reviewed SHA-256 values, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. The SDK binary is fetched from a commit-pinned vendor mirror because Discord’s official archive requires an authenticated Developer Portal download; its bundled open-source notices ship as `DISCORD_SOCIAL_SDK_NOTICES.txt`. Verified downloads are cached under `.build-cache/`.
@@ -158,6 +171,18 @@ The build downloads the pinned official Node distribution and the pinned Discord
 `npm run check` runs the whole JavaScript suite — the path heuristics are pinned to Windows semantics, so the
 tests give identical results on Linux and macOS. WinUI compilation and the installed-app smoke test run on
 Windows CI; building or running the desktop shell locally requires Windows.
+
+### Reproduce the screenshots
+
+After a Windows build, run the generated `CodexPresence.exe` with:
+
+```powershell
+.\CodexPresence.exe --capture-preview C:\Temp\presence-screenshots
+```
+
+This writes six PNGs (published, paused, offline, and the three Settings sections) and exits. It starts no daemon, makes no Discord or SSH connections, and does not save configuration. CI uploads the same images as `native-screenshots` for visual review.
+
+The JavaScript tests validate the daemon, privacy boundaries, and UI contracts. A dependency-free C# test executable exercises the actual presentation projection, including acknowledgment, pause, private fields, and clock skew. Windows CI additionally compiles XAML, captures all six screens, and checks C# formatting. Release builds must pass the installer and portable smoke tests before publication. High-DPI interaction, screen-reader behavior, and animation frame times still need checks on physical Windows hardware.
 
 ### Release signing
 

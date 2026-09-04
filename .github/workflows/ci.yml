@@ -37,8 +37,26 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: '8.0.x'
+      - name: Test presentation behavior
+        run: dotnet run --project tests/presentation/PresentationTests.csproj -c Release
       - name: Build tray application
         run: dotnet build tray/CodexPresence.Tray.csproj -c Release
+      - name: Capture native interface
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem tray/bin/Release -Recurse -Filter CodexPresence.exe | Select-Object -First 1
+          $output = Join-Path $env:RUNNER_TEMP 'presence-screenshots'
+          $process = Start-Process $exe.FullName -ArgumentList "--capture-preview `"$output`"" -PassThru
+          if (-not $process.WaitForExit(45000)) { $process.Kill(); throw 'Screenshot capture timed out.' }
+          if ($process.ExitCode -ne 0) {
+            Get-Content (Join-Path $env:TEMP 'codex-presence-ui-smoke.log') -ErrorAction SilentlyContinue
+            throw "Screenshot capture failed: $($process.ExitCode)"
+          }
+          if ((Get-ChildItem $output -Filter '*.png').Count -ne 6) { throw 'Expected six native screenshots.' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-screenshots
+          path: ${{ runner.temp }}/presence-screenshots/*.png
       - name: Verify C# formatting
         run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore
 

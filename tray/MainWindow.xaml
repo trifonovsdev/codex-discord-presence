@@ -11,7 +11,7 @@
     <Grid x:Name="RootLayout" Background="{ThemeResource WindowBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="43" />
+            <RowDefinition Height="51" />
             <RowDefinition Height="*" />
             <RowDefinition Height="34" />
         </Grid.RowDefinitions>
@@ -98,7 +98,7 @@
             Grid.Row="2"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <Grid Padding="20,14,20,14">
+            <Grid Padding="24,20,24,20">
                 <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -129,12 +129,12 @@
                             Text="Sharing project · file · timer" />
                     </Grid>
 
-                    <StackPanel Margin="0,12,0,0" Spacing="3">
+                    <StackPanel Margin="0,18,0,0" Spacing="6">
                         <TextBlock
                             x:Name="ProjectName"
                             MaxLines="1"
                             FontFamily="Segoe UI Variable Display"
-                            FontSize="21"
+                            FontSize="26"
                             FontWeight="SemiBold"
                             Text="Waiting for Codex"
                             TextTrimming="CharacterEllipsis"
@@ -167,10 +167,10 @@
                             <Button
                                 x:Name="CopyPathButton"
                                 Grid.Column="2"
-                                Width="26"
-                                Height="26"
-                                MinWidth="26"
-                                MinHeight="26"
+                                Width="34"
+                                Height="34"
+                                MinWidth="34"
+                                MinHeight="34"
                                 Padding="0"
                                 Style="{StaticResource CompactIconButtonStyle}"
                                 Click="CopyPathButton_Click"
@@ -205,18 +205,18 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock FontSize="12" FontWeight="SemiBold" Text="Discord preview" />
-                        <TextBlock Grid.Column="1" FontSize="11" Foreground="{ThemeResource TextMutedBrush}" Text="LIVE CARD" />
+                        <TextBlock Grid.Column="1" FontSize="11" Foreground="{ThemeResource TextMutedBrush}" x:Name="PreviewLabel" Text="Not published" />
                     </Grid>
 
                     <Border
                         x:Name="DiscordPreview"
-                        Height="82"
+                        MinHeight="108"
                         Margin="0,8,0,0"
-                        Padding="12"
+                        Padding="16"
                         Background="{ThemeResource DiscordCanvasBrush}"
                         BorderBrush="{ThemeResource DiscordDividerBrush}"
                         BorderThickness="1"
-                        CornerRadius="8"
+                        CornerRadius="12"
                         AutomationProperties.Name="Discord activity preview">
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
@@ -295,10 +295,24 @@
                         </Grid>
                     </Border>
 
-                    <Grid Visibility="Collapsed">
-                        <TextBlock x:Name="SourceValue" />
-                        <TextBlock x:Name="WorkspaceValue" />
-                        <TextBlock x:Name="SessionValue" />
+                    <Grid Margin="0,20,0,0" ColumnSpacing="20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Activity source" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Name="SourceValue" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="5">
+                            <TextBlock Text="Workspace" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Name="WorkspaceValue" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="5">
+                            <TextBlock Text="Session" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Name="SessionValue" FontSize="12" FontFamily="Cascadia Mono, Consolas" />
+                        </StackPanel>
                     </Grid>
                 </StackPanel>
             </Grid>
@@ -317,7 +331,7 @@
                     VerticalAlignment="Center"
                     FontSize="11"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="Closing keeps Presence running in the notification area." />
+                    Text="Runs quietly in your tray · No telemetry" />
                 <TextBlock
                     x:Name="FooterVersion"
                     Grid.Column="1"
@@ -325,7 +339,7 @@
                     FontFamily="Cascadia Mono, Consolas"
                     FontSize="10"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="v2.4.3" />
+                    Text="v2.5.0" />
             </Grid>
         </Border>
     </Grid>

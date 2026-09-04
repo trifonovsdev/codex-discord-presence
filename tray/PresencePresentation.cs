@@ -35,6 +35,8 @@ internal sealed record PresencePresentation(
     string? WarningMessage,
     PresenceTone WarningTone)
 {
+    public string PreviewLabel => PreviewTone == PresenceTone.Success ? "Published" : "Not published";
+
     public static PresencePresentation Create(
         HealthSnapshot? snapshot,
         PrivacyConfig privacy,

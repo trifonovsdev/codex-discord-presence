@@ -31,9 +31,11 @@ public sealed class AppCoordinator : IDisposable
     private int disposed;
     private bool exiting;
 
+    private bool presenceActionPending;
+
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}"
-        : "2.4.3";
+        : "2.5.0";
 
     /// <summary>Raised after all app-owned resources and the daemon are stopped.</summary>
     public event EventHandler? ExitCompleted;
@@ -194,7 +196,9 @@ public sealed class AppCoordinator : IDisposable
 
     private async Task TogglePresenceAsync()
     {
-        if (exiting) return;
+        if (exiting || presenceActionPending) return;
+        presenceActionPending = true;
+        dashboard.SetPresenceActionPending(true);
         try
         {
             await daemon.ControlAsync(latest?.PresenceEnabled == false ? "resume" : "pause");
@@ -203,6 +207,11 @@ public sealed class AppCoordinator : IDisposable
         catch (Exception error)
         {
             await ShowErrorAsync("Could not change presence state", error);
+        }
+        finally
+        {
+            presenceActionPending = false;
+            if (!exiting) dashboard.SetPresenceActionPending(false);
         }
     }
 

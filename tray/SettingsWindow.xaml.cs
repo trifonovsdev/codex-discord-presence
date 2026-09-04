@@ -50,11 +50,11 @@ public sealed partial class SettingsWindow : Window
 
     public bool HasSaved { get; private set; }
 
-    public SettingsWindow(ConfigStore store, RemoteService remoteService)
+    public SettingsWindow(ConfigStore store, RemoteService remoteService, PresenceConfig? previewConfig = null)
     {
         this.store = store ?? throw new ArgumentNullException(nameof(store));
         this.remoteService = remoteService ?? throw new ArgumentNullException(nameof(remoteService));
-        config = this.store.Load();
+        config = previewConfig ?? this.store.Load();
         config.Privacy ??= new PrivacyConfig();
         config.Remote ??= new RemoteConfig();
         config.Remote.Hosts ??= [];
@@ -104,13 +104,15 @@ public sealed partial class SettingsWindow : Window
         if (sender is ToggleButton { Tag: string tag }) ShowPage(tag);
     }
 
-    private void ShowPage(string tag)
+    internal void ShowPage(string tag)
     {
         if (GeneralPage is null || PrivacyPage is null || RemotePage is null) return;
         GeneralPage.Visibility = tag == "general" ? Visibility.Visible : Visibility.Collapsed;
         PrivacyPage.Visibility = tag == "privacy" ? Visibility.Visible : Visibility.Collapsed;
         RemotePage.Visibility = tag == "remote" ? Visibility.Visible : Visibility.Collapsed;
         SetActiveSection(tag);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+            SettingsSidebar, $"Settings sections. {tag switch { "privacy" => "Privacy", "remote" => "SSH workspaces", _ => "General" }} selected");
     }
 
     private void SetActiveSection(string tag)
