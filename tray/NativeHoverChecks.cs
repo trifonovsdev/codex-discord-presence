@@ -13,7 +13,7 @@ namespace CodexPresence;
 /// <summary>Real pointer and compositor checks, only invoked by --capture-preview.</summary>
 internal static class NativeHoverChecks
 {
-    private sealed record Sample(double Ms, int Phase, bool Over, int R, int G, int B);
+    private sealed record Sample(double Ms, int Phase, double Age, bool Over, int R, int G, int B);
     private static readonly (int At, bool Over, bool Edge)[] Phases =
     [
         (0, false, false), (240, true, false), (800, false, false),
@@ -47,22 +47,26 @@ internal static class NativeHoverChecks
                 Directory.CreateDirectory(folder);
                 var watch = Stopwatch.StartNew();
                 var phase = -1;
+                var changedAt = 0.0;
                 while (watch.ElapsedMilliseconds < 2800)
                 {
                     var next = Array.FindLastIndex(Phases, item => watch.ElapsedMilliseconds >= item.At);
                     if (next != phase)
                     {
                         phase = next;
-                        var (at, over, edge) = Phases[phase];
+                        changedAt = watch.Elapsed.TotalMilliseconds;
+                        var (_, over, edge) = Phases[phase];
                         var px = over ? x + (edge ? 1 : width / 2) : (int)(root.ActualWidth * scale / 2);
                         var py = over ? y + height / 2 : (int)(24 * scale);
                         if (!SetCursorPos(origin.X + px, origin.Y + py))
                             throw new InvalidOperationException("Cannot move the desktop pointer for hover checks.");
+                        // WinUI consumes pointer input, not cursor position alone on a virtual desktop.
+                        Send(new Input { Data = new InputData { Mouse = new MouseInput { Flags = 1 } } });
                     }
                     await Task.Delay(16);
                     var frame = DesktopCapture.Capture(window);
                     var pixel = ((y + height / 2) * frame.Width + x + (int)(6 * scale)) * 4;
-                    samples.Add(new Sample(watch.Elapsed.TotalMilliseconds, phase, button.IsPointerOver,
+                    samples.Add(new Sample(watch.Elapsed.TotalMilliseconds, phase, watch.Elapsed.TotalMilliseconds - changedAt, button.IsPointerOver,
                         frame.Pixels[pixel + 2], frame.Pixels[pixel + 1], frame.Pixels[pixel]));
                     frames.Add(Crop(frame, Math.Max(0, x - 4), Math.Max(0, y - 4), width + 8, height + 8));
                 }
@@ -80,7 +84,7 @@ internal static class NativeHoverChecks
                 File.WriteAllLines(Path.Combine(folder, "frames.txt"), concat);
 
                 // A held hover must stay held, including one physical pixel inside the edge.
-                var held = samples.Where(sample => sample.Ms - Phases[sample.Phase].At >= 180).ToArray();
+                var held = samples.Where(sample => sample.Age >= 180).ToArray();
                 Check(held.Length >= 8 && held.All(sample => sample.Over == Phases[sample.Phase].Over),
                     $"{name}: real pointer stays stable, including the edge", directory, failures);
                 var normal = held.Where(sample => !Phases[sample.Phase].Over).ToArray();
@@ -100,7 +104,13 @@ internal static class NativeHoverChecks
         {
             SetCursorPos(original.X, original.Y);
         }
-        if (failures.Count > 0) throw new InvalidOperationException(string.Join("; ", failures));
+    }
+
+    public static void ThrowIfFailed(string directory)
+    {
+        var failures = File.ReadAllLines(Path.Combine(directory, "interaction-checks.txt"))
+            .Where(line => line.StartsWith("FAIL", StringComparison.Ordinal)).ToArray();
+        if (failures.Length > 0) throw new InvalidOperationException(string.Join("; ", failures));
     }
 
     private static void Check(bool passed, string message, string directory, List<string> failures)
@@ -120,6 +130,23 @@ internal static class NativeHoverChecks
     }
 
     [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)] private struct Input { public uint Type; public InputData Data; }
+    [StructLayout(LayoutKind.Explicit)] private struct InputData { [FieldOffset(0)] public MouseInput Mouse; }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MouseInput
+    {
+        public int X, Y;
+        public uint MouseData, Flags, Time;
+        public nuint ExtraInfo;
+    }
+
+    private static void Send(Input input)
+    {
+        if (SendInput(1, [input], Marshal.SizeOf<Input>()) != 1)
+            throw new InvalidOperationException($"Cannot inject preview pointer input ({Marshal.GetLastWin32Error()}).");
+    }
+
+    [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint count, Input[] inputs, int size);
     [DllImport("user32.dll")] private static extern bool ClientToScreen(nint hwnd, ref NativePoint point);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out NativePoint point);
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);

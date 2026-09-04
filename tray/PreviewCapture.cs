@@ -47,6 +47,7 @@ internal static class PreviewCapture
                 settings.ShowPage(section);
                 await CaptureAsync(settings, directory, section == "remote" ? "settings-ssh" : $"settings-{section}");
             }
+            NativeHoverChecks.ThrowIfFailed(directory);
         }
         finally
         {
