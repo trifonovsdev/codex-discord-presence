@@ -19,20 +19,11 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 
 ## Why this one
 
-- **Selected-task accurate** — follows the task visible in Codex Desktop, not simply the newest transcript.
-- **One-click setup** — the installer includes the Windows UI, daemon, and Node runtime.
-- **Stable session timer** — project, file, and task changes do not reset elapsed time.
-- **Remote-aware** — maps multiple SSH servers to workspace roots.
-- **Private by default** — no telemetry, tokens, prompt uploads, or cloud relay. The local service refuses any request a web page could send.
-- **Native Fluent UI** — WinUI 3, Mica, system controls, keyboard navigation, privacy presets, diagnostics, and verified updates.
-- **Real custom activity name** — replace the top-line “Coding with Codex” text through Discord Social SDK in **Settings → General → Activity name**.
-- **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
-
-## Fixed in 2.5.1: in-app updates
-
-Update downloads now stream to disk with a ten-minute deadline, show progress, verify SHA-256, and close the file before launching Setup. The installer stops only Presence and its daemon, avoiding the old recursive shutdown that could kill the installer itself. It updates the current directory, preserves configuration, and explicitly returns the app to the tray after a silent upgrade. Failed API checks no longer appear as “up to date”, and errors after accepting an automatic update are shown too.
-
-If your older build cannot finish updating, [download Setup once](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe) and run it over the existing installation. **Do not uninstall first**; uninstalling removes configuration. Subsequent updates use the repaired updater. Installer logs for new in-app updates are saved under `%TEMP%\CodexPresenceUpdate\<version>\<attempt>\install.log`.
+- **Follows your selected task.** Tracks the active project and edited file while keeping a stable whole-session timer.
+- **Includes everything to run.** One installer with the native Windows UI, local daemon, and Node runtime.
+- **Works across SSH workspaces.** Map servers to workspace roots and follow remote Codex sessions.
+- **Keeps you in control.** No telemetry or cloud relay; task titles stay private unless enabled. Pause sharing from the tray.
+- **Fits Windows.** WinUI controls, keyboard navigation, contrast themes, verified updates, and English or Russian Discord cards with a custom activity name.
 
 ## Fixed in 2.5.2: status and interactions
 
@@ -42,7 +33,13 @@ If your older build cannot finish updating, [download Setup once](https://github
 - **Stable layout.** Aligned margins, consistent settings rows, minimum window widths, and copy feedback that does not move the file path. Warnings appear after the preview instead of pushing it down.
 - **Useful project names.** Codex visualization, attachment, and session directories are excluded from workspace guesses; real Codex worktrees still work.
 
-The graphite palette and existing page structure are retained.
+The graphite palette and existing page structure are retained. Native recordings and interaction checks run with Windows animations enabled; the application also respects disabled animations.
+
+## Fixed in 2.5.1: in-app updates
+
+Update downloads now stream to disk with a ten-minute deadline, show progress, verify SHA-256, and close the file before launching Setup. The installer stops only Presence and its daemon, avoiding the old recursive shutdown that could kill the installer itself. It updates the current directory, preserves configuration, and explicitly returns the app to the tray after a silent upgrade. Failed API checks no longer appear as “up to date”, and errors after accepting an automatic update are shown too.
+
+If your older build cannot finish updating, [download Setup once](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe) and run it over the existing installation. **Do not uninstall first**; uninstalling removes configuration. Subsequent updates use the repaired updater. Installer logs for new in-app updates are saved under `%TEMP%\CodexPresenceUpdate\<version>\<attempt>\install.log`.
 
 ## Dashboard
 

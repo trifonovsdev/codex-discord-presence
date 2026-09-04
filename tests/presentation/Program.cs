@@ -19,6 +19,7 @@ snapshot.RpcPublished = false;
 Check(Present().PreviewLabel == "Not published", "unacknowledged activity is not labeled live");
 snapshot.PresenceEnabled = false;
 Check(Present().PreviewLabel == "Not published" && !Present().ShowPreviewElapsed, "paused activity hides the public timer");
+Check(Present().SharingSummary.StartsWith("Configured:"), "paused privacy settings are not described as currently shared");
 snapshot.PresenceEnabled = true;
 snapshot.RpcPublished = true;
 privacy.ShowFile = false;
@@ -37,6 +38,8 @@ var stale = PresencePresentation.Create(snapshot, privacy, now, "Local request t
 Check(stale.Project == "Presence" && stale.PreviewLabel == "Last confirmed", "last confirmed context survives a temporary connection failure");
 Check(!stale.ShowPreviewElapsed && !stale.PreviewSecondary.Contains("MainWindow"), "stale preview freezes the public timer and respects privacy");
 Check(Present().PreviewLabel == "Published" && Present().PauseEnabled, "successful reconnect restores live status and controls");
+var privateFields = new PrivacyConfig { ShowProject = false, ShowFile = false, ShowTaskTitle = false, ShowTimer = false };
+Check(PresencePresentation.Create(snapshot, privateFields, now).SharingSummary == "Sharing app name only", "hiding all optional fields still discloses the app name");
 
 foreach (var start in new DateTimeOffset?[] { null, now.AddHours(1), now.AddDays(-2) })
 {

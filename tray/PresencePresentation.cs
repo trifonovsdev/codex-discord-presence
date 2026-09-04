@@ -115,7 +115,7 @@ internal sealed record PresencePresentation(
             source,
             workspace,
             session,
-            BuildSharingSummary(privacy),
+            BuildSharingSummary(privacy, published),
             preview.Title,
             preview.Primary,
             preview.Secondary,
@@ -190,14 +190,15 @@ internal sealed record PresencePresentation(
         return (null, null, PresenceTone.Muted);
     }
 
-    private static string BuildSharingSummary(PrivacyConfig privacy)
+    private static string BuildSharingSummary(PrivacyConfig privacy, bool published)
     {
         var shared = new List<string>(4);
         if (privacy.ShowProject) shared.Add("project");
         if (privacy.ShowTaskTitle) shared.Add("task");
         if (privacy.ShowFile) shared.Add("file");
         if (privacy.ShowTimer) shared.Add("timer");
-        return shared.Count == 0 ? "Sharing nothing" : $"Sharing {string.Join(" · ", shared)}";
+        var fields = shared.Count == 0 ? "app name only" : string.Join(" · ", shared);
+        return $"{(published ? "Sharing" : "Configured:")} {fields}";
     }
 
     private static string FriendlySource(string? value) => value switch
