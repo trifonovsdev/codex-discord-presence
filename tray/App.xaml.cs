@@ -55,6 +55,13 @@ public partial class App : Application
             return;
         }
 
+        if (Environment.GetEnvironmentVariable("CODEX_PRESENCE_TEST") == "1" &&
+            TryGetArgumentValue(arguments, "--upgrade-smoke") is { } installer)
+        {
+            _ = RunUpgradeSmokeAsync(installer);
+            return;
+        }
+
         if (HasArgument(arguments, "--ui-smoke"))
         {
             _ = RunUiSmokeAsync();
@@ -105,6 +112,26 @@ public partial class App : Application
                 return arguments[index + 1];
         }
         return null;
+    }
+
+    private async Task RunUpgradeSmokeAsync(string installer)
+    {
+        try
+        {
+            // Keep Setup as a child of the installed executable, exactly like an
+            // in-app update. The old recursive shutdown would kill Setup here.
+            using var process = Process.Start(new ProcessStartInfo(installer,
+                $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /AUTOUPDATE=1 /DIR=\"{AppPaths.BaseDirectory}\" /LOG=\"{Path.Combine(Path.GetTempPath(), "codex-presence-upgrade-smoke.log")}\"")
+            { UseShellExecute = true }) ?? throw new IOException("Could not start upgrade smoke installer.");
+            File.WriteAllText(Path.Combine(Path.GetTempPath(), "codex-presence-upgrade-smoke.pid"), process.Id.ToString());
+            await process.WaitForExitAsync();
+            ExitApplication(process.ExitCode);
+        }
+        catch (Exception error)
+        {
+            WriteUiSmokeFailure("upgrade smoke", error);
+            ExitApplication(1);
+        }
     }
 
     private async Task CapturePreviewAsync(string directory)

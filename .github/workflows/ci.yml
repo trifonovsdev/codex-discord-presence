@@ -39,6 +39,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Test presentation behavior
         run: dotnet run --project tests/presentation/PresentationTests.csproj -c Release
+      - name: Test updater behavior
+        run: dotnet run --project tests/updater/UpdaterTests.csproj -c Release
       - name: Build tray application
         run: dotnet build tray/CodexPresence.Tray.csproj -c Release
       - name: Capture native interface
@@ -61,6 +63,7 @@ jobs:
         run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore
 
   installer-smoke:
+    timeout-minutes: 15
     if: github.event_name == 'pull_request'
     runs-on: windows-latest
     steps:

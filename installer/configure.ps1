@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory)][string]$InstallDir,
-  [switch]$Uninstall
+  [switch]$Uninstall,
+  [switch]$StopOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +20,17 @@ function Stop-PresenceDaemon {
   Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'node.exe' -and ($_.CommandLine -like "*$daemonScript*" -or $_.CommandLine -like '*\OpenAI\CodexDiscordPresence\daemon.js*')
   } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
+
+# A running tray can be the parent of Setup during an in-app upgrade.
+# Never terminate that process tree: it includes the installer doing the update.
+if ($StopOnly) {
+  Stop-PresenceDaemon
+  $trayExecutable = Join-Path $InstallDir 'CodexPresence.exe'
+  Get-CimInstance Win32_Process -Filter "Name = 'CodexPresence.exe'" | Where-Object {
+    [string]::Equals($_.ExecutablePath, $trayExecutable, [StringComparison]::OrdinalIgnoreCase)
+  } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  exit 0
 }
 
 function Remove-PresenceHooks($document) {

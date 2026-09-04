@@ -14,3 +14,6 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+tests/updater/bin/
+tests/updater/obj/

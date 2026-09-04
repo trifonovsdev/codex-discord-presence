@@ -28,6 +28,12 @@ Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its p
 - **Real custom activity name** — replace the top-line “Coding with Codex” text through Discord Social SDK in **Settings → General → Activity name**.
 - **English or Russian card** — the text published to Discord follows **Settings → General → Card language**.
 
+## Fixed in 2.5.1: in-app updates
+
+Update downloads now stream to disk with a ten-minute deadline, show progress, verify SHA-256, and close the file before launching Setup. The installer stops only Presence and its daemon, avoiding the old recursive shutdown that could kill the installer itself. It updates the current directory, preserves configuration, and explicitly returns the app to the tray after a silent upgrade. Failed API checks no longer appear as “up to date”, and errors after accepting an automatic update are shown too.
+
+If your older build cannot finish updating, [download Setup once](https://github.com/trifonovsdev/codex-discord-presence/releases/latest/download/CodexPresenceSetup.exe) and run it over the existing installation. **Do not uninstall first**; uninstalling removes configuration. Subsequent updates use the repaired updater. Installer logs for new in-app updates are saved under `%TEMP%\CodexPresenceUpdate\<version>\<attempt>\install.log`.
+
 ## New in 2.5
 
 A calmer dashboard, clearer feedback, and a preview you can trust.
@@ -161,7 +167,7 @@ cd codex-discord-presence
 npm run check
 dotnet run --project .\tests\presentation\PresentationTests.csproj -c Release
 dotnet build .\tray\CodexPresence.Tray.csproj -c Release
-.\build-release.ps1 -Version 2.5.0
+.\build-release.ps1 -Version 2.5.1
 ```
 
 The build downloads the pinned official Node distribution and the pinned Discord Social SDK 1.9.16441 runtime, verifies both native archives against reviewed SHA-256 values, publishes a self-contained unpackaged WinUI app, compiles the installer, and emits SHA-256 checksums. The SDK binary is fetched from a commit-pinned vendor mirror because Discord’s official archive requires an authenticated Developer Portal download; its bundled open-source notices ship as `DISCORD_SOCIAL_SDK_NOTICES.txt`. Verified downloads are cached under `.build-cache/`.

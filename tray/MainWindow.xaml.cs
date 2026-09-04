@@ -49,6 +49,15 @@ public sealed partial class MainWindow : Window
         Render();
     }
 
+    public void SetUpdateProgress(UpdateProgress? progress)
+    {
+        UpdateBar.IsOpen = progress is not null;
+        if (progress is null) return;
+        UpdateBar.Message = progress.Percent is { } percent ? $"{progress.Stage} · {percent:0}%" : progress.Stage;
+        UpdateDownloadProgress.IsIndeterminate = progress.Percent is null;
+        UpdateDownloadProgress.Value = progress.Percent ?? 0;
+    }
+
     public void SetPresenceActionPending(bool pending)
     {
         presenceActionPending = pending;

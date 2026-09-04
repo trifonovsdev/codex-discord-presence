@@ -100,6 +100,10 @@
             VerticalScrollBarVisibility="Auto">
             <Grid Padding="24,20,24,20">
                 <StackPanel>
+                    <InfoBar x:Name="UpdateBar" IsOpen="False" IsClosable="False" Severity="Informational"
+                             Title="Updating Codex Presence" Margin="0,0,0,16" AutomationProperties.LiveSetting="Polite">
+                        <ProgressBar x:Name="UpdateDownloadProgress" IsIndeterminate="True" Margin="0,8,0,0" />
+                    </InfoBar>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -339,7 +343,7 @@
                     FontFamily="Cascadia Mono, Consolas"
                     FontSize="10"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="v2.5.0" />
+                    Text="v2.5.1" />
             </Grid>
         </Border>
     </Grid>

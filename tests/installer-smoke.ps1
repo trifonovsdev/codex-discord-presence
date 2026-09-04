@@ -154,9 +154,16 @@ try {
   ) } }
   [IO.File]::WriteAllText((Join-Path $env:CODEX_HOME 'hooks.json'), ($hooks | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
 
-  $setup = Start-Process ([IO.Path]::GetFullPath($InstallerPath)) -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$installDir",'/NOICONS','/TASKS=""') -Wait -PassThru -WindowStyle Hidden
+  $setupLog = Join-Path $env:RUNNER_TEMP 'presence-setup.log'
+  Write-Host 'Starting initial install.'
+  $setup = Start-Process ([IO.Path]::GetFullPath($InstallerPath)) -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$installDir",'/NOICONS','/TASKS=""',"/LOG=$setupLog") -PassThru -WindowStyle Hidden
+  if (-not $setup.WaitForExit(120000)) {
+    Get-Content $setupLog -Tail 100 -ErrorAction SilentlyContinue
+    & taskkill /PID $setup.Id /T /F
+    throw 'Initial install timed out.'
+  }
   $setupExit = $setup.ExitCode
-  if ($setupExit -ne 0) { throw "Setup returned $setupExit." }
+  if ($setupExit -ne 0) { Get-Content $setupLog -Tail 100; throw "Setup returned $setupExit." }
   $config = Get-Content -LiteralPath (Join-Path $installDir 'app\config.json') -Raw | ConvertFrom-Json
   if ($config.port -ne $Port -or $config.privacy.preset -ne 'minimal') { throw 'Legacy configuration was not migrated.' }
   if (Test-Path -LiteralPath $legacyDir) { throw 'Legacy installation directory was not removed.' }
@@ -212,7 +219,39 @@ try {
   $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'
   if ($pause.presenceEnabled -ne $false -or $resume.presenceEnabled -ne $true) { throw 'Pause/resume control failed.' }
 
-  $uninstall = Start-Process (Join-Path $installDir 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru -WindowStyle Hidden
+  # Exercise the updater's actual silent handoff over an already-running installation.
+  $preservedConfig = Get-Content -LiteralPath (Join-Path $installDir 'app\config.json') -Raw
+  Write-Host 'Starting child-installer upgrade.'
+  $upgradeLog = Join-Path ([IO.Path]::GetTempPath()) 'codex-presence-upgrade-smoke.log'
+  $upgradeMarker = Join-Path ([IO.Path]::GetTempPath()) 'codex-presence-upgrade-smoke.pid'
+  Remove-Item $upgradeMarker -Force -ErrorAction SilentlyContinue
+  $env:CODEX_PRESENCE_TEST = '1'
+  try {
+    $upgradeLauncher = Start-Process $trayExecutable -ArgumentList "--upgrade-smoke `"$([IO.Path]::GetFullPath($InstallerPath))`"" -PassThru
+  } finally { Remove-Item Env:CODEX_PRESENCE_TEST }
+  for ($attempt = 0; $attempt -lt 40 -and -not (Test-Path $upgradeMarker); $attempt++) { Start-Sleep -Milliseconds 250 }
+  if (-not (Test-Path $upgradeMarker)) { throw 'Upgrade launcher did not report its child installer.' }
+  $upgrade = Get-Process -Id ([int](Get-Content $upgradeMarker -Raw))
+  if (-not $upgrade.WaitForExit(120000)) { Get-Content $upgradeLog -Tail 100 -ErrorAction SilentlyContinue; & taskkill /PID $upgrade.Id /T /F; throw 'Silent upgrade timed out.' }
+  Remove-Item $upgradeMarker -Force
+  $restarted = $false
+  for ($attempt = 0; $attempt -lt 60; $attempt++) {
+    Start-Sleep -Milliseconds 250
+    $trayProcess.Refresh()
+    try {
+      $updatedHealth = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1
+      if ($trayProcess.HasExited -and $updatedHealth.version -eq $expectedVersion) { $restarted = $true; break }
+    } catch {}
+  }
+  if (-not $restarted) { Get-Content $upgradeLog -Tail 100 -ErrorAction SilentlyContinue; throw 'Silent upgrade did not stop the old tray and restart the updated service.' }
+  if ((Get-Content -LiteralPath (Join-Path $installDir 'app\config.json') -Raw) -ne $preservedConfig) { throw 'Silent upgrade changed existing configuration.' }
+  $upgradedHooks = (Get-Content -LiteralPath (Join-Path $env:CODEX_HOME 'hooks.json') -Raw).Replace('\\', '\')
+  if (([regex]::Matches($upgradedHooks, [regex]::Escape($newHookPath))).Count -ne 16) { throw 'Upgrade duplicated hook registrations.' }
+  Write-Host 'Silent upgrade: existing tray stopped, service restarted, configuration preserved.'
+
+  Write-Host 'Starting uninstall.'
+  $uninstall = Start-Process (Join-Path $installDir 'unins000.exe') -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -WindowStyle Hidden
+  if (-not $uninstall.WaitForExit(60000)) { & taskkill /PID $uninstall.Id /T /F; throw 'Uninstall timed out.' }
   $uninstallExit = $uninstall.ExitCode
   if ($uninstallExit -ne 0) { throw "Uninstall returned $uninstallExit." }
   Start-Sleep -Seconds 2
@@ -222,13 +261,16 @@ try {
   if (@(Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" }).Count) { throw 'Tray process survived uninstall.' }
   try { $null = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 1; throw 'Daemon survived uninstall.' } catch { if ($_.Exception.Message -eq 'Daemon survived uninstall.') { throw } }
 
-  [pscustomobject]@{ Portable = 'PASS'; Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; UI = 'PASS'; Daemon = $health.version; Control = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
+  [pscustomobject]@{ Portable = 'PASS'; Setup = 'PASS'; Migration = 'PASS'; ForeignHook = 'PRESERVED'; UI = 'PASS'; Daemon = $health.version; Control = 'PASS'; Upgrade = 'PASS'; Uninstall = 'PASS'; Removal = 'CLEAN' } | Format-List
 }
 finally {
   Get-Process CodexPresence -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$installDir*" } | Stop-Process -Force -ErrorAction SilentlyContinue
   try { Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"shutdown"}' -TimeoutSec 1 | Out-Null } catch {}
   $uninstaller = Join-Path $installDir 'unins000.exe'
-  if (Test-Path -LiteralPath $uninstaller) { Start-Process $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -WindowStyle Hidden }
+  if (Test-Path -LiteralPath $uninstaller) {
+    $cleanup = Start-Process $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -WindowStyle Hidden
+    if (-not $cleanup.WaitForExit(30000)) { & taskkill /PID $cleanup.Id /T /F }
+  }
   if (Test-Path -LiteralPath $testRoot) { Remove-Item -LiteralPath $testRoot -Recurse -Force }
   Remove-Item -LiteralPath $uiSmokeLog -Force -ErrorAction SilentlyContinue
   $env:LOCALAPPDATA = $originalLocalAppData
