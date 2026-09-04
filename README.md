@@ -1,7 +1,5 @@
 <div align="center">
 
-![Codex Presence hero](assets/hero.svg)
-
 # Codex Presence
 
 **A local-first WinUI 3 Discord Rich Presence companion for Codex Desktop on Windows.**
@@ -16,6 +14,8 @@
 </div>
 
 Codex Presence follows the task selected in ChatGPT/Codex Desktop, detects its project and most recently edited file, and mirrors that activity to Discord. Background tasks cannot silently replace the card, and switching projects never resets the whole-app timer.
+
+![Codex Presence 2.5 dashboard: published activity, current file, and session details](assets/dashboard.png)
 
 ## Why this one
 
@@ -50,8 +50,6 @@ The shared Discord Application ID is `1526968377048956938`. Friends do not need 
 > Community builds are currently unsigned and can trigger Windows SmartScreen. The release workflow is ready for Authenticode signing when a certificate is configured.
 
 ## See it in action
-
-![Codex Presence 2.5 dashboard: published activity, current file, and session details](assets/dashboard.png)
 
 <div align="center">
   <img src="assets/demo.gif" alt="Native dashboard switching between published, paused, and offline states, followed by General, Privacy, and SSH settings" width="760">
