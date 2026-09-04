@@ -92,6 +92,14 @@ function projectFromCwd(cwd) {
   return name && name !== '.' && !isWorkspaceContainer(name) ? name.slice(0, MAX_PROJECT) : null;
 }
 
+/** Older SSH helpers picked a task's internal UUID folder while cwd was the account root. */
+function projectFromRemote(result) {
+  if (isCodexInternalPath(result.cwd)) return null;
+  const project = typeof result.project === 'string' ? result.project.trim() : '';
+  if (isAnyFilesystemRoot(result.cwd) && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(project)) return null;
+  return project ? project.slice(0, MAX_PROJECT) : null;
+}
+
 const repositoryCache = new Map();
 
 function cachedGitLookup(directory, fileSystem, now) {
@@ -270,6 +278,7 @@ module.exports = {
   isFilesystemRoot,
   isWorkspaceContainer,
   projectFromCwd,
+  projectFromRemote,
   projectFromSession,
   resolveSessionProject,
   projectNameFromCwd,

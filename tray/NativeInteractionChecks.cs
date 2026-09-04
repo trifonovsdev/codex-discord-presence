@@ -39,21 +39,24 @@ internal static class NativeInteractionChecks
         var frames = Path.Combine(directory, "motion");
         Directory.CreateDirectory(frames);
         var timestamps = new List<double>();
+        var capturedFrames = new List<DesktopCapture.Frame>();
         var watch = Stopwatch.StartNew();
-        var index = 0;
         var original = toggle.IsOn;
         while (watch.ElapsedMilliseconds < 2600)
         {
             var ms = watch.ElapsedMilliseconds;
             toggle.IsOn = ms is >= 300 and < 750 or >= 850 and < 1600 or >= 2000;
             timestamps.Add(watch.Elapsed.TotalSeconds);
-            await DesktopCapture.SaveAsync(window, Path.Combine(frames, $"frame-{index++:D4}.png"));
+            capturedFrames.Add(DesktopCapture.Capture(window));
             await Task.Delay(16);
         }
         toggle.IsOn = original;
         await Task.Delay(180);
         Check(Math.Abs(toggle.ActualWidth - toggleWidth) < 0.01 && toggle.IsOn == original,
             "Rapid toggle reversals settle without changing hitbox or saved configuration");
+        for (var frame = 0; frame < capturedFrames.Count; frame++)
+            await DesktopCapture.SaveAsync(capturedFrames[frame], Path.Combine(frames, $"frame-{frame:D4}.png"));
+        capturedFrames.Clear();
         var concat = new List<string>();
         for (var frame = 0; frame < timestamps.Count; frame++)
         {

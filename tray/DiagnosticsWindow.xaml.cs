@@ -28,11 +28,12 @@ public sealed partial class DiagnosticsWindow : Window
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+        WindowChrome.Apply(this);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
         WindowSizing.ResizeInDips(this, 760, 620);
         AppWindow.Closing += OnWindowClosing;
-        RootLayout.ActualThemeChanged += (_, _) => RefreshStatusBrushes();
+        RootLayout.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); RefreshStatusBrushes(); };
     }
 
     /// <summary>Shows Doctor and starts its checks on the first presentation.</summary>

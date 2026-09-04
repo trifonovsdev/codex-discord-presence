@@ -39,13 +39,14 @@ public sealed partial class MainWindow : Window
         FooterVersion.Text = $"v{this.version}";
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+        WindowChrome.Apply(this);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
         WindowSizing.ResizeInDips(this, 680, 560);
         WindowSizing.SetMinimumInDips(this, 640, 480);
         AppWindow.Closing += AppWindow_Closing;
         Closed += MainWindow_Closed;
-        RootLayout.ActualThemeChanged += (_, _) => Render();
+        RootLayout.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); Render(); };
 
         sessionTimer.Tick += (_, _) => RenderTime();
         Render();

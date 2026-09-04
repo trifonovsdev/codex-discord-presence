@@ -10,6 +10,7 @@ const {
   isAnyFilesystemRoot,
   isFilesystemRoot,
   projectFromCwd,
+  projectFromRemote,
   projectNameFromCwd,
   projectFromSession,
   resolveSessionProject,
@@ -17,6 +18,14 @@ const {
   shortenPath,
   toolPayloadFromRecord,
 } = require('../src/codex-paths');
+
+test('older SSH helpers cannot publish an internal UUID as the root project', () => {
+  const id = '01a06df8-f303-7552-98da-e93dc4cde401';
+  assert.equal(projectFromRemote({ cwd: '/root', project: id }), null);
+  assert.equal(projectFromRemote({ cwd: `/srv/${id}`, project: id }), id);
+  assert.equal(projectFromRemote({ cwd: '/root', project: 'presence' }), 'presence');
+  assert.equal(projectFromRemote({ cwd: `/root/.codex/visualizations/${id}`, project: id }), null);
+});
 
 test('Codex internal task folders do not become project names', () => {
   const id = '01a06df8-f303-7552-98da-e93dc4cde401';

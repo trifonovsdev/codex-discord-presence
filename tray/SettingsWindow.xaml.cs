@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
-using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -64,13 +63,12 @@ public sealed partial class SettingsWindow : Window
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
-        AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        WindowChrome.Apply(this);
         WindowSizing.ResizeInDips(this, 740, 620);
         WindowSizing.SetMinimumInDips(this, 700, 480);
         AppWindow.Closing += (_, _) => CancelRemoteAction();
         Closed += (_, _) => CancelRemoteAction();
-        RootGrid.ActualThemeChanged += (_, _) => RefreshStatusBrush();
+        RootGrid.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); RefreshStatusBrush(); };
 
         LanguageSelect.ItemsSource = Languages.Select(item => item.Label).ToArray();
         PresetSelect.ItemsSource = new[] { "minimal", "standard", "detailed" };

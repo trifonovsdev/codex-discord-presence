@@ -9,7 +9,11 @@ namespace CodexPresence;
 /// <summary>Captures compositor output for the opt-in native preview; never used by normal app execution.</summary>
 internal static class DesktopCapture
 {
-    public static async Task SaveAsync(Window window, string path)
+    internal sealed record Frame(int Width, int Height, byte[] Pixels);
+
+    public static Task SaveAsync(Window window, string path) => SaveAsync(Capture(window), path);
+
+    public static Frame Capture(Window window)
     {
         var hwnd = WindowNative.GetWindowHandle(window);
         if (!GetClientRect(hwnd, out var bounds)) throw new InvalidOperationException("Cannot read preview bounds.");
@@ -36,11 +40,16 @@ internal static class DesktopCapture
             DeleteDC(target);
             ReleaseDC(0, screen);
         }
+        return new Frame(width, height, data);
+    }
+
+    public static async Task SaveAsync(Frame frame, string path)
+    {
         var folder = await StorageFolder.GetFolderFromPathAsync(Path.GetDirectoryName(path)!);
         var file = await folder.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);
         using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore, (uint)width, (uint)height, 96, 96, data);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore, (uint)frame.Width, (uint)frame.Height, 96, 96, frame.Pixels);
         await encoder.FlushAsync();
     }
 

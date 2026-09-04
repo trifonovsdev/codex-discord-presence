@@ -107,6 +107,8 @@ def repository_project(cwd, file_path):
     candidate = Path(file_path)
     if not candidate.is_absolute():
         candidate = Path(cwd) / candidate
+    if is_internal_context(candidate):
+        return None
     if not candidate.is_dir():
         candidate = candidate.parent
     for directory in (candidate, *candidate.parents):
@@ -123,6 +125,10 @@ def is_account_root(value):
         return candidate == Path("/") or candidate == Path.home().resolve()
     except (OSError, RuntimeError):
         return value in ("/", str(Path.home()))
+
+
+def is_internal_context(value):
+    return bool(re.search(r"(?:^|/)\.codex/(?:visualizations|attachments|sessions|tmp)(?:/|$)", str(value).replace("\\", "/"), re.I))
 
 
 def write_private_cache(cache_dir, cache_path, state):
@@ -178,8 +184,8 @@ def main():
     roots = state.get("roots") or []
     project = repository_project(cwd, state.get("file"))
     if not project:
-        project_root = next((item for item in roots if isinstance(item, str) and not is_account_root(item)), None)
-        if not project_root and not is_account_root(cwd):
+        project_root = next((item for item in roots if isinstance(item, str) and not is_account_root(item) and not is_internal_context(item)), None)
+        if not project_root and not is_account_root(cwd) and not is_internal_context(cwd):
             project_root = cwd
         project = Path(project_root).name if project_root else None
     emit({"ok": True, "threadId": thread_id, "project": project, "cwd": cwd, "file": state.get("file")})
