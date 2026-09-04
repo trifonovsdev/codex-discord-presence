@@ -103,8 +103,8 @@
                 </Style>
 
                 <Style x:Key="SettingsRowContainerStyle" TargetType="Border">
-                    <Setter Property="MinHeight" Value="48" />
-                    <Setter Property="Padding" Value="0,6" />
+                    <Setter Property="MinHeight" Value="56" />
+                    <Setter Property="Padding" Value="0,8" />
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderBrush" Value="{ThemeResource BorderBrush}" />
                     <Setter Property="BorderThickness" Value="0,0,0,1" />
@@ -128,7 +128,7 @@
                     <Setter Property="TextWrapping" Value="Wrap" />
                 </Style>
 
-                <ControlTemplate x:Key="SettingsNavButtonTemplate" TargetType="ToggleButton">
+                <ControlTemplate x:Key="SettingsNavButtonTemplate" TargetType="RadioButton">
                     <Border
                         x:Name="NavRoot"
                         Background="{TemplateBinding Background}"
@@ -159,12 +159,13 @@
                                 <VisualState x:Name="Unchecked">
                                     <VisualState.Setters>
                                         <Setter Target="NavRail.Opacity" Value="0" />
+                                        <Setter Target="NavSelection.Opacity" Value="0" />
                                         <Setter Target="NavLabel.Foreground" Value="{ThemeResource TextSecondaryBrush}" />
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Checked">
                                     <VisualState.Setters>
-                                        <Setter Target="NavRoot.Background" Value="{ThemeResource SurfaceRaisedBrush}" />
+                                        <Setter Target="NavSelection.Opacity" Value="1" />
                                         <Setter Target="NavRail.Opacity" Value="1" />
                                         <Setter Target="NavLabel.Foreground" Value="{ThemeResource TextPrimaryBrush}" />
                                     </VisualState.Setters>
@@ -173,6 +174,7 @@
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                         <Grid>
+                            <Border x:Name="NavSelection" Background="{ThemeResource SurfaceRaisedBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
                             <Border
                                 x:Name="NavRail"
                                 Width="2"
@@ -194,7 +196,7 @@
                     </Border>
                 </ControlTemplate>
 
-                <Style x:Key="SettingsNavButtonStyle" TargetType="ToggleButton">
+                <Style x:Key="SettingsNavButtonStyle" TargetType="RadioButton">
                     <Setter Property="Height" Value="34" />
                     <Setter Property="MinWidth" Value="0" />
                     <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -213,88 +215,17 @@
                     <Setter Property="Template" Value="{StaticResource SettingsNavButtonTemplate}" />
                 </Style>
 
-                <ControlTemplate x:Key="SettingsToggleTemplate" TargetType="ToggleButton">
-                    <Grid
-                        x:Name="ToggleRoot"
-                        Width="40"
-                        Height="28"
-                        Background="Transparent"
-                        Control.IsTemplateFocusTarget="True">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualState x:Name="Normal" />
-                                <VisualState x:Name="PointerOver">
-                                    <VisualState.Setters>
-                                        <Setter Target="ToggleRoot.Opacity" Value="0.9" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Pressed">
-                                    <VisualState.Setters>
-                                        <Setter Target="ToggleRoot.Opacity" Value="0.72" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Disabled">
-                                    <VisualState.Setters>
-                                        <Setter Target="ToggleRoot.Opacity" Value="0.4" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                            <VisualStateGroup x:Name="CheckStates">
-                                <VisualState x:Name="Unchecked">
-                                    <VisualState.Setters>
-                                        <Setter Target="ToggleTrack.Background" Value="{ThemeResource SurfaceRaisedBrush}" />
-                                        <Setter Target="ToggleTrack.BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
-                                        <Setter Target="ToggleThumb.Fill" Value="{ThemeResource TextSecondaryBrush}" />
-                                        <Setter Target="ToggleThumb.HorizontalAlignment" Value="Left" />
-                                        <Setter Target="ToggleThumb.Margin" Value="2,0,0,0" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Checked">
-                                    <VisualState.Setters>
-                                        <Setter Target="ToggleTrack.Background" Value="{ThemeResource AccentBrush}" />
-                                        <Setter Target="ToggleTrack.BorderBrush" Value="{ThemeResource AccentBrush}" />
-                                        <Setter Target="ToggleThumb.Fill" Value="{ThemeResource AccentTextBrush}" />
-                                        <Setter Target="ToggleThumb.HorizontalAlignment" Value="Right" />
-                                        <Setter Target="ToggleThumb.Margin" Value="0,0,2,0" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Indeterminate" />
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                        <Border
-                            x:Name="ToggleTrack"
-                            Width="36"
-                            Height="20"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Background="{ThemeResource SurfaceRaisedBrush}"
-                            BorderBrush="{ThemeResource BorderStrongBrush}"
-                            BorderThickness="1"
-                            CornerRadius="10">
-                            <Ellipse
-                                x:Name="ToggleThumb"
-                                Width="14"
-                                Height="14"
-                                Margin="2,0,0,0"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Fill="{ThemeResource TextSecondaryBrush}" />
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-
-                <Style x:Key="SettingsToggleStyle" TargetType="ToggleButton">
-                    <Setter Property="Width" Value="40" />
-                    <Setter Property="Height" Value="32" />
+                <!-- Keep native thumb travel, pointer/keyboard states and reduced motion. -->
+                <Style x:Key="SettingsToggleStyle" TargetType="ToggleSwitch" BasedOn="{StaticResource DefaultToggleSwitchStyle}">
                     <Setter Property="MinWidth" Value="40" />
-                    <Setter Property="MinHeight" Value="32" />
-                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Width" Value="40" />
+                    <Setter Property="MinHeight" Value="34" />
+                    <Setter Property="OnContent" Value="" />
+                    <Setter Property="OffContent" Value="" />
                     <Setter Property="HorizontalAlignment" Value="Right" />
                     <Setter Property="VerticalAlignment" Value="Center" />
-                    <Setter Property="UseSystemFocusVisuals" Value="True" />
                     <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource FocusStrokeBrush}" />
                     <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource CanvasBrush}" />
-                    <Setter Property="Template" Value="{StaticResource SettingsToggleTemplate}" />
                 </Style>
 
                 <Style
@@ -416,25 +347,25 @@
                         FontSize="11"
                         FontWeight="SemiBold"
                         Text="Settings" />
-                    <ToggleButton
+                    <RadioButton GroupName="SettingsSections"
                         x:Name="GeneralNavButton"
                         AutomationProperties.Name="General settings"
-                        Click="SectionButtonClicked"
+                        Checked="SectionButtonChecked"
                         Content="General"
                         IsChecked="True"
                         Style="{StaticResource SettingsNavButtonStyle}"
                         Tag="general" />
-                    <ToggleButton
+                    <RadioButton GroupName="SettingsSections"
                         x:Name="PrivacyNavButton"
                         AutomationProperties.Name="Privacy settings"
-                        Click="SectionButtonClicked"
+                        Checked="SectionButtonChecked"
                         Content="Privacy"
                         Style="{StaticResource SettingsNavButtonStyle}"
                         Tag="privacy" />
-                    <ToggleButton
+                    <RadioButton GroupName="SettingsSections"
                         x:Name="RemoteNavButton"
                         AutomationProperties.Name="SSH settings"
-                        Click="SectionButtonClicked"
+                        Checked="SectionButtonChecked"
                         Content="SSH"
                         Style="{StaticResource SettingsNavButtonStyle}"
                         Tag="remote" />
@@ -452,7 +383,7 @@
                         x:Name="GeneralPage"
                         HorizontalScrollBarVisibility="Disabled"
                         VerticalScrollBarVisibility="Auto">
-                        <Border Padding="26,18,26,22">
+                        <Border Padding="24,20,24,24">
                             <StackPanel Spacing="17">
                                 <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
                                     <TextBlock Text="General" Style="{StaticResource SettingsPageTitleStyle}" />
@@ -473,7 +404,7 @@
                                                 <TextBlock Text="Discord presence" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Publish activity while Codex is open." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="PresenceToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Discord presence"
@@ -513,7 +444,7 @@
                                                 <TextBlock Text="Launch at sign in" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Keep presence ready after Windows starts." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="StartupToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Launch at sign in"
@@ -530,7 +461,7 @@
                                                 <TextBlock Text="Automatic updates" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Check verified releases once a day." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="UpdatesToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Automatic updates"
@@ -564,7 +495,7 @@
                         HorizontalScrollBarVisibility="Disabled"
                         VerticalScrollBarVisibility="Auto"
                         Visibility="Collapsed">
-                        <Border Padding="26,18,26,22">
+                        <Border Padding="24,20,24,24">
                             <StackPanel Spacing="17">
                                 <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
                                     <TextBlock Text="Privacy" Style="{StaticResource SettingsPageTitleStyle}" />
@@ -607,7 +538,7 @@
                                                 <TextBlock Text="Task title" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Share the selected Codex task title." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="TaskTitleToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Share task title"
@@ -624,7 +555,7 @@
                                                 <TextBlock Text="Project name" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Share the active workspace." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="ProjectToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Share project name"
@@ -641,7 +572,7 @@
                                                 <TextBlock Text="Edited file" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Share the latest edited file." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="FileToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Share edited file"
@@ -658,7 +589,7 @@
                                                 <TextBlock Text="Session timer" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Use one timer for the Codex session." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
-                                            <ToggleButton
+                                            <ToggleSwitch
                                                 x:Name="TimerToggle"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Share session timer"
@@ -692,7 +623,7 @@
                         HorizontalScrollBarVisibility="Disabled"
                         VerticalScrollBarVisibility="Auto"
                         Visibility="Collapsed">
-                        <Border Padding="26,18,26,22">
+                        <Border Padding="24,20,24,24">
                             <StackPanel Spacing="17">
                                 <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
                                     <TextBlock Text="SSH workspaces" Style="{StaticResource SettingsPageTitleStyle}" />
@@ -880,7 +811,7 @@
                 <Border
                     x:Name="SettingsFooter"
                     Grid.Row="1"
-                    Padding="26,9"
+                    Padding="24,12"
                     Background="{ThemeResource CanvasBrush}"
                     BorderBrush="{ThemeResource BorderBrush}"
                     BorderThickness="0,1,0,0">

@@ -36,7 +36,7 @@ public sealed class AppCoordinator : IDisposable
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}"
-        : "2.5.1";
+        : "2.5.2";
 
     /// <summary>Raised after all app-owned resources and the daemon are stopped.</summary>
     public event EventHandler? ExitCompleted;
@@ -150,7 +150,7 @@ public sealed class AppCoordinator : IDisposable
     public void ShowDashboard()
     {
         if (exiting) return;
-        dashboard.UpdateSnapshot(latest);
+        dashboard.UpdateSnapshot(latest, daemon.LastHealthError);
         dashboard.ShowWindow();
         UpdatePollingInterval();
     }
@@ -170,16 +170,16 @@ public sealed class AppCoordinator : IDisposable
         }
 
         if (exiting) return;
-        latest = snapshot;
-        dashboard.UpdateSnapshot(snapshot);
+        latest = snapshot ?? latest;
+        dashboard.UpdateSnapshot(latest, daemon.LastHealthError);
 
         if (snapshot is null)
         {
             var presenceEnabled = configStore.Load().PresenceEnabled;
             trayIcon.UpdateStatus(
-                "Codex Presence — offline",
-                "Service unavailable",
-                "Run diagnostics for details",
+                "Codex Presence — status unavailable",
+                "Reconnecting to local status",
+                "Discord activity has not been verified",
                 presenceEnabled);
             return;
         }
@@ -242,7 +242,6 @@ public sealed class AppCoordinator : IDisposable
         dashboard.UpdatePrivacy(configStore.Load().Privacy);
         try
         {
-            daemon.InvalidateEndpoint();
             await daemon.RestartAsync();
             await RefreshAsync();
         }
@@ -320,7 +319,6 @@ public sealed class AppCoordinator : IDisposable
         if (exiting) return;
         try
         {
-            daemon.InvalidateEndpoint();
             await daemon.RestartAsync();
             await RefreshAsync();
         }

@@ -15,6 +15,8 @@ public sealed partial class MainWindow : Window
     private readonly string version;
 
     private HealthSnapshot? snapshot;
+    private string? connectionError;
+    private DateTimeOffset? lastConfirmedAt;
     private PrivacyConfig privacy = new();
     private CancellationTokenSource? copyFeedbackCancellation;
     private bool closeForExit;
@@ -37,13 +39,14 @@ public sealed partial class MainWindow : Window
         FooterVersion.Text = $"v{this.version}";
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+        WindowChrome.Apply(this);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
         WindowSizing.ResizeInDips(this, 680, 560);
+        WindowSizing.SetMinimumInDips(this, 640, 480);
         AppWindow.Closing += AppWindow_Closing;
         Closed += MainWindow_Closed;
-        RootLayout.ActualThemeChanged += (_, _) => Render();
-        Motion.AttachButtonFeedback(PauseButton, SettingsButton, DiagnosticsButton, CopyPathButton);
+        RootLayout.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); Render(); };
 
         sessionTimer.Tick += (_, _) => RenderTime();
         Render();
@@ -64,15 +67,17 @@ public sealed partial class MainWindow : Window
         Render();
     }
 
-    public void UpdateSnapshot(HealthSnapshot? snapshot)
+    public void UpdateSnapshot(HealthSnapshot? snapshot, string? connectionError = null)
     {
         if (!DispatcherQueue.HasThreadAccess)
         {
-            DispatcherQueue.TryEnqueue(() => UpdateSnapshot(snapshot));
+            DispatcherQueue.TryEnqueue(() => UpdateSnapshot(snapshot, connectionError));
             return;
         }
 
         this.snapshot = snapshot;
+        this.connectionError = connectionError;
+        if (snapshot is not null && connectionError is null) lastConfirmedAt = DateTimeOffset.Now;
         Render();
     }
 
@@ -183,8 +188,9 @@ public sealed partial class MainWindow : Window
 
     private void Render()
     {
-        var presentation = PresencePresentation.Create(snapshot, privacy, DateTimeOffset.Now);
+        var presentation = PresencePresentation.Create(snapshot, privacy, DateTimeOffset.Now, connectionError, lastConfirmedAt);
 
+        var contextChanged = ProjectName.Text != presentation.Project || CurrentFile.Text != presentation.CurrentFile;
         ConnectionStatus.Text = presentation.Connection;
         ConnectionDot.Fill = ToneBrush(presentation.ConnectionTone);
         ActivityContext.Text = presentation.ActivityContext;
@@ -218,6 +224,7 @@ public sealed partial class MainWindow : Window
             DiscordPreview,
             $"Discord activity preview. {presentation.PreviewTitle}. {presentation.PreviewPrimary}. {presentation.PreviewSecondary}");
 
+        if (contextChanged && RootLayout.IsLoaded && IsVisible) Motion.Reveal(DiscordPreview);
         PauseButton.IsEnabled = presentation.PauseEnabled && !presenceActionPending;
         PauseButtonText.Text = presenceActionPending ? "Updating…" : presentation.PauseText;
         PauseIcon.Glyph = snapshot?.PresenceEnabled == false ? "\uE768" : "\uE769";
@@ -226,6 +233,7 @@ public sealed partial class MainWindow : Window
 
     private void RenderTime()
     {
+        if (connectionError is not null) return;
         var (session, elapsed) = PresencePresentation.SessionTiming(snapshot, DateTimeOffset.Now);
         SessionValue.Text = session;
         PreviewElapsed.Text = elapsed;
@@ -292,11 +300,11 @@ public sealed partial class MainWindow : Window
         copyFeedbackCancellation?.Dispose();
         copyFeedbackCancellation = new CancellationTokenSource();
         var token = copyFeedbackCancellation.Token;
-        CopyStatus.Visibility = Visibility.Visible;
+        Motion.Fade(CopyStatus, 1f);
         try
         {
             await Task.Delay(TimeSpan.FromMilliseconds(1400), token);
-            CopyStatus.Visibility = Visibility.Collapsed;
+            Motion.Fade(CopyStatus, 0f);
         }
         catch (OperationCanceledException)
         {

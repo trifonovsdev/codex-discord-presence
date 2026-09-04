@@ -123,3 +123,20 @@ test('cache writing works when os.fchmod is unavailable', () => {
     fs.rmSync(home, { recursive: true, force: true });
   }
 });
+
+test('remote monitor ignores visualization roots in a Codex context', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-presence-remote-'));
+  const threadId = '0199c000-0000-4000-8000-0000000000ab';
+  const sessions = path.join(home, '.codex', 'sessions');
+  fs.mkdirSync(sessions, { recursive: true });
+  const records = [
+    { type: 'session_meta', payload: { cwd: home } },
+    { type: 'turn_context', payload: { cwd: home, workspace_roots: [home, `${home}/.codex/visualizations/2026/09/04/${threadId}`] } },
+  ];
+  fs.writeFileSync(path.join(sessions, `rollout-${threadId}.jsonl`), records.map(JSON.stringify).join('\n') + '\n');
+  try {
+    const result = runMonitor(home, threadId);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).project, null, 'an internal context directory is not a repository');
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
+});

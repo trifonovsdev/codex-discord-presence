@@ -60,6 +60,13 @@ function isWorkspaceContainer(name) {
   return WORKSPACE_CONTAINER.test(String(name ?? ''));
 }
 
+// These are writable context attachments, not the user's active workspace.
+// Do not reject .codex/worktrees: those contain real repository checkouts.
+function isCodexInternalPath(value) {
+  return /(?:^|\/)\.codex\/(?:visualizations|attachments|sessions|tmp)(?:\/|$)/i
+    .test(String(value ?? '').replaceAll('\\', '/'));
+}
+
 /**
  * Truncates from the left on a separator boundary so the tail of the path —
  * the part that identifies the file — always stays readable.
@@ -73,15 +80,24 @@ function shortenPath(value, max = MAX_FILE) {
 }
 
 function projectNameFromCwd(cwd) {
+  if (isAnyFilesystemRoot(cwd) || isCodexInternalPath(cwd)) return null;
   const name = segments(cwd).at(-1);
   return name && !isWorkspaceContainer(name) ? name.slice(0, MAX_PROJECT) : null;
 }
 
 /** Project name implied by a hook payload's working directory, or null. */
 function projectFromCwd(cwd) {
-  if (typeof cwd !== 'string' || isAnyFilesystemRoot(cwd)) return null;
+  if (typeof cwd !== 'string' || isAnyFilesystemRoot(cwd) || isCodexInternalPath(cwd)) return null;
   const name = win.basename(cwd.replace(/[\\/]+$/, ''));
   return name && name !== '.' && !isWorkspaceContainer(name) ? name.slice(0, MAX_PROJECT) : null;
+}
+
+/** Older SSH helpers picked a task's internal UUID folder while cwd was the account root. */
+function projectFromRemote(result) {
+  if (isCodexInternalPath(result.cwd)) return null;
+  const project = typeof result.project === 'string' ? result.project.trim() : '';
+  if (isAnyFilesystemRoot(result.cwd) && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(project)) return null;
+  return project ? project.slice(0, MAX_PROJECT) : null;
 }
 
 const repositoryCache = new Map();
@@ -103,6 +119,7 @@ function cachedGitLookup(directory, fileSystem, now) {
 function repositoryProjectFromFile(filePath, cwd, { fileSystem = defaultFileSystem, now = Date.now() } = {}) {
   if (!filePath || !cwd) return null;
   let candidate = win.isAbsolute(filePath) ? filePath : win.resolve(cwd, filePath);
+  if (isCodexInternalPath(candidate)) return null;
 
   if (!fileSystem.exists(candidate) || !fileSystem.isDirectory(candidate)) {
     candidate = win.dirname(candidate);
@@ -119,7 +136,7 @@ function repositoryProjectFromFile(filePath, cwd, { fileSystem = defaultFileSyst
 
 function sessionRoots(state) {
   return [...(state.workspaceRoots || []), state.cwd]
-    .filter((value) => typeof value === 'string' && value.trim() && !isAnyFilesystemRoot(value))
+    .filter((value) => typeof value === 'string' && value.trim() && !isAnyFilesystemRoot(value) && !isCodexInternalPath(value))
     .sort((left, right) => String(right).length - String(left).length);
 }
 
@@ -151,6 +168,8 @@ function projectFromSession(state, options = {}) {
     }
     return rootName.slice(0, MAX_PROJECT) || null;
   }
+
+  if (isCodexInternalPath(state.cwd) || isCodexInternalPath(state.lastFile)) return null;
 
   const containerIndex = relativeParts.findLastIndex(isWorkspaceContainer);
   if (containerIndex >= 0 && relativeParts[containerIndex + 1]) return relativeParts[containerIndex + 1].slice(0, MAX_PROJECT);
@@ -259,6 +278,7 @@ module.exports = {
   isFilesystemRoot,
   isWorkspaceContainer,
   projectFromCwd,
+  projectFromRemote,
   projectFromSession,
   resolveSessionProject,
   projectNameFromCwd,

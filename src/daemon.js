@@ -19,11 +19,12 @@ const {
   extractEditedFile,
   fileForProject,
   projectFromCwd,
+  projectFromRemote,
   resolveSessionProject,
   toolPayloadFromRecord,
 } = require('./codex-paths');
 
-const VERSION = '2.5.1';
+const VERSION = '2.5.2';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
@@ -463,7 +464,7 @@ function syncRemoteFile() {
       const hasProject = Object.hasOwn(result, 'project');
       const state = selection.updateThread(requestedThreadId, {
         ...(result.cwd ? { cwd: result.cwd } : {}),
-        ...(hasProject ? { project: result.project ? String(result.project).slice(0, 60) : null } : {}),
+        ...(hasProject ? { project: projectFromRemote(result) } : {}),
         ...(result.file ? { lastFile: displayPath(result.file, result.cwd) } : {}),
       });
 

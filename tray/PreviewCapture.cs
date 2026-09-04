@@ -1,8 +1,4 @@
-using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Graphics.Imaging;
-using Windows.Storage;
 
 namespace CodexPresence;
 
@@ -34,21 +30,20 @@ internal static class PreviewCapture
             snapshot.PresenceEnabled = false;
             dashboard.UpdateSnapshot(snapshot);
             await CaptureAsync(dashboard, directory, "paused");
-            dashboard.UpdateSnapshot(null);
-            WindowSizing.ResizeInDips(dashboard, 680, 700);
+            snapshot.PresenceEnabled = true;
+            dashboard.UpdateSnapshot(snapshot, "The local status request timed out. Retrying automatically.");
+            WindowSizing.ResizeInDips(dashboard, 680, 620);
             await CaptureAsync(dashboard, directory, "offline");
             dashboard.HideWindow();
 
+            settings = new SettingsWindow(new ConfigStore(), new RemoteService(), new PresenceConfig());
+            settings.Activate();
+            await Task.Delay(700);
+            await NativeInteractionChecks.RunAsync(settings, directory);
             foreach (var section in new[] { "general", "privacy", "remote" })
             {
-                // A fresh window avoids retained composition clips from an offscreen tab
-                // in RenderTargetBitmap; normal app navigation still reuses its controls.
-                settings = new SettingsWindow(new ConfigStore(), new RemoteService(), new PresenceConfig());
                 settings.ShowPage(section);
-                settings.Activate();
                 await CaptureAsync(settings, directory, section == "remote" ? "settings-ssh" : $"settings-{section}");
-                settings.Close();
-                settings = null;
             }
         }
         finally
@@ -62,19 +57,6 @@ internal static class PreviewCapture
     {
         // Let WinUI finish layout and text rasterization before reading the visual tree.
         await Task.Delay(700);
-        var root = (FrameworkElement)window.Content;
-        root.UpdateLayout();
-        var bitmap = new RenderTargetBitmap();
-        await bitmap.RenderAsync(root);
-        if (bitmap.PixelWidth == 0 || bitmap.PixelHeight == 0)
-            throw new InvalidOperationException($"The {name} window did not render.");
-        var pixels = await bitmap.GetPixelsAsync();
-        var folder = await StorageFolder.GetFolderFromPathAsync(Path.GetFullPath(directory));
-        var file = await folder.CreateFileAsync($"{name}.png", CreationCollisionOption.ReplaceExisting);
-        using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
-        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-            (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96, 96, pixels.ToArray());
-        await encoder.FlushAsync();
+        await DesktopCapture.SaveAsync(window, Path.Combine(Path.GetFullPath(directory), $"{name}.png"));
     }
 }

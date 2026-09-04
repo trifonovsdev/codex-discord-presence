@@ -33,39 +33,45 @@ internal sealed record PresencePresentation(
     string PauseText,
     string? WarningTitle,
     string? WarningMessage,
-    PresenceTone WarningTone)
+    PresenceTone WarningTone,
+    string? PreviewLabelOverride = null)
 {
-    public string PreviewLabel => PreviewTone == PresenceTone.Success ? "Published" : "Not published";
+    public string PreviewLabel => PreviewLabelOverride ?? (PreviewTone == PresenceTone.Success ? "Published" : "Not published");
 
     public static PresencePresentation Create(
         HealthSnapshot? snapshot,
         PrivacyConfig privacy,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? connectionError = null,
+        DateTimeOffset? lastConfirmedAt = null)
     {
-        if (snapshot is null)
+        if (snapshot is null || connectionError is not null)
         {
+            var last = snapshot is null ? null : Create(snapshot, privacy, now);
+            var connecting = snapshot is null && connectionError is null;
             return new(
-                "Service offline",
-                PresenceTone.Danger,
-                "Local service unavailable",
-                "Service not connected",
-                "No activity is being published",
-                null,
-                "Local service",
-                "Local desktop",
-                "Unavailable",
-                BuildSharingSummary(privacy),
-                "Not published",
-                "Codex Presence is offline",
-                "Discord is not receiving activity.",
-                "No active session",
-                PresenceTone.Danger,
+                connecting ? "Connecting to service" : "Status unavailable",
+                connecting ? PresenceTone.Muted : PresenceTone.Warning,
+                "Checking local service",
+                last?.Project ?? "Waiting for service status",
+                last?.CurrentFile ?? "Your Discord activity has not been verified yet",
+                last?.CopyPath,
+                last?.Source ?? "—",
+                last?.Workspace ?? "—",
+                lastConfirmedAt is { } confirmed ? $"Last seen {confirmed.ToLocalTime():t}" : "Unverified",
+                "Visibility configured in Settings",
+                last?.PreviewTitle ?? "Discord status unknown",
+                last?.PreviewPrimary ?? "Unable to verify activity",
+                last?.PreviewSecondary ?? "Discord may still show your last activity.",
+                string.Empty,
+                PresenceTone.Muted,
                 false,
                 false,
                 "Pause",
-                "Presence service is offline",
-                "Run Doctor to check the local service and its connection.",
-                PresenceTone.Danger);
+                connecting ? null : "Local status connection interrupted",
+                connectionError,
+                PresenceTone.Warning,
+                last is null ? "Status unknown" : "Last confirmed");
         }
 
         var live = snapshot.PresenceEnabled && snapshot.RpcReady && snapshot.CodexRunning;
@@ -109,7 +115,7 @@ internal sealed record PresencePresentation(
             source,
             workspace,
             session,
-            BuildSharingSummary(privacy),
+            BuildSharingSummary(privacy, published),
             preview.Title,
             preview.Primary,
             preview.Secondary,
@@ -184,14 +190,15 @@ internal sealed record PresencePresentation(
         return (null, null, PresenceTone.Muted);
     }
 
-    private static string BuildSharingSummary(PrivacyConfig privacy)
+    private static string BuildSharingSummary(PrivacyConfig privacy, bool published)
     {
         var shared = new List<string>(4);
         if (privacy.ShowProject) shared.Add("project");
         if (privacy.ShowTaskTitle) shared.Add("task");
         if (privacy.ShowFile) shared.Add("file");
         if (privacy.ShowTimer) shared.Add("timer");
-        return shared.Count == 0 ? "Sharing nothing" : $"Sharing {string.Join(" · ", shared)}";
+        var fields = shared.Count == 0 ? "app name only" : string.Join(" · ", shared);
+        return $"{(published ? "Sharing" : "Configured:")} {fields}";
     }
 
     private static string FriendlySource(string? value) => value switch

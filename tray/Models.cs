@@ -75,6 +75,6 @@ public sealed class HealthSnapshot
     [JsonPropertyName("selectedRemote")] public string? SelectedRemote { get; set; }
 }
 
-public sealed record DiagnosticItem(string Name, bool Passed, string Detail);
+public sealed record DiagnosticItem(string Name, bool? Passed, string Detail);
 
 public sealed record ReleaseInfo(Version Version, string Name, string PageUrl, string? InstallerUrl, string? ChecksumsUrl);
