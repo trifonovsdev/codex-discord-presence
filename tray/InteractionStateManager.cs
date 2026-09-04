@@ -23,7 +23,8 @@ public sealed class InteractionStateManager : VisualStateManager
         SetLayer("HoverSurface", stateName is "PointerOver" or "Pressed", animate && !keyboard);
         SetLayer("PressedSurface", stateName == "Pressed", animate && !keyboard);
         SetLayer("DisabledSurface", disabled, false);
-        if (templateRoot.FindName("InteractionContent") is FrameworkElement content)
+        if ((stateName == "Pressed" || previousState == "Pressed" || disabled) &&
+            templateRoot.FindName("InteractionContent") is FrameworkElement content)
             Motion.Press(content, stateName == "Pressed", animate && !keyboard);
         previousState = stateName;
         return changed;

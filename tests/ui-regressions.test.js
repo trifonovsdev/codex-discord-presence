@@ -54,7 +54,7 @@ test('app resources define one accessible graphite design system', () => {
 test('custom surfaces follow Windows High Contrast colors', () => {
   const app = source('tray/App.xaml');
 
-  assert.match(app, /<ResourceDictionary x:Key="Default">/);
+  assert.match(app, /<ResourceDictionary x:Key="Dark">/);
   assert.match(app, /<ResourceDictionary x:Key="HighContrast">/);
   assert.match(app, /\{ThemeResource SystemColorWindowColor\}/);
   assert.match(app, /\{ThemeResource SystemColorWindowTextColor\}/);

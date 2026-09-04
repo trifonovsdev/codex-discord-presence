@@ -14,7 +14,7 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <!-- One quiet black theme; contrast colors remain user-controlled. -->
-                <ResourceDictionary x:Key="Default">
+                <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="CanvasBrush" Color="#0B0C0D" />
                     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F20B0C0D" />
                     <SolidColorBrush x:Key="SurfaceBrush" Color="#111214" />

@@ -60,7 +60,7 @@ internal static class NativeHoverChecks
                         changedAt = watch.Elapsed.TotalMilliseconds;
                         var (_, over, edge) = Phases[phase];
                         var px = over ? x + (edge ? 1 : width / 2) : (int)(root.ActualWidth * scale / 2);
-                        var py = over ? y + height / 2 : (int)(24 * scale);
+                        var py = over ? y + height / 2 : (int)(130 * scale);
                         MovePointer(origin.X + px, origin.Y + py);
                         GetCursorPos(out var actual);
                         File.AppendAllText(Path.Combine(directory, "input-desktop.txt"),
@@ -84,6 +84,11 @@ internal static class NativeHoverChecks
                 var normal = held.Where(sample => !Phases[sample.Phase].Over).ToArray();
                 var hover = held.Where(sample => Phases[sample.Phase].Over).ToArray();
                 var settled = normal.Concat(hover).ToArray();
+                var expected = name == "SaveButton" ? (R: 255, G: 255, B: 255)
+                    : name == "PrivacyNavButton" ? (R: 28, G: 29, B: 32) : (R: 34, G: 36, B: 40);
+                Check(hover.Length > 0 && hover.All(sample => Math.Abs(sample.R - expected.R) <= 2 &&
+                        Math.Abs(sample.G - expected.G) <= 2 && Math.Abs(sample.B - expected.B) <= 2),
+                    $"{name}: hovered pixels use the graphite palette, not the Windows accent", directory, failures);
                 Check(normal.Length > 0 && hover.Length > 0 && samples.All(sample =>
                         sample.R >= settled.Min(item => item.R) - 2 && sample.R <= settled.Max(item => item.R) + 2 &&
                         sample.G >= settled.Min(item => item.G) - 2 && sample.G <= settled.Max(item => item.G) + 2 &&
@@ -202,7 +207,7 @@ internal static class NativeHoverChecks
             {
                 await Task.Delay(16);
                 seconds.Add(clock.Elapsed.TotalSeconds);
-                frames.Add(DesktopCapture.Capture(window));
+                frames.Add(DesktopCapture.Capture(window, includeCursor: true));
             }
         }
     }
@@ -264,9 +269,9 @@ internal static class NativeHoverChecks
         {
             Mouse = new MouseInput
             {
-                X = (int)(((long)x - GetSystemMetrics(76)) * 65536 / GetSystemMetrics(78)),
-                Y = (int)(((long)y - GetSystemMetrics(77)) * 65536 / GetSystemMetrics(79)),
-                Flags = 0xC001, // MOVE | ABSOLUTE | VIRTUALDESK
+                X = (int)((((long)x - GetSystemMetrics(76)) * 65536 + 32768) / GetSystemMetrics(78)),
+                Y = (int)((((long)y - GetSystemMetrics(77)) * 65536 + 32768) / GetSystemMetrics(79)),
+                Flags = 0xE001, // MOVE | MOVE_NOCOALESCE | ABSOLUTE | VIRTUALDESK
             },
         },
     });
