@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Windows.Graphics.Imaging;
@@ -51,6 +52,21 @@ internal static class DesktopCapture
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore, (uint)frame.Width, (uint)frame.Height, 96, 96, frame.Pixels);
         await encoder.FlushAsync();
+    }
+
+    public static async Task SaveSequenceAsync(string directory, IReadOnlyList<Frame> frames, IReadOnlyList<double> seconds)
+    {
+        Directory.CreateDirectory(directory);
+        var concat = new List<string>();
+        for (var i = 0; i < frames.Count; i++)
+        {
+            await SaveAsync(frames[i], Path.Combine(directory, $"frame-{i:D4}.png"));
+            concat.Add($"file 'frame-{i:D4}.png'");
+            var duration = i + 1 < seconds.Count ? seconds[i + 1] - seconds[i] : 0.4;
+            concat.Add("duration " + duration.ToString("F6", CultureInfo.InvariantCulture));
+        }
+        concat.Add($"file 'frame-{frames.Count - 1:D4}.png'");
+        File.WriteAllLines(Path.Combine(directory, "frames.txt"), concat);
     }
 
     [StructLayout(LayoutKind.Sequential)] private struct Point { public int X, Y; }

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -54,18 +53,7 @@ internal static class NativeInteractionChecks
         await Task.Delay(180);
         Check(Math.Abs(toggle.ActualWidth - toggleWidth) < 0.01 && toggle.IsOn == original,
             "Rapid toggle reversals settle without changing hitbox or saved configuration");
-        for (var frame = 0; frame < capturedFrames.Count; frame++)
-            await DesktopCapture.SaveAsync(capturedFrames[frame], Path.Combine(frames, $"frame-{frame:D4}.png"));
-        capturedFrames.Clear();
-        var concat = new List<string>();
-        for (var frame = 0; frame < timestamps.Count; frame++)
-        {
-            concat.Add($"file 'frame-{frame:D4}.png'");
-            var duration = frame + 1 < timestamps.Count ? timestamps[frame + 1] - timestamps[frame] : 0.4;
-            concat.Add("duration " + duration.ToString("F6", CultureInfo.InvariantCulture));
-        }
-        concat.Add($"file 'frame-{timestamps.Count - 1:D4}.png'");
-        File.WriteAllLines(Path.Combine(frames, "frames.txt"), concat);
+        await DesktopCapture.SaveSequenceAsync(frames, capturedFrames, timestamps);
         File.AppendAllText(Path.Combine(directory, "interaction-checks.txt"),
             $"Native frames: {timestamps.Count}; Windows animations enabled: {new Windows.UI.ViewManagement.UISettings().AnimationsEnabled}\n");
 

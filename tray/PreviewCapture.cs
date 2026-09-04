@@ -28,6 +28,7 @@ internal static class PreviewCapture
             dashboard.Activate();
             await CaptureAsync(dashboard, directory, "dashboard");
             await NativeHoverChecks.RunAsync(dashboard, directory, "SettingsButton", "PauseButton");
+            await NativeHoverChecks.CheckPressAsync(dashboard, directory);
             snapshot.PresenceEnabled = false;
             dashboard.UpdateSnapshot(snapshot);
             await CaptureAsync(dashboard, directory, "paused");

@@ -347,7 +347,7 @@
                     FontFamily="Cascadia Mono, Consolas"
                     FontSize="10"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="v2.5.2" />
+                    Text="v2.5.3" />
             </Grid>
         </Border>
     </Grid>

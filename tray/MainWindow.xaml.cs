@@ -190,7 +190,6 @@ public sealed partial class MainWindow : Window
     {
         var presentation = PresencePresentation.Create(snapshot, privacy, DateTimeOffset.Now, connectionError, lastConfirmedAt);
 
-        var contextChanged = ProjectName.Text != presentation.Project || CurrentFile.Text != presentation.CurrentFile;
         ConnectionStatus.Text = presentation.Connection;
         ConnectionDot.Fill = ToneBrush(presentation.ConnectionTone);
         ActivityContext.Text = presentation.ActivityContext;
@@ -224,7 +223,6 @@ public sealed partial class MainWindow : Window
             DiscordPreview,
             $"Discord activity preview. {presentation.PreviewTitle}. {presentation.PreviewPrimary}. {presentation.PreviewSecondary}");
 
-        if (contextChanged && RootLayout.IsLoaded && IsVisible) Motion.Reveal(DiscordPreview);
         PauseButton.IsEnabled = presentation.PauseEnabled && !presenceActionPending;
         PauseButtonText.Text = presenceActionPending ? "Updating…" : presentation.PauseText;
         PauseIcon.Glyph = snapshot?.PresenceEnabled == false ? "\uE768" : "\uE769";
