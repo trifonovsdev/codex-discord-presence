@@ -30,3 +30,11 @@ Check(Present().Session == "Elapsed 00:00:00", "future timestamps clamp to zero"
 snapshot.CodexRunning = false;
 Check(Present().PreviewLabel == "Not published", "closed Codex does not look published");
 Check(PresencePresentation.Create(null, privacy, now).PreviewLabel == "Not published", "offline is not published");
+
+foreach (var start in new DateTimeOffset?[] { null, now.AddHours(1), now.AddDays(-2) })
+{
+    snapshot.CodexStartedAt = start;
+    var timing = PresencePresentation.SessionTiming(snapshot, now);
+    Check(timing.Session == Present().Session && timing.Elapsed == Present().PreviewElapsed,
+        $"timer-only updates match the full projection for {start}");
+}

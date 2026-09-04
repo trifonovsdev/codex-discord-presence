@@ -88,10 +88,7 @@ internal sealed record PresencePresentation(
         var workspace = string.IsNullOrWhiteSpace(snapshot.SelectedRemote)
             ? "Local desktop"
             : snapshot.SelectedRemote!;
-        var elapsed = FormatElapsed(snapshot.CodexStartedAt, now);
-        var session = snapshot.CodexStartedAt is null
-            ? snapshot.CodexRunning ? "Active now" : "No active task"
-            : $"Elapsed {elapsed}";
+        var (session, elapsed) = SessionTiming(snapshot, now);
         var project = !string.IsNullOrWhiteSpace(snapshot.Project)
             ? snapshot.Project!
             : snapshot.CodexRunning ? "Working in Codex" : "Waiting for Codex";
@@ -213,6 +210,16 @@ internal sealed record PresencePresentation(
         return lastSlash >= 0 && lastSlash < normalized.Length - 1
             ? normalized[(lastSlash + 1)..]
             : normalized;
+    }
+
+    internal static (string Session, string Elapsed) SessionTiming(HealthSnapshot? snapshot, DateTimeOffset now)
+    {
+        if (snapshot is null) return ("Unavailable", "No active session");
+        var elapsed = FormatElapsed(snapshot.CodexStartedAt, now);
+        var session = snapshot.CodexStartedAt is null
+            ? snapshot.CodexRunning ? "Active now" : "No active task"
+            : $"Elapsed {elapsed}";
+        return (session, elapsed);
     }
 
     private static string FormatElapsed(DateTimeOffset? startedAt, DateTimeOffset now)

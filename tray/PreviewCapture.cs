@@ -35,16 +35,21 @@ internal static class PreviewCapture
             dashboard.UpdateSnapshot(snapshot);
             await CaptureAsync(dashboard, directory, "paused");
             dashboard.UpdateSnapshot(null);
+            WindowSizing.ResizeInDips(dashboard, 680, 700);
             await CaptureAsync(dashboard, directory, "offline");
             dashboard.HideWindow();
 
-            settings = new SettingsWindow(new ConfigStore(), new RemoteService(), new PresenceConfig());
-            settings.Activate();
-            await CaptureAsync(settings, directory, "settings-general");
-            settings.ShowPage("privacy");
-            await CaptureAsync(settings, directory, "settings-privacy");
-            settings.ShowPage("remote");
-            await CaptureAsync(settings, directory, "settings-ssh");
+            foreach (var section in new[] { "general", "privacy", "remote" })
+            {
+                // A fresh window avoids retained composition clips from an offscreen tab
+                // in RenderTargetBitmap; normal app navigation still reuses its controls.
+                settings = new SettingsWindow(new ConfigStore(), new RemoteService(), new PresenceConfig());
+                settings.ShowPage(section);
+                settings.Activate();
+                await CaptureAsync(settings, directory, section == "remote" ? "settings-ssh" : $"settings-{section}");
+                settings.Close();
+                settings = null;
+            }
         }
         finally
         {

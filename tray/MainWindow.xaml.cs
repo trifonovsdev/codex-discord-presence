@@ -39,7 +39,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
 
-        WindowSizing.ResizeInDips(this, 640, 454);
+        WindowSizing.ResizeInDips(this, 680, 560);
         AppWindow.Closing += AppWindow_Closing;
         Closed += MainWindow_Closed;
         RootLayout.ActualThemeChanged += (_, _) => Render();
@@ -217,10 +217,9 @@ public sealed partial class MainWindow : Window
 
     private void RenderTime()
     {
-        var presentation = PresencePresentation.Create(snapshot, privacy, DateTimeOffset.Now);
-        SessionValue.Text = presentation.Session;
-        PreviewElapsed.Text = presentation.PreviewElapsed;
-        PreviewTimerRow.Visibility = presentation.ShowPreviewElapsed ? Visibility.Visible : Visibility.Collapsed;
+        var (session, elapsed) = PresencePresentation.SessionTiming(snapshot, DateTimeOffset.Now);
+        SessionValue.Text = session;
+        PreviewElapsed.Text = elapsed;
     }
 
     private Brush ToneBrush(PresenceTone tone)

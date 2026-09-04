@@ -55,6 +55,8 @@ async function withDaemon(configPatch, run) {
     stdio: 'ignore',
     windowsHide: true,
   });
+  // Observe exit before requesting shutdown: a fast process can exit during fetch.
+  const exited = new Promise((resolve) => child.once('exit', resolve));
 
   try {
     await run({ port, root, configPath });
@@ -62,14 +64,10 @@ async function withDaemon(configPatch, run) {
     try {
       await json(port, '/control', { action: 'shutdown' });
     } catch {}
-    await new Promise((resolve) => {
-      // A daemon that ignores the shutdown request must not hang the suite.
-      const kill = setTimeout(() => child.kill('SIGKILL'), 3000);
-      child.once('exit', () => {
-        clearTimeout(kill);
-        resolve();
-      });
-    });
+    // A daemon that ignores the shutdown request must not hang the suite.
+    const kill = setTimeout(() => child.kill('SIGKILL'), 3000);
+    await exited;
+    clearTimeout(kill);
     fs.rmSync(root, { recursive: true, force: true });
   }
 }

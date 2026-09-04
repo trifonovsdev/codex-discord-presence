@@ -92,7 +92,7 @@ test('the compact shell uses the official Codex app artwork', () => {
   const project = source('tray/CodexPresence.Tray.csproj');
   const icon = path.join(repository, 'assets', 'codex-app-icon.png');
 
-  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*640,\s*454\)/);
+  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*680,\s*560\)/);
   assert.match(xaml, /codex-app-icon\.png/);
   assert.match(xaml, /x:Name="PreviewIconViewport"/);
   assert.match(xaml, /Width="54"\s+Height="54"/);
@@ -204,7 +204,7 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
   assert.doesNotMatch(xaml, /OnContent=|OffContent=/);
   assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
   assert.match(xaml, /x:Key="SettingsRowContainerStyle"/);
-  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*680,\s*550\)/);
+  assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*740,\s*620\)/);
   assert.match(code, /using Microsoft\.UI\.Xaml\.Controls\.Primitives;/);
   assert.match(code, /SectionButtonClicked/);
   assert.match(code, /SetActiveSection/);

@@ -35,7 +35,7 @@ A calmer dashboard, clearer feedback, and a preview you can trust.
 - **More room to read:** larger project title, a roomier Discord card, brighter secondary labels, and 34 px compact action targets.
 - **Honest publication state:** “Published” appears only after Discord acknowledges the activity. Paused, offline, and waiting states say “Not published”.
 - **Useful session context:** activity source, workspace, and elapsed time are visible together. Long project names and paths have tooltips.
-- **Predictable controls:** pause/resume shows progress and ignores duplicate requests. Mouse and keyboard feedback uses short, interruptible opacity animations and respects Windows' animation setting.
+- **Predictable controls:** pause/resume shows progress and ignores duplicate requests. Mouse and keyboard feedback uses short, interruptible opacity animations and respects Windows' animation setting. Timer ticks update only time labels; they no longer rebuild the whole presentation.
 - **Reproducible previews:** Windows CI renders the actual WinUI screens with synthetic data; no Discord account or private workspace is used.
 
 ## Install
