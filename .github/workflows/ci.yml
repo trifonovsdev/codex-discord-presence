@@ -39,6 +39,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Test presentation behavior
         run: dotnet run --project tests/presentation/PresentationTests.csproj -c Release
+      - name: Test local daemon connection
+        run: dotnet run --project tests/daemon-client/DaemonClientTests.csproj -c Release
       - name: Test updater behavior
         run: dotnet run --project tests/updater/UpdaterTests.csproj -c Release
       - name: Build tray application
@@ -58,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-screenshots
-          path: ${{ runner.temp }}/presence-screenshots/*.png
+          path: ${{ runner.temp }}/presence-screenshots/
       - name: Verify C# formatting
         run: dotnet format tray/CodexPresence.Tray.csproj --verify-no-changes --no-restore
 

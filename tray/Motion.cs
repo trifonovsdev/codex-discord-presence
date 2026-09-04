@@ -1,5 +1,4 @@
 using System.Numerics;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Windows.UI.ViewManagement;
 
@@ -7,52 +6,31 @@ namespace CodexPresence;
 
 internal static class Motion
 {
-    private static readonly TimeSpan PressDuration = TimeSpan.FromMilliseconds(80);
-    private static readonly TimeSpan SettleDuration = TimeSpan.FromMilliseconds(120);
     private static readonly Lazy<UISettings?> SystemSettings = new(CreateSystemSettings);
 
-    public static void AttachButtonFeedback(params Button[] buttons)
+    public static void Fade(Microsoft.UI.Xaml.UIElement element, float opacity, int milliseconds = 140)
     {
-        foreach (var button in buttons)
-        {
-            button.KeyDown += (_, args) =>
-            {
-                if (args.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
-                    AnimateOpacity(button, 0.88f, PressDuration);
-            };
-            button.KeyUp += (_, args) =>
-            {
-                if (args.Key is Windows.System.VirtualKey.Space or Windows.System.VirtualKey.Enter)
-                    AnimateOpacity(button, 1f, SettleDuration);
-            };
-            button.LostFocus += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
-            button.IsEnabledChanged += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
-            button.PointerPressed += (_, _) => AnimateOpacity(button, 0.88f, PressDuration);
-            button.PointerReleased += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
-            button.PointerCanceled += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
-            button.PointerCaptureLost += (_, _) => AnimateOpacity(button, 1f, SettleDuration);
-        }
-    }
-
-    private static void AnimateOpacity(Button button, float value, TimeSpan duration)
-    {
-        var visual = ElementCompositionPreview.GetElementVisual(button);
-
+        var visual = ElementCompositionPreview.GetElementVisual(element);
         if (!AnimationsEnabled)
         {
             visual.StopAnimation("Opacity");
-            visual.Opacity = value;
+            visual.Opacity = opacity;
             return;
         }
-
-        var compositor = visual.Compositor;
-        var easing = compositor.CreateCubicBezierEasingFunction(
-            new Vector2(0.16f, 1f),
-            new Vector2(0.3f, 1f));
-        var animation = compositor.CreateScalarKeyFrameAnimation();
-        animation.InsertKeyFrame(1f, value, easing);
-        animation.Duration = duration;
+        var animation = visual.Compositor.CreateScalarKeyFrameAnimation();
+        var easing = visual.Compositor.CreateCubicBezierEasingFunction(new Vector2(0.16f, 1f), new Vector2(0.3f, 1f));
+        animation.InsertKeyFrame(1f, opacity, easing);
+        animation.Duration = TimeSpan.FromMilliseconds(milliseconds);
+        // No explicit start frame: rapid reversals continue from the current visual value.
         visual.StartAnimation("Opacity", animation);
+    }
+
+    public static void Reveal(Microsoft.UI.Xaml.UIElement element)
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(element);
+        visual.StopAnimation("Opacity");
+        visual.Opacity = AnimationsEnabled ? 0.6f : 1f;
+        Fade(element, 1f);
     }
 
     private static bool AnimationsEnabled

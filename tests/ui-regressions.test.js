@@ -157,26 +157,19 @@ test('release hosts activity-name publishing in an isolated Social SDK bridge', 
   assert.match(installer, /discord_partner_sdk\.dll/);
 });
 
-test('micro-interactions keep button hitboxes fixed and respect Windows animation settings', () => {
+test('interaction feedback uses native states without competing whole-button animations', () => {
   const motion = source('tray/Motion.cs');
-  const main = source('tray/MainWindow.xaml.cs');
-  const settings = source('tray/SettingsWindow.xaml.cs');
-  const resources = source('tray/App.xaml');
-
+  const app = source('tray/App.xaml');
+  const settings = source('tray/SettingsWindow.xaml');
   assert.match(motion, /AnimationsEnabled/);
   assert.match(motion, /CreateCubicBezierEasingFunction/);
-  assert.match(motion, /StartAnimation\("Opacity"/);
-  assert.match(motion, /PointerPressed/);
-  assert.match(motion, /PointerReleased/);
-  assert.doesNotMatch(motion, /PointerEntered|PointerExited|CenterPoint|Scale/);
-  assert.doesNotMatch(motion, /Spring|Bounce|AutoReverse/);
-  assert.match(main, /Motion\.AttachButtonFeedback/);
-  assert.match(settings, /Motion\.AttachButtonFeedback/);
-  assert.match(resources, /x:Key="QuietButtonTemplate"/);
-  assert.match(resources, /x:Key="QuietAccentButtonTemplate"/);
-  assert.doesNotMatch(resources, /BrushTransition/, 'hover feedback must not cross-fade or flash');
-  assert.match(resources, /<VisualState x:Name="PointerOver">\s*<VisualState\.Setters>/);
-  assert.match(main, /sessionTimer\.Tick \+= \(_, _\) => RenderTime\(\)/);
+  assert.doesNotMatch(motion, /AttachButtonFeedback|PointerPressed|KeyDown|Scale/);
+  assert.match(app, /BasedOn="\{StaticResource DefaultButtonStyle\}"/);
+  assert.doesNotMatch(app, /QuietButtonTemplate|QuietAccentButtonTemplate/);
+  assert.match(settings, /TargetType="ToggleSwitch" BasedOn="\{StaticResource DefaultToggleSwitchStyle\}"/);
+  assert.doesNotMatch(settings, /ToggleThumb.HorizontalAlignment|ToggleThumb.Margin/);
+  assert.match(settings, /RadioButton GroupName="SettingsSections"/);
+  assert.match(source('tray/MainWindow.xaml.cs'), /sessionTimer.Tick \+= \(_, _\) => RenderTime\(\)/);
 });
 
 test('WinUI windows size in logical pixels on high-DPI displays', () => {
@@ -197,7 +190,7 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
   assert.match(xaml, /x:Name="SettingsSidebar"/);
   assert.match(xaml, /x:Name="SettingsFooter"/);
   assert.match(xaml, /x:Key="SettingsNavButtonTemplate"/);
-  assert.match(xaml, /x:Key="SettingsToggleTemplate"/);
+  assert.match(xaml, /x:Key="SettingsToggleStyle"/);
   assert.match(xaml, /x:Key="SettingsComboBoxItemStyle"/);
   assert.match(xaml, /x:Key="ComboBoxDropDownBackground"/);
   assert.match(xaml, /x:Key="ComboBoxItemPillFillBrush"/);
@@ -205,8 +198,7 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
   assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
   assert.match(xaml, /x:Key="SettingsRowContainerStyle"/);
   assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*740,\s*620\)/);
-  assert.match(code, /using Microsoft\.UI\.Xaml\.Controls\.Primitives;/);
-  assert.match(code, /SectionButtonClicked/);
+  assert.match(code, /SectionButtonChecked/);
   assert.match(code, /SetActiveSection/);
   for (const tag of ['general', 'privacy', 'remote']) {
     assert.match(xaml, new RegExp(`Tag="${tag}"`));
@@ -244,7 +236,7 @@ test('Doctor exposes loading, results, rerun, and copy states', () => {
   assert.match(xaml, /x:Name="CopyReportButton"/);
   assert.match(code, /diagnostics\.RunAsync/);
   assert.match(code, /Clipboard\.SetContent/);
-  assert.match(code, /item\.Passed\s*\?\s*"PASS"\s*:\s*"FAIL"/);
+  assert.match(code, /"UNKNOWN"/);
 });
 
 test('notification-area lifecycle is native Win32, not WinForms', () => {

@@ -17,3 +17,6 @@ Thumbs.db
 
 tests/updater/bin/
 tests/updater/obj/
+
+tests/daemon-client/bin/
+tests/daemon-client/obj/

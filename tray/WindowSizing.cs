@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Windowing;
 using Windows.Graphics;
 using WinRT.Interop;
 
@@ -24,6 +25,20 @@ internal static class WindowSizing
 
     internal static int DipsToPixels(int dips, double scale) =>
         Math.Max(1, checked((int)Math.Ceiling(dips * scale)));
+
+    public static void SetMinimumInDips(Window window, int width, int height)
+    {
+        void Apply()
+        {
+            if (window.AppWindow.Presenter is not OverlappedPresenter presenter) return;
+            var dpi = GetDpiForWindow(WindowNative.GetWindowHandle(window));
+            var scale = (dpi == 0 ? DefaultDpi : dpi) / DefaultDpi;
+            presenter.PreferredMinimumWidth = DipsToPixels(width, scale);
+            presenter.PreferredMinimumHeight = DipsToPixels(height, scale);
+        }
+        Apply();
+        window.AppWindow.Changed += (_, args) => { if (args.DidPositionChange) Apply(); };
+    }
 
     [DllImport("user32.dll", ExactSpelling = true)]
     private static extern uint GetDpiForWindow(nint window);

@@ -43,7 +43,7 @@
             Grid.Row="1"
             BorderBrush="{ThemeResource BorderBrush}"
             BorderThickness="0,1,0,1">
-            <Grid Padding="18,0,10,0">
+            <Grid Padding="24,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -54,7 +54,7 @@
                     <TextBlock Foreground="{ThemeResource TextMutedBrush}" Text="/" />
                     <TextBlock
                         x:Name="ActivityContext"
-                        MaxWidth="230"
+                        MaxWidth="200"
                         FontSize="12"
                         Foreground="{ThemeResource TextSecondaryBrush}"
                         Text="Session monitor · Local desktop"
@@ -82,6 +82,7 @@
                     </Button>
                     <Button
                         x:Name="PauseButton"
+                        MinWidth="136"
                         Style="{StaticResource CompactButtonStyle}"
                         Click="PauseButton_Click"
                         AutomationProperties.Name="Pause presence">
@@ -100,10 +101,7 @@
             VerticalScrollBarVisibility="Auto">
             <Grid Padding="24,20,24,20">
                 <StackPanel>
-                    <InfoBar x:Name="UpdateBar" IsOpen="False" IsClosable="False" Severity="Informational"
-                             Title="Updating Codex Presence" Margin="0,0,0,16" AutomationProperties.LiveSetting="Polite">
-                        <ProgressBar x:Name="UpdateDownloadProgress" IsIndeterminate="True" Margin="0,8,0,0" />
-                    </InfoBar>
+
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -160,13 +158,15 @@
                                 TextTrimming="CharacterEllipsis" />
                             <TextBlock
                                 x:Name="CopyStatus"
+                                Opacity="0"
+                                IsHitTestVisible="False"
                                 Grid.Column="1"
                                 Margin="10,0,5,0"
                                 VerticalAlignment="Center"
                                 FontSize="11"
                                 Foreground="{ThemeResource SuccessBrush}"
                                 Text="Copied"
-                                Visibility="Collapsed"
+
                                 AutomationProperties.LiveSetting="Polite" />
                             <Button
                                 x:Name="CopyPathButton"
@@ -186,22 +186,6 @@
                         </Grid>
                     </StackPanel>
 
-                    <InfoBar
-                        x:Name="WarningBar"
-                        Margin="0,11,0,0"
-                        IsClosable="False"
-                        IsOpen="False"
-                        Severity="Warning"
-                        Title="Presence needs attention"
-                        AutomationProperties.LiveSetting="Assertive">
-                        <InfoBar.ActionButton>
-                            <Button
-                                Style="{StaticResource CompactButtonStyle}"
-                                Click="DiagnosticsButton_Click"
-                                AutomationProperties.Name="Open Doctor for this warning"
-                                Content="Open Doctor" />
-                        </InfoBar.ActionButton>
-                    </InfoBar>
 
                     <Grid Margin="0,16,0,0">
                         <Grid.ColumnDefinitions>
@@ -318,6 +302,26 @@
                             <TextBlock x:Name="SessionValue" FontSize="12" FontFamily="Cascadia Mono, Consolas" />
                         </StackPanel>
                     </Grid>
+                    <InfoBar
+                        x:Name="WarningBar"
+                        Margin="0,11,0,0"
+                        IsClosable="False"
+                        IsOpen="False"
+                        Severity="Warning"
+                        Title="Presence needs attention"
+                        AutomationProperties.LiveSetting="Assertive">
+                        <InfoBar.ActionButton>
+                            <Button
+                                Style="{StaticResource CompactButtonStyle}"
+                                Click="DiagnosticsButton_Click"
+                                AutomationProperties.Name="Open Doctor for this warning"
+                                Content="Open Doctor" />
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                    <InfoBar x:Name="UpdateBar" IsOpen="False" IsClosable="False" Severity="Informational"
+                             Title="Updating Codex Presence" Margin="0,16,0,0" AutomationProperties.LiveSetting="Polite">
+                        <ProgressBar x:Name="UpdateDownloadProgress" IsIndeterminate="True" Margin="0,8,0,0" />
+                    </InfoBar>
                 </StackPanel>
             </Grid>
         </ScrollViewer>
@@ -326,7 +330,7 @@
             Grid.Row="3"
             BorderBrush="{ThemeResource BorderBrush}"
             BorderThickness="0,1,0,0">
-            <Grid Padding="20,0">
+            <Grid Padding="24,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -343,7 +347,7 @@
                     FontFamily="Cascadia Mono, Consolas"
                     FontSize="10"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="v2.5.1" />
+                    Text="v2.5.2" />
             </Grid>
         </Border>
     </Grid>

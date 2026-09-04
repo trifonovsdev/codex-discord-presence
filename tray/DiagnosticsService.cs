@@ -53,7 +53,7 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
         result.Add(new("Discord Social SDK", File.Exists(AppPaths.SocialSdkPath), SafePath(AppPaths.SocialSdkPath)));
 
         var health = await daemon.HealthAsync(cancellationToken);
-        result.Add(new("Local daemon", health?.Ok == true, health is null ? "Not reachable" : $"v{health.Version} on 127.0.0.1:{config?.Port}"));
+        result.Add(new("Local daemon", health?.Ok == true, health is null ? daemon.LastHealthError ?? "Status unavailable" : $"v{health.Version} on 127.0.0.1:{config?.Port}"));
 
         // Surfaces fields the daemon rejected, which otherwise only appear in presence.log.
         if (health?.ConfigWarnings is { Count: > 0 } warnings)
@@ -64,8 +64,9 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
         var publisher = health?.RpcTransport == "social-sdk" ? "Social SDK" : "legacy RPC fallback";
         result.Add(new(
             "Discord publisher",
-            health?.RpcReady == true,
-            health?.RpcReady == true
+            health?.RpcReady,
+            health is null ? "Not checked: local status is unavailable. Discord may still be publishing."
+            : health.RpcReady
                 ? $"Connected through {publisher}"
                 : health?.RpcError ?? "Open Discord Desktop and enable Activity Privacy"));
 
@@ -75,7 +76,8 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
         var hooksOk = false;
         try { hooksOk = File.ReadAllText(AppPaths.HooksPath).Replace("\\\\", "\\").Contains(AppPaths.HookPath, StringComparison.OrdinalIgnoreCase); } catch { }
         var hookDetail = hooksOk
-            ? health?.LastHookAt is { } observed
+            ? health is null ? "Registered; event delivery could not be checked while local status is unavailable."
+            : health.LastHookAt is { } observed
                 ? $"Last event received {observed.ToLocalTime():g}"
                 : "Registered; no event received since the service started — open a task and review Codex hook permissions if this persists"
             : $"Not registered in {SafePath(AppPaths.HooksPath)} — restart ChatGPT/Codex once after installing";

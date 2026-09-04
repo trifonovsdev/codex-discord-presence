@@ -1,34 +1,62 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace CodexPresence;
 
 public sealed class DaemonService : IDisposable
 {
-    private readonly ConfigStore configStore;
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(3) };
+    private readonly Func<int> readPort;
+    // Loopback status/control must not follow the user's internet proxy or redirects.
+    private readonly HttpClient http;
     private Process? ownedProcess;
-    private int? cachedPort;
+    public string? LastHealthError { get; private set; }
 
-    public DaemonService(ConfigStore configStore) => this.configStore = configStore;
+    public DaemonService(ConfigStore configStore) : this(() => configStore.Load().Port) { }
 
-    /// <summary>Forces the port to be re-read after the settings were saved.</summary>
-    public void InvalidateEndpoint() => cachedPort = null;
+    internal DaemonService(Func<int> readPort, HttpMessageHandler? handler = null)
+    {
+        this.readPort = readPort;
+        http = new HttpClient(handler ?? new HttpClientHandler { UseProxy = false, AllowAutoRedirect = false })
+        { Timeout = TimeSpan.FromSeconds(3) };
+    }
 
-    /// <summary>
-    /// The port used to be re-read and re-parsed from disk on every health
-    /// poll — twice a second, forever. It only changes when settings are saved.
-    /// </summary>
+    /// <summary>Also follows configuration changes made by the installer or another tray instance.</summary>
     private Uri Endpoint(string path)
     {
-        cachedPort ??= configStore.Load().Port;
-        return new Uri($"http://127.0.0.1:{cachedPort}{path}");
+        var port = readPort();
+        if (port is < 1 or > 65535) port = 37642;
+        return new Uri($"http://127.0.0.1:{port}{path}");
     }
 
     public async Task<HealthSnapshot?> HealthAsync(CancellationToken cancellationToken = default)
     {
-        try { return await http.GetFromJsonAsync<HealthSnapshot>(Endpoint("/health"), cancellationToken); }
-        catch { return null; }
+        try
+        {
+            var snapshot = await http.GetFromJsonAsync<HealthSnapshot>(Endpoint("/health"), cancellationToken);
+            if (snapshot?.Ok != true)
+            {
+                LastHealthError = "The local endpoint did not return a valid presence status.";
+                return null;
+            }
+            LastHealthError = null;
+            return snapshot;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            LastHealthError = "The local status request timed out. The app will retry automatically.";
+        }
+        catch (HttpRequestException error)
+        {
+            LastHealthError = error.StatusCode is { } status
+                ? $"The local service returned HTTP {(int)status}."
+                : "The app could not connect to the local status endpoint. It will retry automatically.";
+        }
+        catch (JsonException error)
+        {
+            LastHealthError = $"The local service returned an incompatible status (field: {error.Path ?? "$"}).";
+        }
+        return null;
     }
 
     public async Task EnsureRunningAsync()

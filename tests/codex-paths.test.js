@@ -10,12 +10,27 @@ const {
   isAnyFilesystemRoot,
   isFilesystemRoot,
   projectFromCwd,
+  projectNameFromCwd,
   projectFromSession,
   resolveSessionProject,
   repositoryProjectFromFile,
   shortenPath,
   toolPayloadFromRecord,
 } = require('../src/codex-paths');
+
+test('Codex internal task folders do not become project names', () => {
+  const id = '01a06df8-f303-7552-98da-e93dc4cde401';
+  const internal = `/root/.codex/visualizations/2026/09/04/${id}`;
+  const options = { fileSystem: fakeFileSystem([]), now: 1001 };
+  assert.equal(projectFromCwd(internal), null);
+  assert.equal(projectNameFromCwd(internal), null);
+  assert.equal(projectFromSession({ cwd: '/root', workspaceRoots: [internal], lastFile: null }, options), null);
+  assert.equal(projectFromSession({ cwd: 'C:\\work\\presence', workspaceRoots: [internal], lastFile: null }, options), 'presence');
+  assert.equal(projectFromSession({ cwd: internal, workspaceRoots: [], lastFile: 'src/index.ts' }, options), null);
+  assert.equal(resolveSessionProject({ cwd: internal, workspaceRoots: [], lastFile: null }, 'presence', options), 'presence');
+  assert.equal(projectFromCwd('C:\\Users\\dev\\.codex\\worktrees\\a9f8\\presence'), 'presence', 'real Codex worktrees remain supported');
+  assert.equal(projectFromCwd(`C:\\projects\\${id}`), id, 'a user repository may legitimately have a UUID name');
+});
 
 /** Minimal in-memory filesystem so repository detection is testable anywhere. */
 function fakeFileSystem(paths) {

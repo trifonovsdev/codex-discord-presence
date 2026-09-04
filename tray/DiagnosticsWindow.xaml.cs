@@ -33,7 +33,6 @@ public sealed partial class DiagnosticsWindow : Window
         WindowSizing.ResizeInDips(this, 760, 620);
         AppWindow.Closing += OnWindowClosing;
         RootLayout.ActualThemeChanged += (_, _) => RefreshStatusBrushes();
-        Motion.AttachButtonFeedback(RunAgainButton, CopyReportButton, CloseButton);
     }
 
     /// <summary>Shows Doctor and starts its checks on the first presentation.</summary>
@@ -140,8 +139,9 @@ public sealed partial class DiagnosticsWindow : Window
         latestResults = results.ToArray();
         RefreshStatusBrushes();
 
-        var passed = latestResults.Count(item => item.Passed);
-        var failed = latestResults.Count - passed;
+        var passed = latestResults.Count(item => item.Passed == true);
+        var failed = latestResults.Count(item => item.Passed == false);
+        var unknown = latestResults.Count(item => item.Passed is null);
 
         if (latestResults.Count == 0)
         {
@@ -158,18 +158,18 @@ public sealed partial class DiagnosticsWindow : Window
         EmptyState.Visibility = Visibility.Collapsed;
         ResultsList.Visibility = Visibility.Visible;
 
-        if (failed == 0)
+        if (failed == 0 && unknown == 0)
         {
             SummaryText.Text = $"All {passed} checks passed";
             SummaryDot.Fill = ThemeBrush("SuccessBrush");
         }
         else
         {
-            SummaryText.Text = $"{failed} {(failed == 1 ? "check needs" : "checks need")} attention";
+            SummaryText.Text = $"{failed} need attention · {unknown} not checked";
             SummaryDot.Fill = ThemeBrush("DangerBrush");
         }
 
-        AutomationProperties.SetName(ResultsList, $"Diagnostic results. {passed} passed, {failed} failed.");
+        AutomationProperties.SetName(ResultsList, $"Diagnostic results. {passed} passed, {failed} failed, {unknown} not checked.");
     }
 
     private void RefreshStatusBrushes()
@@ -182,7 +182,7 @@ public sealed partial class DiagnosticsWindow : Window
 
         SummaryDot.Fill = latestResults.Count == 0
             ? ThemeBrush("TextSecondaryBrush")
-            : ThemeBrush(latestResults.Any(item => !item.Passed) ? "DangerBrush" : "SuccessBrush");
+            : ThemeBrush(latestResults.Any(item => item.Passed == false) ? "DangerBrush" : "SuccessBrush");
     }
 
     private async void CopyReportButton_Click(object sender, RoutedEventArgs e)
@@ -217,12 +217,12 @@ public sealed partial class DiagnosticsWindow : Window
         {
             "Codex Presence Doctor",
             $"Generated: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}",
-            "Format: [PASS|FAIL] Check name: details",
+            "Format: [PASS|FAIL|UNKNOWN] Check name: details",
             string.Empty,
         };
 
         lines.AddRange(latestResults.Select(item =>
-            $"[{(item.Passed ? "PASS" : "FAIL")}] {item.Name}: {item.Detail}"));
+            $"[{(item.Passed is null ? "UNKNOWN" : item.Passed == true ? "PASS" : "FAIL")}] {item.Name}: {item.Detail}"));
 
         return string.Join(Environment.NewLine, lines);
     }
@@ -252,10 +252,10 @@ public sealed class DiagnosticResultViewModel
         Name = item.Name;
         Detail = item.Detail;
         Passed = item.Passed;
-        StatusLabel = Passed ? "Passed" : "Needs attention";
-        StatusGlyph = Passed ? "\uE73E" : "\uE7BA";
-        StatusBrush = Application.Current.Resources[Passed ? "SuccessBrush" : "DangerBrush"] as Brush
-            ?? new SolidColorBrush(Passed ? Microsoft.UI.Colors.SeaGreen : Microsoft.UI.Colors.IndianRed);
+        StatusLabel = Passed is null ? "Not checked" : Passed == true ? "Passed" : "Needs attention";
+        StatusGlyph = Passed is null ? "\uE946" : Passed == true ? "\uE73E" : "\uE7BA";
+        StatusBrush = Application.Current.Resources[Passed is null ? "TextMutedBrush" : Passed == true ? "SuccessBrush" : "DangerBrush"] as Brush
+            ?? new SolidColorBrush(Passed == true ? Microsoft.UI.Colors.SeaGreen : Microsoft.UI.Colors.IndianRed);
         AccessibilityLabel = $"{Name}: {StatusLabel}. {Detail}";
     }
 
@@ -263,7 +263,7 @@ public sealed class DiagnosticResultViewModel
 
     public string Detail { get; }
 
-    public bool Passed { get; }
+    public bool? Passed { get; }
 
     public string StatusLabel { get; }
 
