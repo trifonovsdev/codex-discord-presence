@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Windows.Foundation;
 using WinRT.Interop;
 
@@ -33,7 +34,7 @@ internal static class NativeHoverChecks
         {
             foreach (var name in names)
             {
-                var button = (Control)root.FindName(name);
+                var button = (ButtonBase)root.FindName(name);
                 var position = button.TransformToVisual(root).TransformPoint(new Point());
                 var scale = root.XamlRoot.RasterizationScale;
                 var x = (int)Math.Round(position.X * scale);
