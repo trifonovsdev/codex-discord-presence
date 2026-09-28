@@ -32,7 +32,7 @@ internal static class PreviewCapture
             await CaptureAsync(dashboard, directory, "paused");
             claude.PresenceEnabled = true;
             dashboard.UpdateSnapshot(claude, "The local status request timed out. Retrying automatically.");
-            WindowSizing.ResizeInDips(dashboard, 680, 620);
+            WindowSizing.ResizeInDips(dashboard, 680, 660);
             await CaptureAsync(dashboard, directory, "offline");
             dashboard.HideWindow();
 

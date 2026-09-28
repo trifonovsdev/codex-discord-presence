@@ -9,6 +9,32 @@
     Title="Codex Presence">
 
     <Grid x:Name="RootLayout" Background="{ThemeResource WindowBackgroundBrush}">
+        <Grid.Resources>
+            <ResourceDictionary>
+                <!-- InfoBars use the app's warning and danger surfaces instead of system yellow and red. -->
+                <ResourceDictionary.ThemeDictionaries>
+                    <ResourceDictionary x:Key="Light">
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityBackgroundBrush" Color="#F7EDD8" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityBackgroundBrush" Color="#F8E4DF" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityIconBackground" Color="#8A5A00" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityIconBackground" Color="#B0402C" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityIconBackground" Color="#B55536" />
+                        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#E8E6DC" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Dark">
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityBackgroundBrush" Color="#362D1C" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityBackgroundBrush" Color="#3A2521" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityIconBackground" Color="#E0B062" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityIconBackground" Color="#EE8A78" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityIconBackground" Color="#D97757" />
+                        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#3A3935" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="HighContrast" />
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="56" />
@@ -366,7 +392,7 @@
                         </StackPanel>
                         <StackPanel Grid.Column="3" Spacing="4">
                             <TextBlock Text="Session" Style="{StaticResource CaptionTextStyle}" />
-                            <TextBlock x:Name="SessionValue" FontSize="13" FontFamily="{StaticResource MonoFontFamily}" />
+                            <TextBlock x:Name="SessionValue" Margin="0,1,0,0" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" />
                         </StackPanel>
                     </Grid>
                     <InfoBar

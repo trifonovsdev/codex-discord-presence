@@ -374,3 +374,15 @@ test('presence actions cannot race and release their pending state after failure
   assert.match(source('tray/MainWindow.xaml.cs'), /presentation\.PauseEnabled && !presenceActionPending/);
   assert.doesNotMatch(source('tray/MainWindow.xaml'), /LIVE CARD/);
 });
+
+test('native switches, inputs and InfoBars use the app palette in each window theme', () => {
+  const settings = source('tray/SettingsWindow.xaml');
+  const dashboard = source('tray/MainWindow.xaml');
+  for (const theme of ['Light', 'Dark']) {
+    const scoped = settings.split(`<ResourceDictionary x:Key="${theme}">`)[1].split('</ResourceDictionary>')[0];
+    assert.match(scoped, /x:Key="ToggleSwitchFillOn" Color="#(?:B55536|D97757)"/, `${theme} switches are clay, not the Windows accent`);
+    assert.match(scoped, /x:Key="TextControlBorderBrushFocused"/);
+    const info = dashboard.split(`<ResourceDictionary x:Key="${theme}">`)[1].split('</ResourceDictionary>')[0];
+    assert.match(info, /x:Key="InfoBarWarningSeverityBackgroundBrush"/);
+  }
+});
