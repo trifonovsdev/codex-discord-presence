@@ -501,7 +501,8 @@ class ClaudeCodeMonitor extends EventEmitter {
       }
       : { active: false };
 
-    const { activityAt, focusAt, sessions, ...stable } = this.current;
+    // Focus is part of the signature: a new prompt can move the card between agents.
+    const { activityAt, sessions, ...stable } = this.current;
     const signature = JSON.stringify(stable);
     if (signature === this.lastSignature) return false;
     this.lastSignature = signature;

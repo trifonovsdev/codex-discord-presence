@@ -321,7 +321,10 @@ function syncDesktopSelection() {
   if (newlyConfirmed) {
     selectedRemoteName = null;
     // Selecting a task in Codex Desktop is a deliberate focus change.
-    if (publishedDesktopRouteKey !== null) codexFocusAt = Date.now();
+    if (publishedDesktopRouteKey !== null) {
+      codexFocusAt = Date.now();
+      queuePresence();
+    }
   }
 
   const now = Date.now();
@@ -551,8 +554,9 @@ function checkCodexApp() {
         return;
       }
 
-      if (!appIsRunning) queuePresence(true);
+      const wasRunning = appIsRunning;
       appIsRunning = true;
+      if (!wasRunning) queuePresence(true);
       if (signature === appSignature && codexStartedAt) return;
       appSignature = signature;
       readProcessStart();
@@ -602,7 +606,11 @@ function handleHook(payload) {
     return;
   }
   lastHookAt = new Date().toISOString();
-  if (FOCUS_EVENTS.has(event)) codexFocusAt = Date.now();
+  if (FOCUS_EVENTS.has(event)) {
+    // A prompt can hand the card back to Codex even when its project is unchanged.
+    codexFocusAt = Date.now();
+    queuePresence();
+  }
 
   const context = payloadThreadId ? readThreadContext(payloadThreadId, { codexHome: CODEX_HOME }) : null;
   const sessionChanged = Boolean(payloadThreadId && payloadThreadId !== currentSessionId);

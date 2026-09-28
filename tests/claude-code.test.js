@@ -166,6 +166,12 @@ test('hooks update the card instantly and SessionEnd releases it', () => {
     assert.equal(monitor.snapshot().source, 'claude-hook');
 
     now += 5000;
+    const changes = [];
+    monitor.on('change', (state) => changes.push(state.focusAt));
+    monitor.handleHook({ session_id: id, hook_event_name: 'UserPromptSubmit', cwd: '/work/docs' });
+    assert.deepEqual(changes, [now], 'a new prompt in the same session can move the card between agents');
+
+    now += 5000;
     monitor.handleHook({ session_id: id, hook_event_name: 'SessionEnd', cwd: '/work/docs' });
     assert.equal(monitor.snapshot().active, false);
   } finally {
