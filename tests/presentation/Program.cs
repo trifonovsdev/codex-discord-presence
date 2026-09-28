@@ -48,3 +48,40 @@ foreach (var start in new DateTimeOffset?[] { null, now.AddHours(1), now.AddDays
     Check(timing.Session == Present().Session && timing.Elapsed == Present().PreviewElapsed,
         $"timer-only updates match the full projection for {start}");
 }
+
+// Claude Code support: agent-aware snapshots from the 2.6 service.
+var claude = new HealthSnapshot
+{
+    PresenceEnabled = true, RpcReady = true, RpcPublished = true, CodexRunning = true,
+    Agent = "claude", AgentLabel = "Claude Code", AgentRunning = true,
+    Project = "storefront", File = "src/cart.ts", Source = "claude-transcript",
+    StartedAt = now.AddMinutes(-3), CodexStartedAt = now.AddHours(-5),
+    Activity = new PublishedActivity { Name = "Coding with Claude Code", Details = "Project: storefront", State = "Editing: src/cart.ts" },
+    Agents = new AgentsHealth
+    {
+        Codex = new CodexHealth { Enabled = true, Running = true },
+        Claude = new ClaudeHealth { Enabled = true, Installed = true, Active = true, Surface = "desktop", Sessions = 2 },
+    },
+};
+privacy = new PrivacyConfig();
+PresencePresentation PresentClaude() => PresencePresentation.Create(claude, privacy, now);
+Check(PresentClaude().Agent == "claude" && PresentClaude().AgentName == "Claude Code", "the card owner is Claude Code");
+Check(PresentClaude().Session == "Elapsed 00:03:00", "Claude Code uses its own run timer, not the Codex process start");
+Check(PresentClaude().PreviewTitle == "Coding with Claude Code" && PresentClaude().PreviewSecondary == "Editing: src/cart.ts", "preview mirrors the published activity");
+Check(PresentClaude().Source == "Claude Desktop", "desktop sessions are named after their surface");
+Check(PresentClaude().ClaudeChip.State == AgentChipState.Owner && PresentClaude().CodexChip.State == AgentChipState.Active, "chips show the owner and the other open agent");
+Check(PresentClaude().ClaudeChip.ToolTip.Contains("2 active sessions"), "the owner chip explains how many sessions are followed");
+
+claude.Agent = null;
+claude.AgentRunning = false;
+claude.StartedAt = null;
+claude.Agents.Codex.Running = false;
+claude.Agents.Claude.Active = false;
+Check(PresentClaude().Connection == "Waiting for an agent" && PresentClaude().PreviewLabel == "Not published", "idle agents publish nothing");
+Check(PresentClaude().Project == "Waiting for an agent" && PresentClaude().CopyPath is null, "stale project context is not shown while idle");
+Check(PresentClaude().Session == "No active session", "idle agents have no timer");
+claude.Agents.Codex.Enabled = false;
+Check(PresentClaude().Connection == "Waiting for Claude Code" && PresentClaude().PreviewAgent == "claude", "Claude-only setups wait for Claude Code");
+Check(PresentClaude().CodexChip.State == AgentChipState.Disabled, "a disabled agent is shown as off");
+var legacy = PresencePresentation.Create(new HealthSnapshot { PresenceEnabled = true, RpcReady = true, RpcPublished = true, CodexRunning = true, CodexStartedAt = now.AddMinutes(-1) }, privacy, now);
+Check(legacy.Agent == "codex" && legacy.Session == "Elapsed 00:01:00" && legacy.ClaudeChip.State == AgentChipState.Disabled, "an older service still renders as Codex");

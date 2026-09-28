@@ -19,11 +19,12 @@ public sealed partial class DiagnosticsWindow : Window
     private bool isRunning;
     private bool isClosed;
 
-    public DiagnosticsWindow(DiagnosticsService diagnostics)
+    public DiagnosticsWindow(DiagnosticsService diagnostics, string? appearance = null)
     {
         this.diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
 
         InitializeComponent();
+        ThemeResources.Apply(RootLayout, appearance);
         ResultsList.ItemsSource = displayedResults;
 
         ExtendsContentIntoTitleBar = true;
@@ -178,7 +179,7 @@ public sealed partial class DiagnosticsWindow : Window
         displayedResults.Clear();
         foreach (var item in latestResults)
         {
-            displayedResults.Add(new DiagnosticResultViewModel(item));
+            displayedResults.Add(new DiagnosticResultViewModel(item, ThemeBrush));
         }
 
         SummaryDot.Fill = latestResults.Count == 0
@@ -239,24 +240,19 @@ public sealed partial class DiagnosticsWindow : Window
         runCancellation?.Cancel();
     }
 
-    private static Brush ThemeBrush(string resourceKey)
-    {
-        return Application.Current.Resources[resourceKey] as Brush
-            ?? new SolidColorBrush(Microsoft.UI.Colors.Gray);
-    }
+    private Brush ThemeBrush(string resourceKey) => ThemeResources.Brush(RootLayout, resourceKey);
 }
 
 public sealed class DiagnosticResultViewModel
 {
-    public DiagnosticResultViewModel(DiagnosticItem item)
+    public DiagnosticResultViewModel(DiagnosticItem item, Func<string, Brush> brush)
     {
         Name = item.Name;
         Detail = item.Detail;
         Passed = item.Passed;
         StatusLabel = Passed is null ? "Not checked" : Passed == true ? "Passed" : "Needs attention";
         StatusGlyph = Passed is null ? "\uE946" : Passed == true ? "\uE73E" : "\uE7BA";
-        StatusBrush = Application.Current.Resources[Passed is null ? "TextMutedBrush" : Passed == true ? "SuccessBrush" : "DangerBrush"] as Brush
-            ?? new SolidColorBrush(Passed == true ? Microsoft.UI.Colors.SeaGreen : Microsoft.UI.Colors.IndianRed);
+        StatusBrush = brush(Passed is null ? "TextMutedBrush" : Passed == true ? "SuccessBrush" : "DangerBrush");
         AccessibilityLabel = $"{Name}: {StatusLabel}. {Detail}";
     }
 

@@ -18,7 +18,9 @@ const SYSTEM_ROOT = /^(?:users|windows|program files|programdata|appdata)$/i;
 const SOURCE_DIRECTORY = /^(?:src|source|app|packages?)$/i;
 const EDIT_TOOL = /apply_patch|edit|write/;
 const PATCH_HEADER = /(?:^|\r?\n|\\n)\*\*\*\s+(?:Add|Update|Delete) File:\s*([^\r\n]*?)(?=\\n|\r?\n|["']|$)/gi;
-const FILE_KEY = /^(?:file|file_path|filepath|filename|path|target|destination)$/i;
+const FILE_KEY = /^(?:file|file_path|filepath|filename|notebook_path|path|target|destination)$/i;
+// `<repo>/.claude/worktrees/<name>` is an isolated checkout of `<repo>`.
+const CLAUDE_WORKTREE = /(?:^|[\\/])([^\\/]+)[\\/]\.claude[\\/]worktrees[\\/][^\\/]+(?:[\\/]|$)/i;
 
 const defaultFileSystem = {
   exists: (value) => fs.existsSync(value),
@@ -77,6 +79,12 @@ function shortenPath(value, max = MAX_FILE) {
   const tail = text.slice(-(max - 2));
   const boundary = tail.indexOf('/');
   return `…/${boundary >= 0 && boundary < 24 ? tail.slice(boundary + 1) : tail}`;
+}
+
+/** Repository name for a path inside a Claude Code worktree, or null. */
+function claudeWorktreeProject(value) {
+  const name = CLAUDE_WORKTREE.exec(String(value ?? ''))?.[1];
+  return name && !isWorkspaceContainer(name) && !isAnyFilesystemRoot(`/${name}`) ? name.slice(0, MAX_PROJECT) : null;
 }
 
 function projectNameFromCwd(cwd) {
@@ -271,6 +279,7 @@ function toolPayloadFromRecord(record) {
 module.exports = {
   MAX_FILE,
   MAX_PROJECT,
+  claudeWorktreeProject,
   displayPath,
   extractEditedFile,
   fileForProject,

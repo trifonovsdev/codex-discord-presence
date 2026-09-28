@@ -101,3 +101,23 @@ test('an unknown project reports an honest generic state instead of inventing a 
   assert.equal(russian.details, 'Работает в Codex');
   assert.equal(russian.state, 'Активная сессия Codex');
 });
+
+test('Claude Code cards speak about Claude Code, in both languages', () => {
+  const privacy = { ...PRIVACY_PRESETS.standard, preset: 'standard' };
+  const claude = { agent: 'claude', activityName: 'Coding with Claude Code', largeImageKey: 'https://example.com/claude.png', largeImageText: '' };
+  const idle = buildActivity({ ...claude, privacy });
+  assert.equal(idle.name, 'Coding with Claude Code');
+  assert.equal(idle.details, 'Working in Claude Code');
+  assert.equal(idle.state, 'Active Claude Code session');
+  assert.equal(idle.assets.large_image, 'https://example.com/claude.png');
+  assert.equal(idle.assets.large_text, 'Claude Code');
+
+  const russian = buildActivity({ ...claude, privacy, language: 'ru', project: 'store', file: 'src/a.ts' });
+  assert.equal(russian.details, 'Проект: store');
+  assert.equal(russian.state, 'Файл: src/a.ts');
+  assert.equal(buildActivity({ ...claude, privacy, language: 'ru' }).details, 'Работает в Claude Code');
+
+  const hidden = buildActivity({ ...claude, privacy: { ...privacy, showProject: false } });
+  assert.equal(hidden.details, 'Claude Code');
+  assert.equal(buildActivity({ ...claude, activityName: 'x', privacy }).name, 'Coding with Claude Code', 'invalid names fall back per agent');
+});

@@ -84,11 +84,12 @@ internal static class NativeHoverChecks
                 var normal = held.Where(sample => !Phases[sample.Phase].Over).ToArray();
                 var hover = held.Where(sample => Phases[sample.Phase].Over).ToArray();
                 var settled = normal.Concat(hover).ToArray();
-                var expected = name == "SaveButton" ? (R: 255, G: 255, B: 255)
-                    : name == "PrivacyNavButton" ? (R: 28, G: 29, B: 32) : (R: 34, G: 36, B: 40);
+                var expectedColor = ThemeResources.Color(root, name == "SaveButton" ? "PresenceAccentButtonBackgroundPointerOver"
+                    : name == "PrivacyNavButton" ? "SurfaceHoverBrush" : "PresenceButtonBackgroundPointerOver");
+                var expected = (R: (int)expectedColor.R, G: (int)expectedColor.G, B: (int)expectedColor.B);
                 Check(hover.Length > 0 && hover.All(sample => Math.Abs(sample.R - expected.R) <= 2 &&
                         Math.Abs(sample.G - expected.G) <= 2 && Math.Abs(sample.B - expected.B) <= 2),
-                    $"{name}: hovered pixels use the graphite palette, not the Windows accent", directory, failures);
+                    $"{name}: hovered pixels use the app palette, not the Windows accent", directory, failures);
                 Check(normal.Length > 0 && hover.Length > 0 && samples.All(sample =>
                         sample.R >= settled.Min(item => item.R) - 2 && sample.R <= settled.Max(item => item.R) + 2 &&
                         sample.G >= settled.Min(item => item.G) - 2 && sample.G <= settled.Max(item => item.G) + 2 &&

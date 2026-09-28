@@ -1,0 +1,15 @@
+/root/work/codex-discord-presence/tests/claude-hooks/bin/Release/net8.0/ClaudeHooksTests
+/root/work/codex-discord-presence/tests/claude-hooks/bin/Release/net8.0/ClaudeHooksTests.deps.json
+/root/work/codex-discord-presence/tests/claude-hooks/bin/Release/net8.0/ClaudeHooksTests.runtimeconfig.json
+/root/work/codex-discord-presence/tests/claude-hooks/bin/Release/net8.0/ClaudeHooksTests.dll
+/root/work/codex-discord-presence/tests/claude-hooks/bin/Release/net8.0/ClaudeHooksTests.pdb
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.GeneratedMSBuildEditorConfig.editorconfig
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.AssemblyInfoInputs.cache
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.AssemblyInfo.cs
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.csproj.CoreCompileInputs.cache
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.sourcelink.json
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.dll
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/refint/ClaudeHooksTests.dll
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.pdb
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ClaudeHooksTests.genruntimeconfig.cache
+/root/work/codex-discord-presence/tests/claude-hooks/obj/Release/net8.0/ref/ClaudeHooksTests.dll

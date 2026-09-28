@@ -43,6 +43,8 @@ jobs:
         run: dotnet run --project tests/daemon-client/DaemonClientTests.csproj -c Release
       - name: Test updater behavior
         run: dotnet run --project tests/updater/UpdaterTests.csproj -c Release
+      - name: Test Claude Code hook registration
+        run: dotnet run --project tests/claude-hooks/ClaudeHooksTests.csproj -c Release
       - name: Build tray application
         run: dotnet build tray/CodexPresence.Tray.csproj -c Release
       - name: Capture native interface
@@ -67,7 +69,7 @@ jobs:
             Get-Content (Join-Path $env:TEMP 'codex-presence-ui-smoke.log') -ErrorAction SilentlyContinue
             throw "Screenshot capture failed: $($process.ExitCode)"
           }
-          if ((Get-ChildItem $output -Filter '*.png').Count -ne 6) { throw 'Expected six native screenshots.' }
+          if ((Get-ChildItem $output -Filter '*.png').Count -ne 8) { throw 'Expected eight native screenshots.' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

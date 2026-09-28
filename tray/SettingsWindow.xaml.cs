@@ -25,6 +25,29 @@ public sealed partial class SettingsWindow : Window
         ("Русский", "ru"),
     ];
 
+    private static readonly (string Label, string Value)[] Appearances =
+    [
+        ("System", "system"),
+        ("Light", "light"),
+        ("Dark", "dark"),
+    ];
+
+    private static readonly (string Label, string Value)[] PreferredAgents =
+    [
+        ("Most recent", "auto"),
+        ("Prefer Claude Code", "claude"),
+        ("Prefer Codex", "codex"),
+    ];
+
+    private static readonly (string Label, int Minutes)[] IdleTimeouts =
+    [
+        ("5 minutes", 5),
+        ("10 minutes", 10),
+        ("15 minutes", 15),
+        ("30 minutes", 30),
+        ("1 hour", 60),
+    ];
+
     private static readonly (string Label, int Seconds)[] PollIntervals =
     [
         ("3 seconds", 3),
@@ -57,8 +80,12 @@ public sealed partial class SettingsWindow : Window
         config.Remote ??= new RemoteConfig();
         config.Remote.Hosts ??= [];
         config.Updates ??= new UpdateConfig();
+        config.Agents ??= new AgentsConfig();
+        config.Agents.Codex ??= new CodexAgentConfig();
+        config.Agents.Claude ??= new ClaudeAgentConfig();
 
         InitializeComponent();
+        ThemeResources.Apply(RootGrid, config.Appearance);
 
         SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
         ExtendsContentIntoTitleBar = true;
@@ -71,6 +98,9 @@ public sealed partial class SettingsWindow : Window
         RootGrid.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); RefreshStatusBrush(); };
 
         LanguageSelect.ItemsSource = Languages.Select(item => item.Label).ToArray();
+        AppearanceSelect.ItemsSource = Appearances.Select(item => item.Label).ToArray();
+        PreferredAgentSelect.ItemsSource = PreferredAgents.Select(item => item.Label).ToArray();
+        ClaudeIdleSelect.ItemsSource = IdleTimeouts.Select(item => item.Label).ToArray();
         PresetSelect.ItemsSource = new[] { "minimal", "standard", "detailed" };
         FileModeSelect.ItemsSource = new[] { "name", "relative" };
         PollIntervalSelect.ItemsSource = PollIntervals.Select(item => item.Label).ToArray();
@@ -78,6 +108,12 @@ public sealed partial class SettingsWindow : Window
         remoteRows.CollectionChanged += (_, _) => UpdateRemoteEmptyState();
 
         LoadValues();
+        AppearanceSelect.SelectionChanged += (_, _) =>
+        {
+            // Preview the choice here; the dashboard follows after saving.
+            ThemeResources.Apply(RootGrid, SelectedValue(AppearanceSelect, Appearances, "system"));
+            WindowChrome.Apply(this);
+        };
         ShowPage("general");
     }
 
@@ -97,18 +133,20 @@ public sealed partial class SettingsWindow : Window
 
     internal void ShowPage(string tag)
     {
-        if (GeneralPage is null || PrivacyPage is null || RemotePage is null) return;
+        if (GeneralPage is null || AgentsPage is null || PrivacyPage is null || RemotePage is null) return;
         GeneralPage.Visibility = tag == "general" ? Visibility.Visible : Visibility.Collapsed;
+        AgentsPage.Visibility = tag == "agents" ? Visibility.Visible : Visibility.Collapsed;
         PrivacyPage.Visibility = tag == "privacy" ? Visibility.Visible : Visibility.Collapsed;
         RemotePage.Visibility = tag == "remote" ? Visibility.Visible : Visibility.Collapsed;
         SetActiveSection(tag);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
-            SettingsSidebar, $"Settings sections. {tag switch { "privacy" => "Privacy", "remote" => "SSH workspaces", _ => "General" }} selected");
+            SettingsSidebar, $"Settings sections. {tag switch { "agents" => "Agents", "privacy" => "Privacy", "remote" => "SSH workspaces", _ => "General" }} selected");
     }
 
     private void SetActiveSection(string tag)
     {
         GeneralNavButton.IsChecked = tag == "general";
+        AgentsNavButton.IsChecked = tag == "agents";
         PrivacyNavButton.IsChecked = tag == "privacy";
         RemoteNavButton.IsChecked = tag == "remote";
     }
@@ -130,6 +168,17 @@ public sealed partial class SettingsWindow : Window
             }
 
             UpdatesToggle.IsOn = config.Updates.Enabled;
+            AppearanceSelect.SelectedItem = LabelFor(Appearances, config.Appearance);
+            ClaudeToggle.IsOn = config.Agents.Claude.Enabled;
+            ClaudeActivityNameInput.Text = config.Agents.Claude.ActivityName;
+            ClaudeHooksToggle.IsOn = config.Agents.Claude.Hooks;
+            ClaudeRemoteToggle.IsOn = config.Agents.Claude.Remote;
+            ClaudeIdleSelect.SelectedItem = IdleTimeouts
+                .OrderBy(item => Math.Abs(item.Minutes - config.Agents.Claude.IdleMinutes))
+                .First()
+                .Label;
+            CodexToggle.IsOn = config.Agents.Codex.Enabled;
+            PreferredAgentSelect.SelectedItem = LabelFor(PreferredAgents, config.Agents.Preferred);
             LanguageSelect.SelectedItem = Languages.FirstOrDefault(item => item.Value == config.Language).Label
                 ?? Languages[0].Label;
             PresetSelect.SelectedItem = NormalizeOption(config.Privacy.Preset, "standard", "minimal", "standard", "detailed");
@@ -280,15 +329,18 @@ public sealed partial class SettingsWindow : Window
     }
 
     private void RefreshStatusBrush() =>
-        RemoteActionStatus.Foreground = (Brush)Application.Current.Resources[remoteActionBrushKey];
+        RemoteActionStatus.Foreground = ThemeResources.Brush(RootGrid, remoteActionBrushKey);
 
     private async void SaveClicked(object sender, RoutedEventArgs args)
     {
         var activityName = WhitespacePattern().Replace(ActivityNameInput.Text ?? string.Empty, " ").Trim();
-        if (activityName.Length < 2)
+        var claudeActivityName = WhitespacePattern().Replace(ClaudeActivityNameInput.Text ?? string.Empty, " ").Trim();
+        foreach (var (name, input) in new[] { (activityName, ActivityNameInput), (claudeActivityName, ClaudeActivityNameInput) })
         {
+            if (name.Length >= 2) continue;
+            ShowPage("agents");
             await ShowDialogAsync("Check the activity name", "Enter between 2 and 128 characters.");
-            ActivityNameInput.Focus(FocusState.Programmatic);
+            input.Focus(FocusState.Programmatic);
             return;
         }
 
@@ -302,6 +354,17 @@ public sealed partial class SettingsWindow : Window
         config.PresenceEnabled = PresenceToggle.IsOn == true;
         config.ActivityName = activityName;
         config.Updates.Enabled = UpdatesToggle.IsOn == true;
+        config.Appearance = SelectedValue(AppearanceSelect, Appearances, "system");
+        config.Agents.Preferred = SelectedValue(PreferredAgentSelect, PreferredAgents, "auto");
+        config.Agents.Codex.Enabled = CodexToggle.IsOn == true;
+        config.Agents.Claude.Enabled = ClaudeToggle.IsOn == true;
+        config.Agents.Claude.ActivityName = claudeActivityName;
+        config.Agents.Claude.Hooks = ClaudeHooksToggle.IsOn == true;
+        config.Agents.Claude.Remote = ClaudeRemoteToggle.IsOn == true;
+        config.Agents.Claude.IdleMinutes = IdleTimeouts
+            .FirstOrDefault(item => item.Label == SelectedText(ClaudeIdleSelect, "10 minutes")).Minutes is > 0 and var minutes
+            ? minutes
+            : 10;
         config.Language = Languages.FirstOrDefault(item => item.Label == SelectedText(LanguageSelect, "English")).Value
             ?? "en";
         config.Privacy = new PrivacyConfig
@@ -379,6 +442,13 @@ public sealed partial class SettingsWindow : Window
         value is not null && options.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? options.First(option => string.Equals(option, value, StringComparison.OrdinalIgnoreCase))
             : fallback;
+
+    private static string LabelFor((string Label, string Value)[] options, string? value) =>
+        options.FirstOrDefault(item => string.Equals(item.Value, value, StringComparison.OrdinalIgnoreCase)).Label
+        ?? options[0].Label;
+
+    private static string SelectedValue(ComboBox comboBox, (string Label, string Value)[] options, string fallback) =>
+        options.FirstOrDefault(item => item.Label == comboBox.SelectedItem?.ToString()).Value ?? fallback;
 
     private static string SelectedText(ComboBox comboBox, string fallback) =>
         comboBox.SelectedItem?.ToString() ?? fallback;

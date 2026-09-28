@@ -2,6 +2,8 @@
 
 const fs = require('fs');
 
+const { AGENT_PREFERENCES } = require('./agents');
+
 const HOST_PATTERN = /^[A-Za-z0-9._@:-]+$/;
 const MONITOR_PATH_PATTERN = /^[A-Za-z0-9_./~-]+$/;
 const PROCESS_PATTERN = /^[A-Za-z0-9_.-]+$/;
@@ -13,8 +15,14 @@ const LANGUAGES = ['en', 'ru'];
 
 const DEFAULT_MONITOR_PATH = '~/.local/share/CodexDiscordPresence/remote-monitor.py';
 const DEFAULT_ACTIVITY_NAME = 'Coding with Codex';
+const DEFAULT_CLAUDE_ACTIVITY_NAME = 'Coding with Claude Code';
+// Discord renders external HTTPS images in Rich Presence, so the Claude Code
+// artwork works without uploading an asset to the shared Discord application.
+const DEFAULT_CLAUDE_IMAGE = 'https://raw.githubusercontent.com/trifonovsdev/codex-discord-presence/main/assets/discord/claude-code.png';
 const MIN_ACTIVITY_NAME = 2;
 const MAX_ACTIVITY_NAME = 128;
+const MAX_IMAGE_KEY = 256;
+const IMAGE_KEY_PATTERN = /^(?:[A-Za-z0-9_.-]{1,64}|https:\/\/[^\s"'<>]{8,248})$/;
 
 const DEFAULT_CONFIG = Object.freeze({
   clientId: '1526968377048956938',
@@ -38,6 +46,19 @@ const DEFAULT_CONFIG = Object.freeze({
     hosts: [],
     monitorPath: DEFAULT_MONITOR_PATH,
     pollIntervalMs: 7000,
+  }),
+  agents: Object.freeze({
+    preferred: 'auto',
+    codex: Object.freeze({ enabled: true }),
+    claude: Object.freeze({
+      enabled: true,
+      activityName: DEFAULT_CLAUDE_ACTIVITY_NAME,
+      largeImageKey: DEFAULT_CLAUDE_IMAGE,
+      largeImageText: 'Claude Code',
+      idleMinutes: 10,
+      hooks: true,
+      remote: true,
+    }),
   }),
 });
 
@@ -65,6 +86,17 @@ function pickInteger(value, { min, max, fallback }) {
   const number = Number(value);
   if (!Number.isInteger(number) || number < min || number > max) return fallback;
   return number;
+}
+
+function pickImageKey(value, fallback) {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  if (!text) return '';
+  return IMAGE_KEY_PATTERN.test(text) && text.length <= MAX_IMAGE_KEY ? text : fallback;
+}
+
+function objectOrEmpty(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function truncateUtf16Safely(value, maxLength) {
@@ -107,8 +139,12 @@ function readConfig(configPath) {
     if (error.code !== 'ENOENT') warnings.push(`config.json could not be read (${error.message}); defaults are in use`);
   }
 
-  const privacyRaw = raw.privacy && typeof raw.privacy === 'object' ? raw.privacy : {};
-  const remoteRaw = raw.remote && typeof raw.remote === 'object' ? raw.remote : {};
+  const privacyRaw = objectOrEmpty(raw.privacy);
+  const remoteRaw = objectOrEmpty(raw.remote);
+  const agentsRaw = objectOrEmpty(raw.agents);
+  const codexRaw = objectOrEmpty(agentsRaw.codex);
+  const claudeRaw = objectOrEmpty(agentsRaw.claude);
+  const claudeDefaults = DEFAULT_CONFIG.agents.claude;
   const preset = pickEnum(privacyRaw.preset, PRESETS, DEFAULT_CONFIG.privacy.preset);
   const presetDefaults = PRIVACY_PRESETS[preset];
 
@@ -119,7 +155,7 @@ function readConfig(configPath) {
     activityName: raw.activityName === undefined
       ? DEFAULT_CONFIG.activityName
       : normalizeActivityName(raw.activityName),
-    largeImageKey: String(raw.largeImageKey ?? DEFAULT_CONFIG.largeImageKey).slice(0, 64),
+    largeImageKey: pickImageKey(raw.largeImageKey, DEFAULT_CONFIG.largeImageKey),
     largeImageText: String(raw.largeImageText ?? DEFAULT_CONFIG.largeImageText).slice(0, 128),
     appProcess: pickString(raw.appProcess, PROCESS_PATTERN, DEFAULT_CONFIG.appProcess).replace(/\.exe$/i, ''),
     presenceEnabled: pickBoolean(raw.presenceEnabled, DEFAULT_CONFIG.presenceEnabled),
@@ -137,6 +173,23 @@ function readConfig(configPath) {
       monitorPath: pickString(remoteRaw.monitorPath, MONITOR_PATH_PATTERN, DEFAULT_MONITOR_PATH),
       pollIntervalMs: pickInteger(remoteRaw.pollIntervalMs, { min: 3000, max: 3_600_000, fallback: DEFAULT_CONFIG.remote.pollIntervalMs }),
     },
+    agents: {
+      preferred: pickEnum(agentsRaw.preferred, AGENT_PREFERENCES, DEFAULT_CONFIG.agents.preferred),
+      codex: {
+        enabled: pickBoolean(codexRaw.enabled, DEFAULT_CONFIG.agents.codex.enabled),
+      },
+      claude: {
+        enabled: pickBoolean(claudeRaw.enabled, claudeDefaults.enabled),
+        activityName: claudeRaw.activityName === undefined
+          ? claudeDefaults.activityName
+          : normalizeActivityName(claudeRaw.activityName, claudeDefaults.activityName),
+        largeImageKey: pickImageKey(claudeRaw.largeImageKey, claudeDefaults.largeImageKey),
+        largeImageText: String(claudeRaw.largeImageText ?? claudeDefaults.largeImageText).slice(0, 128),
+        idleMinutes: pickInteger(claudeRaw.idleMinutes, { min: 1, max: 240, fallback: claudeDefaults.idleMinutes }),
+        hooks: pickBoolean(claudeRaw.hooks, claudeDefaults.hooks),
+        remote: pickBoolean(claudeRaw.remote, claudeDefaults.remote),
+      },
+    },
   };
 
   if (raw.port !== undefined && config.port !== Number(raw.port)) warnings.push(`port ${JSON.stringify(raw.port)} is out of range; using ${config.port}`);
@@ -144,6 +197,22 @@ function readConfig(configPath) {
   if (raw.language !== undefined && config.language !== String(raw.language).toLowerCase()) warnings.push(`language ${JSON.stringify(raw.language)} is not supported; using ${config.language}`);
   if (raw.activityName !== undefined && (typeof raw.activityName !== 'string' || config.activityName !== raw.activityName)) {
     warnings.push('activityName was normalized to a single line between 2 and 128 characters');
+  }
+
+  if (raw.largeImageKey !== undefined && config.largeImageKey !== String(raw.largeImageKey).trim()) {
+    warnings.push('largeImageKey must be an asset key or an https:// URL; using the default');
+  }
+  if (agentsRaw.preferred !== undefined && config.agents.preferred !== String(agentsRaw.preferred).toLowerCase()) {
+    warnings.push(`agents.preferred ${JSON.stringify(agentsRaw.preferred)} is not supported; using ${config.agents.preferred}`);
+  }
+  if (claudeRaw.activityName !== undefined && (typeof claudeRaw.activityName !== 'string' || config.agents.claude.activityName !== claudeRaw.activityName)) {
+    warnings.push('agents.claude.activityName was normalized to a single line between 2 and 128 characters');
+  }
+  if (claudeRaw.largeImageKey !== undefined && config.agents.claude.largeImageKey !== String(claudeRaw.largeImageKey).trim()) {
+    warnings.push('agents.claude.largeImageKey must be an asset key or an https:// URL; using the default');
+  }
+  if (claudeRaw.idleMinutes !== undefined && config.agents.claude.idleMinutes !== Number(claudeRaw.idleMinutes)) {
+    warnings.push(`agents.claude.idleMinutes must be between 1 and 240; using ${config.agents.claude.idleMinutes}`);
   }
 
   return { config, warnings };
@@ -184,6 +253,8 @@ module.exports = {
   DEFAULT_CONFIG,
   DEFAULT_MONITOR_PATH,
   DEFAULT_ACTIVITY_NAME,
+  DEFAULT_CLAUDE_ACTIVITY_NAME,
+  DEFAULT_CLAUDE_IMAGE,
   normalizeActivityName,
   PRIVACY_PRESETS,
   PRESETS,

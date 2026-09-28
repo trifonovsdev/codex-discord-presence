@@ -51,7 +51,7 @@ async function withDaemon(configPatch, run) {
   fs.writeFileSync(configPath, JSON.stringify({ port, presenceEnabled: true, ...configPatch }));
 
   const child = spawn(process.execPath, [daemonPath], {
-    env: { ...process.env, CODEX_HOME: root, CODEX_PRESENCE_CONFIG: configPath, CODEX_PRESENCE_TEST: '1' },
+    env: { ...process.env, CODEX_HOME: root, CLAUDE_CONFIG_DIR: path.join(root, '.claude'), CODEX_PRESENCE_CONFIG: configPath, CODEX_PRESENCE_TEST: '1' },
     stdio: 'ignore',
     windowsHide: true,
   });
@@ -241,5 +241,70 @@ test('malformed and oversized bodies are refused, not truncated', async () => {
     assert.equal(unknown.status, 400);
 
     assert.equal((await waitForHealth(port)).presenceEnabled, true);
+  });
+});
+
+test('Claude Code hooks take the card over and hand it back to Codex', async () => {
+  await withDaemon({}, async ({ port }) => {
+    const initial = await waitForHealth(port);
+    assert.equal(initial.agent, 'codex');
+    assert.equal(initial.agents.claude.enabled, true);
+    assert.equal(initial.agents.claude.active, false);
+
+    const claudeSession = '99999999-9999-4999-8999-999999999999';
+    const prompt = await json(port, '/hook', {
+      agent: 'claude',
+      hook_event_name: 'UserPromptSubmit',
+      session_id: claudeSession,
+      cwd: 'C:\\work\\storefront',
+    });
+    assert.equal(prompt.status, 204);
+    const edited = await json(port, '/hook', {
+      agent: 'claude',
+      hook_event_name: 'PostToolUse',
+      session_id: claudeSession,
+      cwd: 'C:\\work\\storefront',
+      tool_name: 'Edit',
+      tool_input: { file_path: 'C:\\work\\storefront\\src\\cart.ts', old_string: 'a', new_string: 'b' },
+    });
+    assert.equal(edited.status, 204);
+
+    const claude = await waitForHealth(port);
+    assert.equal(claude.agent, 'claude');
+    assert.equal(claude.agentLabel, 'Claude Code');
+    assert.equal(claude.agentRunning, true);
+    assert.equal(claude.project, 'storefront');
+    assert.equal(claude.file, 'src/cart.ts');
+    assert.equal(claude.source, 'claude-hook');
+    assert.equal(claude.activity.name, 'Coding with Claude Code');
+    assert.equal(claude.activity.details, 'Project: storefront');
+    assert.equal(claude.activity.state, 'Editing: src/cart.ts');
+    assert.equal(claude.agents.claude.sessionId, claudeSession);
+    assert.ok(Date.parse(claude.startedAt), 'the Claude Code run has its own timer');
+
+    const codexPrompt = await json(port, '/hook', {
+      hook_event_name: 'UserPromptSubmit',
+      session_id: '00000000-0000-0000-0000-00000000000c',
+      cwd: 'C:\\projects\\codex-app',
+    });
+    assert.equal(codexPrompt.status, 204);
+    const codex = await waitForHealth(port);
+    assert.equal(codex.agent, 'codex', 'a newer Codex prompt takes the card back');
+    assert.equal(codex.project, 'codex-app');
+    assert.equal(codex.activity.name, 'Coding with Codex');
+
+    await json(port, '/hook', { agent: 'claude', hook_event_name: 'SessionEnd', session_id: claudeSession });
+    assert.equal((await waitForHealth(port)).agents.claude.active, false);
+  });
+});
+
+test('disabled agents are ignored entirely', async () => {
+  await withDaemon({ agents: { codex: { enabled: false }, claude: { enabled: false } } }, async ({ port }) => {
+    const health = await waitForHealth(port);
+    assert.equal(health.agent, null);
+    assert.equal(health.agentRunning, false);
+    assert.equal(health.activity, null);
+    await json(port, '/hook', { agent: 'claude', hook_event_name: 'UserPromptSubmit', session_id: '99999999-9999-4999-8999-999999999999', cwd: '/srv/app' });
+    assert.equal((await waitForHealth(port)).agent, null);
   });
 });

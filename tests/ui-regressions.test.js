@@ -30,9 +30,15 @@ test('single-file runtime resolves payloads beside the launched executable', () 
   assert.match(tray, /AppPaths\.BaseDirectory/);
 });
 
-test('app resources define one accessible graphite design system', () => {
+test('app resources define one warm, accessible design system in both themes', () => {
   const app = source('tray/App.xaml');
+  const project = source('tray/CodexPresence.Tray.csproj');
 
+  assert.match(app, /<ResourceDictionary x:Key="Light">/);
+  assert.doesNotMatch(app, /RequestedTheme="Dark"/, 'the app follows the appearance setting instead of forcing dark');
+  assert.match(app, /x:Key="DisplayFontFamily">ms-appx:\/\/\/Fonts\/SourceSerif4Display-Regular\.ttf#Source Serif 4 Display, Georgia</);
+  assert.match(project, /SourceSerif4Display-Regular\.ttf/);
+  assert.ok(fs.existsSync(path.join(repository, 'assets', 'fonts', 'SourceSerif4-OFL.md')), 'the bundled serif ships with its license');
   for (const token of [
     'CanvasBrush',
     'SurfaceBrush',
@@ -43,7 +49,10 @@ test('app resources define one accessible graphite design system', () => {
     'DangerBrush',
     'FocusStrokeBrush',
     'PageTitleTextStyle',
+    'DisplayTitleTextStyle',
     'BodyTextStyle',
+    'AccentSoftBrush',
+    'ChipBorderStyle',
   ]) {
     assert.match(app, new RegExp(`x:Key="${token}"`));
   }
@@ -86,7 +95,7 @@ test('dashboard is a focused Fluent surface with live state and essential action
   assert.match(code, /args\.Cancel\s*=\s*true/);
 });
 
-test('the compact shell uses the official Codex app artwork', () => {
+test('the dashboard shows each agent with its own artwork', () => {
   const xaml = source('tray/MainWindow.xaml');
   const code = source('tray/MainWindow.xaml.cs');
   const project = source('tray/CodexPresence.Tray.csproj');
@@ -94,9 +103,13 @@ test('the compact shell uses the official Codex app artwork', () => {
 
   assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*680,\s*560\)/);
   assert.match(xaml, /codex-app-icon\.png/);
+  assert.match(xaml, /claude-code-icon\.png/);
   assert.match(xaml, /x:Name="PreviewIconViewport"/);
-  assert.match(xaml, /Width="54"\s+Height="54"/);
-  assert.match(project, /codex-app-icon\.png/);
+  assert.match(xaml, /x:Name="PreviewClaudeIcon"/);
+  assert.match(xaml, /Width="68"\s+Height="68"/, 'both artworks overscan the same 52 px viewport');
+  for (const chip of ['CodexChip', 'ClaudeChip', 'AgentValue']) assert.match(xaml, new RegExp(`x:Name="${chip}"`));
+  assert.match(code, /RenderChip\(ClaudeChip/);
+  for (const asset of ['codex-app-icon.png', 'claude-code-icon.png', 'presence-mark.png']) assert.match(project, new RegExp(asset.replace('.', '\\.')));
   assert.ok(fs.statSync(icon).size > 20_000, 'the exact official artwork is bundled, not a placeholder glyph');
   assert.equal(
     crypto.createHash('sha256').update(fs.readFileSync(icon)).digest('hex'),
@@ -105,10 +118,34 @@ test('the compact shell uses the official Codex app artwork', () => {
 
   for (const window of ['MainWindow.xaml', 'SettingsWindow.xaml', 'DiagnosticsWindow.xaml']) {
     const titleBar = source(`tray/${window}`);
-    assert.match(titleBar, /<TitleBar\.LeftHeader>/, `${window} must render the mark without its transparent padding`);
-    assert.match(titleBar, /Width="24"\s+Height="24"/, `${window} must overscan the official source inside the clipped title icon`);
-    assert.match(titleBar, /Margin="4,0,0,0"/, `${window} must optically align the title mark away from the window edge`);
+    assert.match(titleBar, /<TitleBar\.LeftHeader>\s*<Image\s+Width="18"\s+Height="18"\s+Margin="4,0,0,0"\s+Source="presence-mark\.png"/,
+      `${window} shows the app's own mark, optically aligned away from the window edge`);
   }
+});
+
+test('Claude Code artwork shares the Codex icon grid and ships for Discord', () => {
+  const png = (relativePath) => {
+    const bytes = fs.readFileSync(path.join(repository, relativePath));
+    assert.equal(bytes.toString('ascii', 1, 4), 'PNG');
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  };
+  assert.deepEqual(png('assets/claude-code-icon.png'), png('assets/codex-app-icon.png'), 'one overscan fits both agents');
+  assert.deepEqual(png('assets/discord/claude-code.png'), { width: 1024, height: 1024 });
+  assert.match(source('src/config.js'), /assets\/discord\/claude-code\.png/);
+  assert.match(source('assets/brand/claude-spark.svg'), /identify Claude Code compatibility/);
+});
+
+test('Claude Code hooks are removed with the app and never block a turn', () => {
+  const app = source('tray/App.xaml.cs');
+  const installer = source('installer/CodexPresence.iss');
+  const hooks = source('tray/ClaudeCodeHooks.cs');
+  const hook = source('src/hook.js');
+
+  assert.match(app, /--claude-hooks/);
+  assert.match(installer, /--claude-hooks remove/);
+  assert.match(hooks, /--agent claude/);
+  assert.doesNotMatch(hooks, /"PreToolUse"/, 'no hook runs before every tool call');
+  assert.match(hook, /agent === 'claude'[\s\S]+CLAUDE_REQUEST_TIMEOUT_MS[\s\S]+return;/);
 });
 
 test('activity title customization flows through config, health, settings, and preview', () => {
@@ -191,24 +228,26 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
   const xaml = source('tray/SettingsWindow.xaml');
   const code = source('tray/SettingsWindow.xaml.cs');
 
+  const app = source('tray/App.xaml');
   assert.doesNotMatch(xaml, /<NavigationView\b/);
   assert.match(xaml, /x:Name="SettingsSidebar"/);
   assert.match(xaml, /x:Name="SettingsFooter"/);
   assert.match(xaml, /x:Key="SettingsNavButtonTemplate"/);
   assert.match(xaml, /x:Key="SettingsToggleStyle"/);
   assert.match(xaml, /x:Key="SettingsComboBoxItemStyle"/);
-  assert.match(xaml, /x:Key="ComboBoxDropDownBackground"/);
-  assert.match(xaml, /x:Key="ComboBoxItemPillFillBrush"/);
+  assert.match(app, /x:Key="ComboBoxDropDownBackground"/, 'input brushes live in the theme dictionaries');
+  assert.match(app, /x:Key="ComboBoxItemPillFillBrush"/);
+  assert.doesNotMatch(xaml, /<StaticResource x:Key="ComboBox/, 'window-level aliases would freeze one theme');
   assert.doesNotMatch(xaml, /OnContent=|OffContent=/);
   assert.match(xaml, /x:Key="SettingsPageHeaderStyle"/);
   assert.match(xaml, /x:Key="SettingsRowContainerStyle"/);
   assert.match(code, /WindowSizing\.ResizeInDips\(this,\s*740,\s*620\)/);
   assert.match(code, /SectionButtonChecked/);
   assert.match(code, /SetActiveSection/);
-  for (const tag of ['general', 'privacy', 'remote']) {
+  for (const tag of ['general', 'agents', 'privacy', 'remote']) {
     assert.match(xaml, new RegExp(`Tag="${tag}"`));
   }
-  for (const navButton of ['GeneralNavButton', 'PrivacyNavButton', 'RemoteNavButton']) {
+  for (const navButton of ['GeneralNavButton', 'AgentsNavButton', 'PrivacyNavButton', 'RemoteNavButton']) {
     assert.match(xaml, new RegExp(`x:Name="${navButton}"`));
   }
   for (const control of [
@@ -223,6 +262,14 @@ test('settings use a compact Linear-style sidebar and preserve all configuration
     'TimerToggle',
     'RemoteList',
     'SaveButton',
+    'AppearanceSelect',
+    'ClaudeToggle',
+    'ClaudeActivityNameInput',
+    'ClaudeHooksToggle',
+    'ClaudeRemoteToggle',
+    'ClaudeIdleSelect',
+    'CodexToggle',
+    'PreferredAgentSelect',
   ]) {
     assert.match(xaml, new RegExp(`x:Name="${control}"`));
   }
@@ -297,15 +344,26 @@ test('release smoke validates the portable WinUI bundle too', () => {
   assert.match(smoke, /throw "\$Label \$failure/);
 });
 
-test('secondary text remains readable on every default custom surface', () => {
-  const app = source('tray/App.xaml').split('<ResourceDictionary x:Key="HighContrast">')[0];
-  const color = (key) => app.match(new RegExp(`x:Key="${key}" Color="#([A-Fa-f0-9]{6})"`))[1];
+test('secondary text and actions remain readable in both themes', () => {
+  const app = source('tray/App.xaml');
   const luminance = (hex) => hex.match(/../g).map((part) => parseInt(part, 16) / 255)
     .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
     .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
-  for (const surface of ['CanvasBrush', 'SurfaceBrush', 'SurfaceRaisedBrush', 'SurfaceHoverBrush']) {
-    const ratio = (luminance(color('TextMutedBrush')) + 0.05) / (luminance(color(surface)) + 0.05);
-    assert.ok(ratio >= 4.5, `secondary text contrast on ${surface}: ${ratio.toFixed(2)}:1`);
+  const contrast = (left, right) => {
+    const [high, low] = [luminance(left), luminance(right)].sort((a, b) => b - a);
+    return (high + 0.05) / (low + 0.05);
+  };
+  for (const theme of ['Light', 'Dark']) {
+    const dictionary = app.split(`<ResourceDictionary x:Key="${theme}">`)[1].split('</ResourceDictionary>')[0];
+    const color = (key) => dictionary.match(new RegExp(`x:Key="${key}" Color="#([A-Fa-f0-9]{6})"`))[1];
+    for (const surface of ['WindowBackgroundBrush', 'CanvasBrush', 'SurfaceBrush', 'SurfaceRaisedBrush', 'SurfaceHoverBrush']) {
+      const ratio = contrast(color('TextMutedBrush'), color(surface));
+      assert.ok(ratio >= 4.5, `${theme}: secondary text contrast on ${surface}: ${ratio.toFixed(2)}:1`);
+    }
+    for (const state of ['Background', 'BackgroundPointerOver', 'BackgroundPressed']) {
+      const ratio = contrast(color('PresenceAccentButtonForeground'), color(`PresenceAccentButton${state}`));
+      assert.ok(ratio >= 4.5, `${theme}: primary button label contrast in ${state}: ${ratio.toFixed(2)}:1`);
+    }
   }
 });
 

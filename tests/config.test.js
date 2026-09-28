@@ -147,3 +147,45 @@ test('patchConfig creates the file when none exists yet', () => {
     cleanup();
   }
 });
+
+test('agents default to following both Codex and Claude Code', () => {
+  const { configPath, cleanup } = withConfig(undefined);
+  try {
+    const { config } = readConfig(configPath);
+    assert.equal(config.agents.preferred, 'auto');
+    assert.equal(config.agents.codex.enabled, true);
+    assert.equal(config.agents.claude.enabled, true);
+    assert.equal(config.agents.claude.activityName, 'Coding with Claude Code');
+    assert.match(config.agents.claude.largeImageKey, /^https:\/\/raw\.githubusercontent\.com\/.+claude-code\.png$/);
+    assert.ok(config.agents.claude.largeImageKey.length <= 256, 'the Discord bridge accepts the default artwork URL');
+    assert.equal(config.agents.claude.idleMinutes, 10);
+  } finally {
+    cleanup();
+  }
+});
+
+test('invalid agent settings fall back individually and are reported', () => {
+  const { configPath, cleanup } = withConfig(JSON.stringify({
+    largeImageKey: 'has spaces',
+    agents: {
+      preferred: 'gemini',
+      codex: { enabled: false },
+      claude: { activityName: '  Pairing\nwith   Claude ', largeImageKey: 'javascript:alert(1)', idleMinutes: 0, hooks: 'yes' },
+    },
+  }));
+  try {
+    const { config, warnings } = readConfig(configPath);
+    assert.equal(config.largeImageKey, 'codex');
+    assert.equal(config.agents.preferred, 'auto');
+    assert.equal(config.agents.codex.enabled, false);
+    assert.equal(config.agents.claude.activityName, 'Pairing with Claude');
+    assert.equal(config.agents.claude.largeImageKey, DEFAULT_CONFIG.agents.claude.largeImageKey);
+    assert.equal(config.agents.claude.idleMinutes, 10);
+    assert.equal(config.agents.claude.hooks, true);
+    for (const field of ['largeImageKey', 'agents.preferred', 'agents.claude.activityName', 'agents.claude.largeImageKey', 'agents.claude.idleMinutes']) {
+      assert.ok(warnings.some((warning) => warning.startsWith(field)), `${field} is reported`);
+    }
+  } finally {
+    cleanup();
+  }
+});

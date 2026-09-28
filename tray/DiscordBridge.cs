@@ -11,6 +11,8 @@ internal sealed class DiscordBridge : IDisposable
     private const int MaxInputCharacters = 1024 * 1024;
     private const int MinimumTextLength = 2;
     private const int MaximumTextLength = 128;
+    // Rich Presence accepts an asset key or an external https:// image URL here.
+    private const int MaximumImageLength = 256;
 
     private static readonly DiscordSocialNative.UpdateRichPresenceCallback UpdateCallback = OnUpdateCompleted;
     private static readonly DiscordSocialNative.FreeCallback FreeCallback = OnFreeCallback;
@@ -195,7 +197,7 @@ internal sealed class DiscordBridge : IDisposable
         ActivityAssetsPayload? payload)
     {
         if (payload is null || string.IsNullOrWhiteSpace(payload.LargeImage)) return;
-        var largeImage = ValidateText(payload.LargeImage, "Large image", allowLongMinimum: true);
+        var largeImage = ValidateText(payload.LargeImage, "Large image", allowLongMinimum: true, maximum: MaximumImageLength);
         var largeText = string.IsNullOrWhiteSpace(payload.LargeText)
             ? null
             : ValidateText(payload.LargeText, "Large image text");
@@ -241,12 +243,12 @@ internal sealed class DiscordBridge : IDisposable
         }
     }
 
-    private static string ValidateText(string? value, string field, bool allowLongMinimum = false)
+    private static string ValidateText(string? value, string field, bool allowLongMinimum = false, int maximum = MaximumTextLength)
     {
         var normalized = value?.Trim() ?? string.Empty;
         var minimum = allowLongMinimum ? 1 : MinimumTextLength;
-        if (normalized.Length < minimum || normalized.Length > MaximumTextLength)
-            throw new InvalidDataException($"{field} must contain {minimum}–{MaximumTextLength} characters.");
+        if (normalized.Length < minimum || normalized.Length > maximum)
+            throw new InvalidDataException($"{field} must contain {minimum}–{maximum} characters.");
         return normalized;
     }
 

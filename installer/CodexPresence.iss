@@ -1,6 +1,6 @@
 #define MyAppName "Codex Presence"
 #ifndef MyAppVersion
-#define MyAppVersion "2.5.3"
+#define MyAppVersion "2.6.0"
 #endif
 #define MyAppPublisher "trifonovsdev"
 #define MyAppURL "https://github.com/trifonovsdev/codex-discord-presence"
@@ -31,7 +31,7 @@ RestartApplications=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
-VersionInfoDescription=Discord Rich Presence for ChatGPT Codex Desktop
+VersionInfoDescription=Discord Rich Presence for Codex and Claude Code
 VersionInfoProductName={#MyAppName}
 #ifdef SIGN_BUILD
 SignTool=codexsign
@@ -77,6 +77,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch Codex Presence"; Flags: 
 
 [UninstallRun]
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--shutdown"; Flags: runhidden waituntilterminated; RunOnceId: "CodexPresenceStopTray"
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--claude-hooks remove"; Flags: runhidden waituntilterminated; RunOnceId: "CodexPresenceRemoveClaudeHooks"
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\configure.ps1"" -InstallDir ""{app}"" -Uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "CodexPresenceRemoveHooks"
 
 [Code]

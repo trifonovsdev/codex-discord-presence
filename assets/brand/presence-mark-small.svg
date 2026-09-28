@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Codex Presence">
+  <!-- Simplified for 16–24 px: the relay ring is dropped so the prompt stays crisp. -->
+  <rect x="4" y="4" width="248" height="248" rx="56" fill="#1F1E1D"/>
+  <path d="M56 72l56 56-56 56" fill="none" stroke="#F5F4EF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="186" cy="176" r="30" fill="#D97757"/>
+</svg>

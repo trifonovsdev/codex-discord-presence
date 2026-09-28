@@ -7,6 +7,22 @@
   "largeImageText": "OpenAI Codex",
   "appProcess": "ChatGPT",
   "presenceEnabled": true,
+  "appearance": "system",
+  "agents": {
+    "preferred": "auto",
+    "codex": {
+      "enabled": true
+    },
+    "claude": {
+      "enabled": true,
+      "activityName": "Coding with Claude Code",
+      "largeImageKey": "https://raw.githubusercontent.com/trifonovsdev/codex-discord-presence/main/assets/discord/claude-code.png",
+      "largeImageText": "Claude Code",
+      "idleMinutes": 10,
+      "hooks": true,
+      "remote": true
+    }
+  },
   "privacy": {
     "preset": "standard",
     "showProject": true,
