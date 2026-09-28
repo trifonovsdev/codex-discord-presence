@@ -94,5 +94,7 @@ jobs:
         shell: pwsh
         run: .\build-release.ps1
       - name: Smoke-test installer lifecycle
+        # A step-level limit fails with logs instead of cancelling the whole job silently.
+        timeout-minutes: 6
         shell: pwsh
         run: .\tests\installer-smoke.ps1
