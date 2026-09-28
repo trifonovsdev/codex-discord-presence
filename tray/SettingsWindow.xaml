@@ -12,95 +12,210 @@
     <Grid x:Name="RootGrid" Background="{ThemeResource WindowBackgroundBrush}">
         <Grid.Resources>
             <ResourceDictionary>
-                <StaticResource x:Key="ComboBoxBackground" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="BorderStrongBrush" />
-                <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="FocusStrokeBrush" />
-                <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="BorderStrongBrush" />
-                <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="BorderBrush" />
-                <StaticResource x:Key="ComboBoxBackgroundBorderBrushFocused" ResourceKey="FocusStrokeBrush" />
-                <StaticResource x:Key="ComboBoxForeground" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxForegroundPressed" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="ComboBoxForegroundFocused" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxForegroundFocusedPressed" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="ComboBoxDropDownGlyphForeground" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocused" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxDropDownGlyphForegroundDisabled" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="BorderStrongBrush" />
-                <StaticResource x:Key="ComboBoxDropDownForeground" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemPillFillBrush" ResourceKey="AccentBrush" />
-                <StaticResource x:Key="ComboBoxItemBackground" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundDisabled" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundSelectedUnfocused" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBackgroundSelectedDisabled" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxItemForeground" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundDisabled" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundSelectedUnfocused" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="ComboBoxItemForegroundSelectedDisabled" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrush" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushPressed" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushDisabled" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushSelected" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedUnfocused" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedPressed" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="ComboBoxItemBorderBrushSelectedDisabled" ResourceKey="SurfaceBrush" />
+                <!--
+                    WinUI resolves control brushes from the nearest theme dictionary, so the
+                    clay switches and input accents are scoped to this window's theme.
+                -->
+                <ResourceDictionary.ThemeDictionaries>
+                    <ResourceDictionary x:Key="Light">
+                        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#B55536" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#A14A2E" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#8F4128" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#B55536" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#A14A2E" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#8F4128" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#8A877E" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#65635C" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#65635C" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#65635C" />
+                        <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#F5F4ED" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#D6D2C4" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#C4BFAE" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#D6D2C4" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="#B55536" />
+                        <SolidColorBrush x:Key="ComboBoxForeground" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundPressed" Color="#3D3D3A" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#3D3D3A" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#D6D2C4" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownForeground" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemPillFillBrush" Color="#B55536" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackground" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundDisabled" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#F6E7DF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedUnfocused" Color="#F6E7DF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedDisabled" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="#3D3D3A" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedUnfocused" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="#141413" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="#3D3D3A" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrush" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPressed" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushDisabled" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelected" Color="#F6E7DF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedUnfocused" Color="#F6E7DF" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPressed" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedDisabled" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="TextControlForeground" Color="#141413" />
+                        <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#141413" />
+                        <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#141413" />
+                        <SolidColorBrush x:Key="TextControlForegroundDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#F0EEE6" />
+                        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#F5F4ED" />
+                        <SolidColorBrush x:Key="TextControlBorderBrush" Color="#D6D2C4" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#C4BFAE" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#B55536" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#E8E6DC" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#65635C" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#3D3D3A" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#65635C" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundDisabled" Color="#65635C" />
+                        <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#B55536" />
+                        <Color x:Key="ToggleSwitchFillOffPointerOver">#F0EEE6</Color>
+                        <Color x:Key="ToggleSwitchFillOffPressed">#E8E6DC</Color>
+                        <Color x:Key="ToggleSwitchStrokeOffPointerOver">#65635C</Color>
+                        <Color x:Key="ToggleSwitchStrokeOffPressed">#65635C</Color>
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Dark">
+                        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#D97757" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#E08A6D" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#CE6F50" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOn" Color="#D97757" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPointerOver" Color="#E08A6D" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOnPressed" Color="#CE6F50" />
+                        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#302F2C" />
+                        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#8E8B82" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#1F1E1D" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#1F1E1D" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#1F1E1D" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ComboBoxBackground" Color="#302F2C" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#42413D" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="#302F2C" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#1F1E1D" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#4D4B46" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#5E5C56" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#4D4B46" />
+                        <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#3A3935" />
+                        <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="#D97757" />
+                        <SolidColorBrush x:Key="ComboBoxForeground" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundPressed" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#4D4B46" />
+                        <SolidColorBrush x:Key="ComboBoxDropDownForeground" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemPillFillBrush" Color="#D97757" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackground" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#42413D" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundDisabled" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#3D2D26" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedUnfocused" Color="#3D2D26" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#42413D" />
+                        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedDisabled" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedUnfocused" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrush" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushPressed" Color="#42413D" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushDisabled" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelected" Color="#3D2D26" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedUnfocused" Color="#3D2D26" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedPressed" Color="#42413D" />
+                        <SolidColorBrush x:Key="ComboBoxItemBorderBrushSelectedDisabled" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="TextControlForeground" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#F5F4EF" />
+                        <SolidColorBrush x:Key="TextControlForegroundDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="TextControlBackground" Color="#302F2C" />
+                        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#393835" />
+                        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#302F2C" />
+                        <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#1F1E1D" />
+                        <SolidColorBrush x:Key="TextControlBorderBrush" Color="#4D4B46" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#5E5C56" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#D97757" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#3A3935" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#CFCCC2" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="TextControlPlaceholderForegroundDisabled" Color="#A9A69C" />
+                        <SolidColorBrush x:Key="TextControlSelectionHighlightColor" Color="#D97757" />
+                        <Color x:Key="ToggleSwitchFillOffPointerOver">#393835</Color>
+                        <Color x:Key="ToggleSwitchFillOffPressed">#42413D</Color>
+                        <Color x:Key="ToggleSwitchStrokeOffPointerOver">#A9A69C</Color>
+                        <Color x:Key="ToggleSwitchStrokeOffPressed">#A9A69C</Color>
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="HighContrast" />
+                </ResourceDictionary.ThemeDictionaries>
 
-                <StaticResource x:Key="TextControlForeground" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="TextPrimaryBrush" />
-                <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="TextControlBackground" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="SurfaceHoverBrush" />
-                <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="SurfaceRaisedBrush" />
-                <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="SurfaceBrush" />
-                <StaticResource x:Key="TextControlBorderBrush" ResourceKey="BorderStrongBrush" />
-                <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="FocusStrokeBrush" />
-                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="FocusStrokeBrush" />
-                <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="BorderBrush" />
-                <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="TextMutedBrush" />
-                <StaticResource x:Key="TextControlPlaceholderForegroundPointerOver" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="TextControlPlaceholderForegroundFocused" ResourceKey="TextSecondaryBrush" />
-                <StaticResource x:Key="TextControlPlaceholderForegroundDisabled" ResourceKey="TextMutedBrush" />
                 <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
 
                 <Style x:Key="SettingsPageHeaderStyle" TargetType="StackPanel">
-                    <Setter Property="Spacing" Value="2" />
+                    <Setter Property="Spacing" Value="4" />
                 </Style>
 
                 <Style x:Key="SettingsPageTitleStyle" TargetType="TextBlock">
                     <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
-                    <Setter Property="FontFamily" Value="Segoe UI Variable Display" />
-                    <Setter Property="FontSize" Value="19" />
-                    <Setter Property="FontWeight" Value="SemiBold" />
-                    <Setter Property="CharacterSpacing" Value="-10" />
-                    <Setter Property="LineHeight" Value="24" />
+                    <Setter Property="FontFamily" Value="{StaticResource DisplayFontFamily}" />
+                    <Setter Property="FontSize" Value="26" />
+                    <Setter Property="FontWeight" Value="Normal" />
+                    <Setter Property="LineHeight" Value="32" />
                 </Style>
 
                 <Style x:Key="SettingsGroupTitleStyle" TargetType="TextBlock">
                     <Setter Property="Foreground" Value="{ThemeResource TextMutedBrush}" />
                     <Setter Property="FontSize" Value="11" />
                     <Setter Property="FontWeight" Value="SemiBold" />
-                    <Setter Property="CharacterSpacing" Value="24" />
-                    <Setter Property="Margin" Value="0,0,0,2" />
+                    <Setter Property="CharacterSpacing" Value="60" />
+                    <Setter Property="Margin" Value="0,0,0,4" />
                 </Style>
 
                 <Style x:Key="SettingsRowContainerStyle" TargetType="Border">
@@ -117,15 +232,15 @@
 
                 <Style x:Key="SettingsRowTitleStyle" TargetType="TextBlock">
                     <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
-                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="FontSize" Value="13" />
                     <Setter Property="FontWeight" Value="SemiBold" />
                     <Setter Property="TextWrapping" Value="Wrap" />
                 </Style>
 
                 <Style x:Key="SettingsRowDescriptionStyle" TargetType="TextBlock">
                     <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
-                    <Setter Property="FontSize" Value="11" />
-                    <Setter Property="LineHeight" Value="15" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="LineHeight" Value="16" />
                     <Setter Property="TextWrapping" Value="Wrap" />
                 </Style>
 
@@ -170,9 +285,9 @@
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                         <Grid>
-                            <Border x:Name="NavSelection" Background="{ThemeResource SurfaceRaisedBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="NavSelection" Background="{ThemeResource SurfaceHoverBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
                             <Border x:Name="HoverSurface" Background="{ThemeResource SurfaceHoverBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
-                            <Border x:Name="PressedSurface" Background="{ThemeResource PresenceButtonBackgroundPressed}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="PressedSurface" Background="{ThemeResource SurfacePressedBrush}" CornerRadius="6" Opacity="0" IsHitTestVisible="False" />
                             <Border
                                 x:Name="NavRail"
                                 Width="2"
@@ -241,8 +356,8 @@
                     TargetType="ComboBox"
                     BasedOn="{StaticResource DefaultComboBoxStyle}">
                     <Setter Property="Width" Value="196" />
-                    <Setter Property="MinHeight" Value="32" />
-                    <Setter Property="MaxHeight" Value="32" />
+                    <Setter Property="MinHeight" Value="34" />
+                    <Setter Property="MaxHeight" Value="34" />
                     <Setter Property="Padding" Value="11,5,34,5" />
                     <Setter Property="HorizontalAlignment" Value="Right" />
                     <Setter Property="VerticalAlignment" Value="Center" />
@@ -250,7 +365,7 @@
                     <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
                     <Setter Property="BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
                     <Setter Property="BorderThickness" Value="1" />
-                    <Setter Property="CornerRadius" Value="6" />
+                    <Setter Property="CornerRadius" Value="8" />
                     <Setter Property="FontSize" Value="12" />
                     <Setter Property="ItemContainerStyle" Value="{StaticResource SettingsComboBoxItemStyle}" />
                 </Style>
@@ -260,16 +375,16 @@
                     TargetType="TextBox"
                     BasedOn="{StaticResource DefaultTextBoxStyle}">
                     <Setter Property="Width" Value="196" />
-                    <Setter Property="MinHeight" Value="32" />
-                    <Setter Property="MaxHeight" Value="32" />
-                    <Setter Property="Padding" Value="10,5" />
+                    <Setter Property="MinHeight" Value="34" />
+                    <Setter Property="MaxHeight" Value="34" />
+                    <Setter Property="Padding" Value="10,6" />
                     <Setter Property="HorizontalAlignment" Value="Right" />
                     <Setter Property="VerticalAlignment" Value="Center" />
                     <Setter Property="Background" Value="{ThemeResource SurfaceRaisedBrush}" />
                     <Setter Property="Foreground" Value="{ThemeResource TextPrimaryBrush}" />
                     <Setter Property="BorderBrush" Value="{ThemeResource BorderStrongBrush}" />
                     <Setter Property="BorderThickness" Value="1" />
-                    <Setter Property="CornerRadius" Value="6" />
+                    <Setter Property="CornerRadius" Value="8" />
                     <Setter Property="FontSize" Value="12" />
                 </Style>
 
@@ -311,24 +426,19 @@
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="False">
             <TitleBar.LeftHeader>
-                <Grid Width="18" Height="18" Margin="4,0,0,0">
-                    <Grid.Clip>
-                        <RectangleGeometry Rect="0,0,18,18" />
-                    </Grid.Clip>
-                    <Image
-                        Width="24"
-                        Height="24"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Source="codex-app-icon.png"
-                        Stretch="Uniform" />
-                </Grid>
+                <Image
+                    Width="18"
+                    Height="18"
+                    Margin="4,0,0,0"
+                    Source="presence-mark.png"
+                    Stretch="Uniform"
+                    AutomationProperties.AccessibilityView="Raw" />
             </TitleBar.LeftHeader>
         </TitleBar>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="144" />
+                <ColumnDefinition Width="156" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -354,6 +464,13 @@
                         Style="{StaticResource SettingsNavButtonStyle}"
                         Tag="general" />
                     <RadioButton GroupName="SettingsSections"
+                        x:Name="AgentsNavButton"
+                        AutomationProperties.Name="Agent settings"
+                        Checked="SectionButtonChecked"
+                        Content="Agents"
+                        Style="{StaticResource SettingsNavButtonStyle}"
+                        Tag="agents" />
+                    <RadioButton GroupName="SettingsSections"
                         x:Name="PrivacyNavButton"
                         AutomationProperties.Name="Privacy settings"
                         Checked="SectionButtonChecked"
@@ -364,7 +481,7 @@
                         x:Name="RemoteNavButton"
                         AutomationProperties.Name="SSH settings"
                         Checked="SectionButtonChecked"
-                        Content="SSH"
+                        Content="SSH workspaces"
                         Style="{StaticResource SettingsNavButtonStyle}"
                         Tag="remote" />
                 </StackPanel>
@@ -391,7 +508,7 @@
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Presence" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="PRESENCE" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border Style="{StaticResource SettingsRowContainerStyle}">
                                         <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
@@ -400,7 +517,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="Discord presence" Style="{StaticResource SettingsRowTitleStyle}" />
-                                                <TextBlock Text="Publish activity while Codex is open." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                <TextBlock Text="Publish activity while Codex or Claude Code is working." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
                                             <ToggleSwitch
                                                 x:Name="PresenceToggle"
@@ -409,29 +526,10 @@
                                                 Style="{StaticResource SettingsToggleStyle}" />
                                         </Grid>
                                     </Border>
-                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
-                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="196" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center" Spacing="2">
-                                                <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
-                                                <TextBlock Text="Title shown on your Discord card." Style="{StaticResource SettingsRowDescriptionStyle}" />
-                                            </StackPanel>
-                                            <TextBox
-                                                x:Name="ActivityNameInput"
-                                                Grid.Column="1"
-                                                AutomationProperties.Name="Discord activity name"
-                                                MaxLength="128"
-                                                PlaceholderText="Coding with Codex"
-                                                Style="{StaticResource SettingsTextBoxStyle}" />
-                                        </Grid>
-                                    </Border>
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Application" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="APPLICATION" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border Style="{StaticResource SettingsRowContainerStyle}">
                                         <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
@@ -473,6 +571,23 @@
                                                 <ColumnDefinition Width="196" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Appearance" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Ivory, slate, or follow Windows." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="AppearanceSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Appearance"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="Card language" Style="{StaticResource SettingsRowTitleStyle}" />
                                                 <TextBlock Text="Language used in Discord." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
@@ -480,6 +595,175 @@
                                                 x:Name="LanguageSelect"
                                                 Grid.Column="1"
                                                 AutomationProperties.Name="Card language"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+
+                    <ScrollViewer
+                        x:Name="AgentsPage"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
+                        <Border Padding="24,20,24,24">
+                            <StackPanel Spacing="17">
+                                <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
+                                    <TextBlock Text="Agents" Style="{StaticResource SettingsPageTitleStyle}" />
+                                    <TextBlock
+                                        Text="Choose which coding agents appear on your Discord card."
+                                        Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="CLAUDE CODE" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Follow Claude Code" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Terminal, IDE, and Claude Desktop sessions." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleSwitch
+                                                x:Name="ClaudeToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Follow Claude Code"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Title shown while Claude Code is active." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <TextBox
+                                                x:Name="ClaudeActivityNameInput"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Claude Code activity name"
+                                                MaxLength="128"
+                                                PlaceholderText="Coding with Claude Code"
+                                                Style="{StaticResource SettingsTextBoxStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Instant updates" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Adds lightweight hooks to Claude Code settings." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleSwitch
+                                                x:Name="ClaudeHooksToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Claude Code hooks"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="SSH workspaces" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Look for Claude Code on your SSH hosts too." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleSwitch
+                                                x:Name="ClaudeRemoteToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Follow Claude Code over SSH"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Idle after" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Clear the card when a session goes quiet." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="ClaudeIdleSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Claude Code idle timeout"
+                                                Style="{StaticResource SettingsInputStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="CODEX" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Follow Codex" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="The task selected in ChatGPT/Codex Desktop." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ToggleSwitch
+                                                x:Name="CodexToggle"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Follow Codex"
+                                                Style="{StaticResource SettingsToggleStyle}" />
+                                        </Grid>
+                                    </Border>
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Activity name" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Title shown while Codex is active." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <TextBox
+                                                x:Name="ActivityNameInput"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Codex activity name"
+                                                MaxLength="128"
+                                                PlaceholderText="Coding with Codex"
+                                                Style="{StaticResource SettingsTextBoxStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <TextBlock Text="BOTH ACTIVE" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <Border Style="{StaticResource SettingsRowContainerStyle}">
+                                        <Grid Style="{StaticResource SettingsRowLayoutStyle}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="196" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="Show on the card" Style="{StaticResource SettingsRowTitleStyle}" />
+                                                <TextBlock Text="Most recent follows your latest prompt." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                            </StackPanel>
+                                            <ComboBox
+                                                x:Name="PreferredAgentSelect"
+                                                Grid.Column="1"
+                                                AutomationProperties.Name="Agent shown when both are active"
                                                 Style="{StaticResource SettingsInputStyle}" />
                                         </Grid>
                                     </Border>
@@ -503,7 +787,7 @@
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Preset" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="PRESET" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border Style="{StaticResource SettingsRowContainerStyle}">
                                         <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
@@ -525,7 +809,7 @@
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Shared details" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="SHARED DETAILS" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border Style="{StaticResource SettingsRowContainerStyle}">
                                         <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
@@ -534,7 +818,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="Task title" Style="{StaticResource SettingsRowTitleStyle}" />
-                                                <TextBlock Text="Share the selected Codex task title." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                <TextBlock Text="Share the Codex task or Claude Code session title." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
                                             <ToggleSwitch
                                                 x:Name="TaskTitleToggle"
@@ -585,7 +869,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="Session timer" Style="{StaticResource SettingsRowTitleStyle}" />
-                                                <TextBlock Text="Use one timer for the Codex session." Style="{StaticResource SettingsRowDescriptionStyle}" />
+                                                <TextBlock Text="One timer per agent session." Style="{StaticResource SettingsRowDescriptionStyle}" />
                                             </StackPanel>
                                             <ToggleSwitch
                                                 x:Name="TimerToggle"
@@ -626,12 +910,12 @@
                                 <StackPanel Style="{StaticResource SettingsPageHeaderStyle}">
                                     <TextBlock Text="SSH workspaces" Style="{StaticResource SettingsPageTitleStyle}" />
                                     <TextBlock
-                                        Text="Follow Codex sessions running on remote machines."
+                                        Text="Follow Codex and Claude Code sessions on remote machines."
                                         Style="{StaticResource SettingsRowDescriptionStyle}" />
                                 </StackPanel>
 
                                 <StackPanel>
-                                    <TextBlock Text="Workspaces" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="WORKSPACES" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border
                                         Background="{ThemeResource SurfaceBrush}"
                                         BorderBrush="{ThemeResource BorderBrush}"
@@ -719,7 +1003,7 @@
                                                         Text="No SSH workspaces"
                                                         Style="{StaticResource SettingsRowTitleStyle}" />
                                                     <TextBlock
-                                                        Text="Add one to follow a remote Codex session."
+                                                        Text="Add one to follow remote Codex and Claude Code sessions."
                                                         TextAlignment="Center"
                                                         Style="{StaticResource SettingsRowDescriptionStyle}" />
                                                 </StackPanel>
@@ -782,7 +1066,7 @@
                                 </Grid>
 
                                 <StackPanel>
-                                    <TextBlock Text="Monitoring" Style="{StaticResource SettingsGroupTitleStyle}" />
+                                    <TextBlock Text="MONITORING" Style="{StaticResource SettingsGroupTitleStyle}" />
                                     <Border Style="{StaticResource SettingsRowContainerStyle}">
                                         <Grid Style="{StaticResource SettingsRowLayoutStyle}">
                                             <Grid.ColumnDefinitions>
@@ -836,7 +1120,7 @@
                                 AutomationProperties.Name="Save settings changes"
                                 Click="SaveClicked"
                                 Content="Save changes"
-                                CornerRadius="6"
+                                CornerRadius="8"
                                 FontSize="12"
                                 Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>

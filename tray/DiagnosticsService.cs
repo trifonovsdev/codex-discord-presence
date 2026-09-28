@@ -70,8 +70,11 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
                 ? $"Connected through {publisher}"
                 : health?.RpcError ?? "Open Discord Desktop and enable Activity Privacy"));
 
+        var codexEnabled = config?.Agents?.Codex?.Enabled ?? true;
         var appProcess = config?.AppProcess ?? "ChatGPT";
-        result.Add(new("ChatGPT/Codex", IsProcessRunning(appProcess), $"Process: {appProcess}"));
+        result.Add(codexEnabled
+            ? new DiagnosticItem("ChatGPT/Codex", IsProcessRunning(appProcess), $"Process: {appProcess}")
+            : new DiagnosticItem("ChatGPT/Codex", null, "Turned off in Settings → Agents"));
 
         var hooksOk = false;
         try { hooksOk = File.ReadAllText(AppPaths.HooksPath).Replace("\\\\", "\\").Contains(AppPaths.HookPath, StringComparison.OrdinalIgnoreCase); } catch { }
@@ -81,10 +84,11 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
                 ? $"Last event received {observed.ToLocalTime():g}"
                 : "Registered; no event received since the service started — open a task and review Codex hook permissions if this persists"
             : $"Not registered in {SafePath(AppPaths.HooksPath)} — restart ChatGPT/Codex once after installing";
-        result.Add(new(
-            "Codex hooks",
-            hooksOk,
-            hookDetail));
+        result.Add(codexEnabled
+            ? new DiagnosticItem("Codex hooks", hooksOk, hookDetail)
+            : new DiagnosticItem("Codex hooks", null, "Not needed while Codex is turned off"));
+
+        AddClaudeChecks(result, config, health);
 
         result.Add(new("Windows startup", true, configStore.StartsWithWindows ? "Enabled" : "Disabled (optional)"));
 
@@ -95,5 +99,58 @@ public sealed class DiagnosticsService(DaemonService daemon, ConfigStore configS
         }
 
         return result;
+    }
+
+    private static void AddClaudeChecks(List<DiagnosticItem> result, PresenceConfig? config, HealthSnapshot? health)
+    {
+        var claude = config?.Agents?.Claude ?? new ClaudeAgentConfig();
+        if (!claude.Enabled)
+        {
+            result.Add(new("Claude Code", null, "Turned off in Settings → Agents"));
+            return;
+        }
+
+        var state = health?.Agents?.Claude;
+        var remoteHosts = config?.Remote.Hosts.Count ?? 0;
+        var profile = SafePath(ClaudeCodeHooks.Home);
+        string detail;
+        if (state is null)
+            detail = health is null ? "Not checked: local status is unavailable" : "Restart the service to follow Claude Code";
+        else if (state.Active)
+            detail = $"Active{(string.IsNullOrWhiteSpace(state.Project) ? string.Empty : $" in {state.Project}")}" +
+                     $"{(string.IsNullOrWhiteSpace(state.Workspace) ? string.Empty : $" on {state.Workspace}")} · " +
+                     $"{(state.Sessions == 1 ? "1 session" : $"{state.Sessions} sessions")}";
+        else if (ClaudeCodeHooks.ClaudeInstalled)
+            detail = $"Found {profile}; no session active in the last {claude.IdleMinutes} min";
+        else
+            detail = remoteHosts > 0 ? "Not installed on this PC; SSH workspaces are checked" : $"Not found at {profile}";
+        bool? found = state is null ? null : ClaudeCodeHooks.ClaudeInstalled || remoteHosts > 0 || state.Active;
+        result.Add(new DiagnosticItem("Claude Code", found, detail));
+
+        if (!claude.Hooks)
+        {
+            result.Add(new("Claude Code hooks", null, "Off: sessions are read from transcripts every few seconds"));
+        }
+        else if (!ClaudeCodeHooks.ClaudeInstalled)
+        {
+            result.Add(new("Claude Code hooks", null, "Not needed until Claude Code is installed on this PC"));
+        }
+        else
+        {
+            var registered = ClaudeCodeHooks.IsRegistered();
+            result.Add(new(
+                "Claude Code hooks",
+                registered,
+                registered
+                    ? state?.LastHookAt is { } seen ? $"Last event received {seen.ToLocalTime():g}" : "Registered; events arrive with the next prompt"
+                    : $"Not registered in {SafePath(ClaudeCodeHooks.SettingsPath)} — save Settings to add them"));
+        }
+
+        if (!claude.Remote) return;
+        foreach (var remote in state?.Remote ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(remote.Error)) continue;
+            result.Add(new($"Claude Code: {remote.Name}", false, remote.Error!));
+        }
     }
 }

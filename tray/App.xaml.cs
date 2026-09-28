@@ -23,6 +23,9 @@ public partial class App : Application
         {
             if (IsUiSmokeMode()) WriteUiSmokeCheckpoint("App.InitializeComponent");
             InitializeComponent();
+            // The saved appearance must be known before the first window loads its resources.
+            if (ThemeResources.ApplicationThemeFor(new ConfigStore().Load().Appearance) is { } theme)
+                RequestedTheme = theme;
             UnhandledException += OnUnhandledException;
         }
         catch (Exception error)
@@ -39,6 +42,14 @@ public partial class App : Application
         if (TryGetArgumentValue(arguments, "--discord-bridge") is { } applicationId)
         {
             _ = RunDiscordBridgeAsync(applicationId);
+            return;
+        }
+
+        if (TryGetArgumentValue(arguments, "--claude-hooks") is "remove")
+        {
+            // Called by the uninstaller: only Codex Presence entries leave Claude Code settings.
+            try { ClaudeCodeHooks.Remove(); } catch (Exception error) { Console.Error.WriteLine(error); }
+            ExitApplication(0);
             return;
         }
 

@@ -136,6 +136,7 @@ try {
   foreach ($relativePath in @('CodexPresence.exe','codex-presence.ico','discord_partner_sdk.dll','DISCORD_SOCIAL_SDK_NOTICES.txt','runtime\node.exe','app\daemon.js','app\config.default.json')) {
     if (-not (Test-Path -LiteralPath (Join-Path $portableRoot $relativePath))) { throw "Portable bundle is missing $relativePath." }
   }
+  Write-Host 'Running portable UI smoke test.'
   Invoke-UiSmoke -Executable (Join-Path $portableRoot 'CodexPresence.exe') -Label 'Portable UI smoke test'
 
   $legacyDir = Join-Path $env:LOCALAPPDATA 'OpenAI\CodexDiscordPresence'
@@ -178,6 +179,7 @@ try {
   $trayExecutable = Join-Path $installDir 'CodexPresence.exe'
   Invoke-UiSmoke -Executable $trayExecutable -Label 'Desktop UI smoke test'
 
+  Write-Host 'Starting installed tray.'
   $trayProcess = Start-Process $trayExecutable -ArgumentList '--background' -PassThru
   $health = $null
   $lastHealthError = $null
@@ -198,6 +200,7 @@ try {
   }
   if ($health.rpcTransport -ne 'social-sdk') { throw "Installed daemon selected '$($health.rpcTransport)' instead of the Social SDK." }
 
+  Write-Host 'Probing single-instance activation.'
   $activationProbe = Start-Process $trayExecutable -ArgumentList '--background' -PassThru -WindowStyle Hidden
   if (-not $activationProbe.WaitForExit(5000)) {
     Stop-Process -Id $activationProbe.Id -Force -ErrorAction SilentlyContinue
@@ -215,8 +218,9 @@ try {
   }
   if ($ownedBridgeProcesses.Count -ne 1) { throw "Expected a single Social SDK bridge; found $($ownedBridgeProcesses.Count)." }
 
-  $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}'
-  $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}'
+  Write-Host 'Checking pause and resume.'
+  $pause = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"pause"}' -TimeoutSec 10
+  $resume = Invoke-RestMethod -Method Post "http://127.0.0.1:$Port/control" -ContentType 'application/json' -Body '{"action":"resume"}' -TimeoutSec 10
   if ($pause.presenceEnabled -ne $false -or $resume.presenceEnabled -ne $true) { throw 'Pause/resume control failed.' }
 
   # Exercise the updater's actual silent handoff over an already-running installation.

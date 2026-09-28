@@ -5,15 +5,17 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { execFile } = require('child_process');
-const { StringDecoder } = require('string_decoder');
 
 const { readConfig, patchConfig } = require('./config');
 const { createLogger } = require('./logger');
 const { createDiscordPublisher } = require('./discord-publisher');
 const { DesktopSelection, parseDesktopLogLine } = require('./desktop-selection');
-const { buildActivity, stringsFor } = require('./presence');
+const { buildActivity } = require('./presence');
 const { readThreadContext } = require('./codex-state');
 const { configuredRemotes, remoteForCwd: selectRemoteForCwd } = require('./remotes');
+const { newTailState, readNewLines } = require('./tail');
+const { AGENT_LABELS, selectAgent } = require('./agents');
+const { ClaudeCodeMonitor, claudeHomeDirectory } = require('./claude-code');
 const {
   displayPath,
   extractEditedFile,
@@ -24,7 +26,7 @@ const {
   toolPayloadFromRecord,
 } = require('./codex-paths');
 
-const VERSION = '2.5.3';
+const VERSION = '2.6.0';
 
 const CONFIG_PATH = process.env.CODEX_PRESENCE_CONFIG || path.join(__dirname, 'config.json');
 const TEST_MODE = process.env.CODEX_PRESENCE_TEST === '1';
@@ -40,14 +42,16 @@ const DESKTOP_LOG_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 const DESKTOP_LOG_FILE_LIMIT = 100;
 const SESSION_STATE_LIMIT = 64;
 const THREAD_CONTEXT_REFRESH_MS = 30_000;
-const READ_CHUNK_BYTES = 1024 * 1024;
-const READ_BUDGET_BYTES = 8 * 1024 * 1024;
-const MAX_PARTIAL_LINE_BYTES = 1024 * 1024;
 const HOOK_BODY_LIMIT = 256 * 1024;
 const CONTROL_BODY_LIMIT = 8 * 1024;
 const APP_POLL_INTERVAL_MS = 15_000;
 const DESKTOP_POLL_INTERVAL_MS = 2000;
 const SESSION_POLL_INTERVAL_MS = 2500;
+const CLAUDE_POLL_INTERVAL_MS = 2500;
+const CLAUDE_REMOTE_IDLE_POLL_MS = 30_000;
+const CLAUDE_REMOTE_ERROR_POLL_MS = 60_000;
+const CLAUDE_REMOTE_OUTDATED_POLL_MS = 10 * 60_000;
+const FOCUS_EVENTS = new Set(['SessionStart', 'UserPromptSubmit']);
 const THREAD_ID = /^[0-9a-f-]{20,64}$/i;
 
 const log = createLogger(LOG_PATH);
@@ -58,7 +62,10 @@ const PORT = CONFIG.port;
 const APP_PROCESS = CONFIG.appProcess;
 const REMOTE_POLL_INTERVAL = CONFIG.remote.pollIntervalMs;
 const REMOTE_HOSTS = configuredRemotes(CONFIG, CONFIG.remote.monitorPath);
-const TEXT = stringsFor(CONFIG.language);
+const AGENTS = CONFIG.agents;
+const CODEX_ENABLED = AGENTS.codex.enabled;
+const CLAUDE_ENABLED = AGENTS.claude.enabled;
+const CLAUDE_HOME = claudeHomeDirectory();
 
 const selection = new DesktopSelection();
 const sessionStates = new Map();
@@ -71,7 +78,8 @@ let currentSessionId = null;
 let activeSessionPath = null;
 let presenceSource = 'startup';
 let presenceEnabled = CONFIG.presenceEnabled;
-let appIsRunning = true;
+// Test mode has no process monitor, so Codex is assumed open there.
+let appIsRunning = CODEX_ENABLED;
 let appSignature = '';
 let codexStartedAt = null;
 let updateTimer = null;
@@ -82,6 +90,15 @@ let lastLoggedRemoteError = null;
 let selectedRemoteName = null;
 let lastHookAt = null;
 let publishedDesktopRouteKey = null;
+let codexFocusAt = null;
+let codexActivityAt = null;
+let publishedAgent = null;
+const claudeRemoteStates = new Map();
+
+const claude = CLAUDE_ENABLED
+  ? new ClaudeCodeMonitor({ home: CLAUDE_HOME, idleMs: AGENTS.claude.idleMinutes * 60_000, log })
+  : null;
+claude?.on('change', () => queuePresence());
 
 const ipc = createDiscordPublisher({ clientId: CONFIG.clientId, log });
 ipc.on('ready', () => (presenceEnabled ? queuePresence(true) : ipc.setActivity(null, { immediate: true })));
@@ -92,18 +109,74 @@ function remoteForCwd(cwd) {
 
 // ── Presence ────────────────────────────────────────────────────────────────
 
-function currentActivity() {
-  return buildActivity({
-    activityName: CONFIG.activityName,
+function agentStates() {
+  const claudeState = claude?.snapshot() ?? { active: false };
+  return {
+    codex: { enabled: CODEX_ENABLED, active: appIsRunning, focusAt: codexFocusAt, activityAt: codexActivityAt },
+    claude: {
+      enabled: CLAUDE_ENABLED,
+      active: claudeState.active === true,
+      focusAt: claudeState.focusAt ?? null,
+      activityAt: claudeState.activityAt ?? null,
+    },
+  };
+}
+
+/** The agent that owns the card right now, or null when nothing is active. */
+function activeAgent() {
+  const next = selectAgent({ preferred: AGENTS.preferred, agents: agentStates(), current: publishedAgent });
+  if (next !== publishedAgent) {
+    log(`Presence agent -> ${next ? AGENT_LABELS[next] : 'none'}`);
+    publishedAgent = next;
+  }
+  return next;
+}
+
+/** Card-level view of one agent: what the tray shows and what Discord receives. */
+function agentView(agent) {
+  if (agent === 'claude') {
+    const state = claude?.snapshot() ?? { active: false };
+    return {
+      agent,
+      project: state.project ?? null,
+      task: state.title ?? null,
+      file: state.file ?? null,
+      workspace: state.workspace ?? null,
+      source: state.source ?? 'claude-transcript',
+      startedAt: state.startedAt ? Math.floor(state.startedAt / 1000) : null,
+      activityName: AGENTS.claude.activityName,
+      largeImageKey: AGENTS.claude.largeImageKey,
+      largeImageText: AGENTS.claude.largeImageText,
+    };
+  }
+  return {
+    agent: 'codex',
     project: currentProject,
     task: currentTaskTitle,
     file: currentFile,
     workspace: selectedRemoteName,
-    privacy: CONFIG.privacy,
-    language: CONFIG.language,
+    source: presenceSource,
     startedAt: codexStartedAt,
+    activityName: CONFIG.activityName,
     largeImageKey: CONFIG.largeImageKey,
     largeImageText: CONFIG.largeImageText,
+  };
+}
+
+function currentActivity(agent = activeAgent() ?? 'codex') {
+  const view = agentView(agent);
+  return buildActivity({
+    agent: view.agent,
+    activityName: view.activityName,
+    project: view.project,
+    task: view.task,
+    file: view.file,
+    workspace: view.workspace,
+    privacy: CONFIG.privacy,
+    language: CONFIG.language,
+    startedAt: view.startedAt,
+    largeImageKey: view.largeImageKey,
+    largeImageText: view.largeImageText,
   });
 }
 
@@ -119,11 +192,12 @@ function queuePresence(immediate = false) {
 }
 
 function publishPresence() {
-  if (!presenceEnabled || !appIsRunning) {
+  const agent = activeAgent();
+  if (!presenceEnabled || !agent) {
     ipc.setActivity(null, { immediate: true });
     return;
   }
-  ipc.setActivity(currentActivity());
+  ipc.setActivity(currentActivity(agent));
 }
 
 function setPresenceEnabled(enabled) {
@@ -158,54 +232,12 @@ function applyActivity(project, file, source, { claimSource = false, replaceProj
   currentFile = nextFile;
   currentTaskTitle = nextTaskTitle;
   presenceSource = source;
+  codexActivityAt = Date.now();
   queuePresence();
   return true;
 }
 
-// ── Incremental file tailing ────────────────────────────────────────────────
-
-function newTailState() {
-  return { offset: 0, remainder: '', decoder: new StringDecoder('utf8'), lastSeen: Date.now() };
-}
-
-/**
- * Reads everything appended since the previous call and returns whole lines.
- *
- * Reads are chunked and budgeted: the first pass over a multi-megabyte Codex
- * log used to be allocated as one contiguous buffer, and a truncated log used
- * to be re-read from the start.
- */
-function readNewLines(filePath, state, size) {
-  state.lastSeen = Date.now();
-  if (size < state.offset) {
-    state.offset = 0;
-    state.remainder = '';
-    state.decoder = new StringDecoder('utf8');
-  }
-  if (size === state.offset) return null;
-
-  const lines = [];
-  const buffer = Buffer.allocUnsafe(READ_CHUNK_BYTES);
-  const descriptor = fs.openSync(filePath, 'r');
-  try {
-    let budget = READ_BUDGET_BYTES;
-    while (state.offset < size && budget > 0) {
-      const length = Math.min(READ_CHUNK_BYTES, size - state.offset, budget);
-      const read = fs.readSync(descriptor, buffer, 0, length, state.offset);
-      if (read <= 0) break;
-      state.offset += read;
-      budget -= read;
-
-      const parts = `${state.remainder}${state.decoder.write(buffer.subarray(0, read))}`.split(/\r?\n/);
-      state.remainder = parts.pop() ?? '';
-      if (state.remainder.length > MAX_PARTIAL_LINE_BYTES) state.remainder = '';
-      for (const part of parts) if (part) lines.push(part);
-    }
-  } finally {
-    fs.closeSync(descriptor);
-  }
-  return lines;
-}
+// ── Directory helpers ───────────────────────────────────────────────────────
 
 function listFiles(dir, output) {
   let entries;
@@ -286,7 +318,14 @@ function syncDesktopSelection() {
   if (!selection.selectedRouteConfirmed()) return;
   const routeKey = `${selected.threadId}:${selected.at}`;
   const newlyConfirmed = routeKey !== publishedDesktopRouteKey;
-  if (newlyConfirmed) selectedRemoteName = null;
+  if (newlyConfirmed) {
+    selectedRemoteName = null;
+    // Selecting a task in Codex Desktop is a deliberate focus change.
+    if (publishedDesktopRouteKey !== null) {
+      codexFocusAt = Date.now();
+      queuePresence();
+    }
+  }
 
   const now = Date.now();
   if (newlyConfirmed || switched || now - (selected.contextReadAt || 0) >= THREAD_CONTEXT_REFRESH_MS) {
@@ -509,12 +548,15 @@ function checkCodexApp() {
         appIsRunning = false;
         appSignature = '';
         codexStartedAt = null;
-        ipc.setActivity(null, { immediate: true });
+        codexFocusAt = null;
+        queuePresence(true);
         log('Codex app closed; presence timer cleared');
         return;
       }
 
+      const wasRunning = appIsRunning;
       appIsRunning = true;
+      if (!wasRunning) queuePresence(true);
       if (signature === appSignature && codexStartedAt) return;
       appSignature = signature;
       readProcessStart();
@@ -533,6 +575,7 @@ function readProcessStart() {
     const startedAt = Number.parseInt(String(stdout).trim(), 10);
     if (!Number.isSafeInteger(startedAt) || startedAt <= 0 || startedAt === codexStartedAt) return;
     codexStartedAt = startedAt;
+    codexFocusAt = Math.max(codexFocusAt ?? 0, startedAt * 1000);
     queuePresence(true);
     log(`Codex app timer started at ${new Date(codexStartedAt * 1000).toISOString()}`);
   });
@@ -540,7 +583,21 @@ function readProcessStart() {
 
 // ── Hook endpoint ───────────────────────────────────────────────────────────
 
+function isClaudeHook(payload) {
+  if (payload.agent === 'claude') return true;
+  if (payload.agent === 'codex') return false;
+  return /[\\/]\.claude[\\/]projects[\\/]/i.test(String(payload.transcript_path || ''));
+}
+
 function handleHook(payload) {
+  if (isClaudeHook(payload)) {
+    if (!claude) return;
+    lastHookAt = new Date().toISOString();
+    if (claude.handleHook(payload)) log(`Claude Code hook ${payload.hook_event_name || 'unknown'} -> session=${claude.snapshot().sessionId ?? '—'}`);
+    return;
+  }
+  if (!CODEX_ENABLED) return;
+
   const event = String(payload.hook_event_name || payload.event || '');
   const payloadThreadId = payload.session_id || payload.thread_id || null;
   const selectedThreadId = selection.confirmedSelected()?.threadId ?? null;
@@ -549,6 +606,11 @@ function handleHook(payload) {
     return;
   }
   lastHookAt = new Date().toISOString();
+  if (FOCUS_EVENTS.has(event)) {
+    // A prompt can hand the card back to Codex even when its project is unchanged.
+    codexFocusAt = Date.now();
+    queuePresence();
+  }
 
   const context = payloadThreadId ? readThreadContext(payloadThreadId, { codexHome: CODEX_HOME }) : null;
   const sessionChanged = Boolean(payloadThreadId && payloadThreadId !== currentSessionId);
@@ -567,6 +629,81 @@ function handleHook(payload) {
     taskTitle: context?.title || (sessionChanged ? null : currentTaskTitle),
   })) {
     log(`Hook ${event || 'unknown'} -> project=${currentProject ?? '—'}, file=${currentFile ?? '—'}`);
+  }
+}
+
+// ── Claude Code monitor ─────────────────────────────────────────────────────
+
+function pollClaude() {
+  if (!claude) return;
+  try {
+    claude.poll();
+  } catch (error) {
+    log(`Claude Code monitor error: ${error.message}`);
+  }
+}
+
+function claudeRemoteState(remote) {
+  let state = claudeRemoteStates.get(remote.name);
+  if (!state) {
+    state = { running: false, nextAt: 0, error: null, outdated: false, lastPollAt: null, active: false };
+    claudeRemoteStates.set(remote.name, state);
+  }
+  return state;
+}
+
+/**
+ * Asks each SSH workspace which Claude Code session is focused there. Claude
+ * Code Desktop runs remote sessions over SSH, so their transcripts never
+ * reach this machine. Idle hosts are polled less often.
+ */
+function syncClaudeRemotes() {
+  if (!claude || !AGENTS.claude.remote) return;
+  const now = Date.now();
+  for (const remote of REMOTE_HOSTS) {
+    const state = claudeRemoteState(remote);
+    if (state.running || now < state.nextAt) continue;
+    state.running = true;
+    execFile(
+      'ssh.exe',
+      ['-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=6', remote.host, 'python3', remote.monitorPath, '--claude', String(AGENTS.claude.idleMinutes * 60)],
+      { windowsHide: true, timeout: 10_000, maxBuffer: 1024 * 1024 },
+      (error, stdout, stderr) => {
+        const receivedAt = Date.now();
+        state.running = false;
+        state.lastPollAt = new Date(receivedAt).toISOString();
+        let result = null;
+        if (!error) {
+          try {
+            result = JSON.parse(String(stdout).trim().split(/\r?\n/).filter(Boolean).at(-1) || '{}');
+          } catch (parseError) {
+            result = { ok: false, error: `Invalid remote response: ${parseError.message}` };
+          }
+        }
+
+        if (error || !result?.ok) {
+          const outdated = result?.error === 'invalid-thread-id';
+          const message = error
+            ? String(stderr || error.message).trim().slice(-240)
+            : outdated
+              ? 'The SSH helper predates Claude Code support; reinstall it from Settings → SSH'
+              : String(result?.error || 'remote-error');
+          if (message !== state.error) log(`Claude Code remote ${remote.name}: ${message}`);
+          state.error = message;
+          state.outdated = outdated;
+          state.active = false;
+          state.nextAt = receivedAt + (outdated ? CLAUDE_REMOTE_OUTDATED_POLL_MS : CLAUDE_REMOTE_ERROR_POLL_MS);
+          claude.clearRemote(remote.name);
+          return;
+        }
+
+        state.error = null;
+        state.outdated = false;
+        state.active = result.active === true;
+        state.nextAt = receivedAt + (state.active ? REMOTE_POLL_INTERVAL : CLAUDE_REMOTE_IDLE_POLL_MS);
+        claude.applyRemote(remote.name, result, receivedAt);
+      },
+    );
   }
 }
 
@@ -641,8 +778,40 @@ function readJsonBody(req, res, limit) {
   });
 }
 
+function claudeHealth() {
+  const state = claude?.snapshot() ?? { active: false };
+  return {
+    enabled: CLAUDE_ENABLED,
+    installed: fs.existsSync(CLAUDE_HOME),
+    active: state.active === true,
+    busy: state.busy === true,
+    project: state.project ?? null,
+    file: state.file ?? null,
+    workspace: state.workspace ?? null,
+    surface: state.surface ?? null,
+    sessionId: state.sessionId ?? null,
+    sessions: state.sessions ?? 0,
+    startedAt: state.startedAt ? new Date(state.startedAt).toISOString() : null,
+    lastHookAt: claude?.lastHookAt ? new Date(claude.lastHookAt).toISOString() : null,
+    hooks: AGENTS.claude.hooks,
+    remote: REMOTE_HOSTS.map((remote) => {
+      const remoteState = claudeRemoteStates.get(remote.name);
+      return {
+        name: remote.name,
+        active: remoteState?.active === true,
+        error: remoteState?.error ?? null,
+        outdated: remoteState?.outdated === true,
+        lastPollAt: remoteState?.lastPollAt ?? null,
+      };
+    }),
+  };
+}
+
 function healthSnapshot() {
   const selected = selection.selected();
+  const agent = activeAgent();
+  const view = agentView(agent ?? 'codex');
+  const activity = presenceEnabled && agent ? currentActivity(agent) : null;
   return {
     ok: true,
     version: VERSION,
@@ -653,11 +822,15 @@ function healthSnapshot() {
     rpcError: ipc.lastError,
     rpcTransport: ipc.transport,
     presenceEnabled,
-    project: currentProject,
-    task: CONFIG.privacy.showTaskTitle ? currentTaskTitle : null,
+    agent,
+    agentLabel: agent ? AGENT_LABELS[agent] : null,
+    agentRunning: agent !== null,
+    startedAt: agent && view.startedAt ? new Date(view.startedAt * 1000).toISOString() : null,
+    project: view.project,
+    task: CONFIG.privacy.showTaskTitle ? view.task : null,
     taskTitleShared: CONFIG.privacy.showTaskTitle,
-    file: currentFile,
-    source: presenceSource,
+    file: view.file,
+    source: view.source,
     codexRunning: appIsRunning,
     codexStartedAt: codexStartedAt ? new Date(codexStartedAt * 1000).toISOString() : null,
     activeSession: activeSessionPath ? path.basename(activeSessionPath) : null,
@@ -670,10 +843,24 @@ function healthSnapshot() {
     lastHookAt,
     remoteConfigured: REMOTE_HOSTS.length > 0,
     remoteHosts: REMOTE_HOSTS.map((remote) => remote.name),
-    selectedRemote: selectedRemoteName,
+    selectedRemote: view.workspace,
     knownThreadProjects: selection.knownProjects(),
     configWarnings: CONFIG_WARNINGS,
-    details: presenceEnabled && appIsRunning ? currentActivity().details : null,
+    details: activity?.details ?? null,
+    activity: activity
+      ? { name: activity.name, details: activity.details, state: activity.state, largeText: activity.assets?.large_text ?? null }
+      : null,
+    agents: {
+      preferred: AGENTS.preferred,
+      codex: {
+        enabled: CODEX_ENABLED,
+        running: appIsRunning,
+        project: currentProject,
+        file: currentFile,
+        focusAt: codexFocusAt ? new Date(codexFocusAt).toISOString() : null,
+      },
+      claude: claudeHealth(),
+    },
     lastRpcAck: ipc.lastAck,
   };
 }
@@ -748,18 +935,25 @@ server.listen(PORT, HOST, () => {
   queuePresence();
   if (TEST_MODE) return;
 
-  syncDesktopSelection();
-  syncActiveSession();
-  ipc.connect();
-  checkCodexApp();
-  for (const [handler, interval] of [
-    [checkCodexApp, APP_POLL_INTERVAL_MS],
-    [syncDesktopSelection, DESKTOP_POLL_INTERVAL_MS],
-    [syncActiveSession, SESSION_POLL_INTERVAL_MS],
-    [syncRemoteFile, REMOTE_POLL_INTERVAL],
-  ]) {
-    setInterval(handler, interval).unref();
+  const pollers = [];
+  if (CODEX_ENABLED) {
+    syncDesktopSelection();
+    syncActiveSession();
+    checkCodexApp();
+    pollers.push(
+      [checkCodexApp, APP_POLL_INTERVAL_MS],
+      [syncDesktopSelection, DESKTOP_POLL_INTERVAL_MS],
+      [syncActiveSession, SESSION_POLL_INTERVAL_MS],
+      [syncRemoteFile, REMOTE_POLL_INTERVAL],
+    );
   }
+  if (claude) {
+    pollClaude();
+    syncClaudeRemotes();
+    pollers.push([pollClaude, CLAUDE_POLL_INTERVAL_MS], [syncClaudeRemotes, CLAUDE_POLL_INTERVAL_MS]);
+  }
+  ipc.connect();
+  for (const [handler, interval] of pollers) setInterval(handler, interval).unref();
 });
 
 let shuttingDown = false;

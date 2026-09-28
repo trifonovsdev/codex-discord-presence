@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.ApplicationModel.DataTransfer;
 
 namespace CodexPresence;
@@ -47,8 +48,23 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += AppWindow_Closing;
         Closed += MainWindow_Closed;
         RootLayout.ActualThemeChanged += (_, _) => { WindowChrome.Apply(this); Render(); };
+        RootLayout.Loaded += (_, _) => WindowChrome.Apply(this);
 
         sessionTimer.Tick += (_, _) => RenderTime();
+        Render();
+    }
+
+    /// <summary>Applies the Settings appearance: "system", "light" or "dark".</summary>
+    public void ApplyAppearance(string? appearance)
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(() => ApplyAppearance(appearance));
+            return;
+        }
+
+        ThemeResources.Apply(RootLayout, appearance);
+        WindowChrome.Apply(this);
         Render();
     }
 
@@ -192,7 +208,8 @@ public sealed partial class MainWindow : Window
 
         ConnectionStatus.Text = presentation.Connection;
         ConnectionDot.Fill = ToneBrush(presentation.ConnectionTone);
-        ActivityContext.Text = presentation.ActivityContext;
+        RenderChip(CodexChip, CodexChipLabel, CodexChipDot, presentation.CodexChip);
+        RenderChip(ClaudeChip, ClaudeChipLabel, ClaudeChipDot, presentation.ClaudeChip);
         ProjectName.Text = presentation.Project;
         CurrentFile.Text = presentation.CurrentFile;
         ToolTipService.SetToolTip(CurrentFile, presentation.CurrentFile);
@@ -200,6 +217,7 @@ public sealed partial class MainWindow : Window
         ToolTipService.SetToolTip(WorkspaceValue, presentation.Workspace);
         CopyPathButton.IsEnabled = presentation.CopyPath is not null;
 
+        AgentValue.Text = presentation.AgentName;
         SourceValue.Text = presentation.Source;
         WorkspaceValue.Text = presentation.Workspace;
         SessionValue.Text = presentation.Session;
@@ -218,6 +236,9 @@ public sealed partial class MainWindow : Window
         PreviewSecondaryLine.Text = presentation.PreviewSecondary;
         PreviewElapsed.Text = presentation.PreviewElapsed;
         PreviewStatusDot.Fill = ToneBrush(presentation.PreviewTone);
+        var claudeArtwork = presentation.PreviewAgent == "claude";
+        PreviewClaudeIcon.Visibility = claudeArtwork ? Visibility.Visible : Visibility.Collapsed;
+        PreviewCodexIcon.Visibility = claudeArtwork ? Visibility.Collapsed : Visibility.Visible;
         PreviewTimerRow.Visibility = presentation.ShowPreviewElapsed ? Visibility.Visible : Visibility.Collapsed;
         AutomationProperties.SetName(
             DiscordPreview,
@@ -246,7 +267,26 @@ public sealed partial class MainWindow : Window
             PresenceTone.Danger => "DangerBrush",
             _ => "TextMutedBrush",
         };
-        return (Brush)Application.Current.Resources[key];
+        return ThemeResources.Brush(RootLayout, key);
+    }
+
+    /// <summary>The card owner is filled with clay; other agents stay outlined or quiet.</summary>
+    private void RenderChip(Border chip, TextBlock label, Ellipse dot, AgentChip state)
+    {
+        var owner = state.State == AgentChipState.Owner;
+        var active = state.State == AgentChipState.Active;
+        var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        chip.Background = owner ? ThemeResources.Brush(RootLayout, "AccentSoftBrush") : transparent;
+        chip.BorderBrush = owner
+            ? ThemeResources.Brush(RootLayout, "AccentSoftBrush")
+            : state.State == AgentChipState.Disabled ? transparent : ThemeResources.Brush(RootLayout, "BorderBrush");
+        label.Foreground = ThemeResources.Brush(
+            RootLayout,
+            owner ? "TextPrimaryBrush" : active ? "TextSecondaryBrush" : "TextMutedBrush");
+        dot.Fill = ThemeResources.Brush(RootLayout, owner ? "AccentBrush" : active ? "SuccessBrush" : "TextMutedBrush");
+        dot.Visibility = state.State == AgentChipState.Disabled ? Visibility.Collapsed : Visibility.Visible;
+        ToolTipService.SetToolTip(chip, state.ToolTip);
+        AutomationProperties.SetName(chip, state.ToolTip);
     }
 
     private Task<XamlRoot> EnsureXamlRootAsync()

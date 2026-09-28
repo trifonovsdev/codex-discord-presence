@@ -16,11 +16,11 @@ internal static class NativeInteractionChecks
             File.AppendAllText(Path.Combine(directory, "interaction-checks.txt"), $"PASS {message}\n");
         }
 
-        foreach (var section in new[] { "privacy", "remote", "general", "privacy", "general" })
+        foreach (var section in new[] { "privacy", "agents", "remote", "general", "agents", "privacy", "general" })
         {
             window.ShowPage(section);
             await Task.Delay(40);
-            Check(new[] { "GeneralNavButton", "PrivacyNavButton", "RemoteNavButton" }
+            Check(new[] { "GeneralNavButton", "AgentsNavButton", "PrivacyNavButton", "RemoteNavButton" }
                 .Count(name => Find<RadioButton>(name).IsChecked == true) == 1, $"Exactly one tab selected after {section}");
         }
         var toggle = Find<ToggleSwitch>("PresenceToggle");
@@ -59,13 +59,23 @@ internal static class NativeInteractionChecks
 
         WindowSizing.ResizeInDips(window, 700, 480);
         await Task.Delay(160);
-        foreach (var name in new[] { "PresenceToggle", "ActivityNameInput", "LanguageSelect", "SaveButton" })
+        foreach (var (page, names) in new[]
         {
-            var element = Find<FrameworkElement>(name);
-            var point = element.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point());
-            Check(point.X >= 0 && point.X + element.ActualWidth <= root.ActualWidth,
-                $"{name} fits at the minimum window width");
+            ("general", new[] { "PresenceToggle", "AppearanceSelect", "LanguageSelect", "SaveButton" }),
+            ("agents", new[] { "ClaudeToggle", "ClaudeActivityNameInput", "ActivityNameInput", "PreferredAgentSelect" }),
+        })
+        {
+            window.ShowPage(page);
+            await Task.Delay(120);
+            foreach (var name in names)
+            {
+                var element = Find<FrameworkElement>(name);
+                var point = element.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point());
+                Check(element.ActualWidth > 0 && point.X >= 0 && point.X + element.ActualWidth <= root.ActualWidth,
+                    $"{name} fits at the minimum window width");
+            }
         }
+        window.ShowPage("general");
         WindowSizing.ResizeInDips(window, 740, 620);
     }
 }

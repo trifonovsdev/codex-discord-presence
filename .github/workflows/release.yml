@@ -61,6 +61,7 @@ jobs:
         shell: pwsh
         run: .\build-release.ps1 -Version $env:RELEASE_VERSION
       - name: Smoke-test installer lifecycle
+        timeout-minutes: 6
         shell: pwsh
         run: .\tests\installer-smoke.ps1
       - name: Verify Authenticode when signing is configured

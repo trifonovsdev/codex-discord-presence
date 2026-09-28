@@ -9,11 +9,37 @@
     Title="Codex Presence">
 
     <Grid x:Name="RootLayout" Background="{ThemeResource WindowBackgroundBrush}">
+        <Grid.Resources>
+            <ResourceDictionary>
+                <!-- InfoBars use the app's warning and danger surfaces instead of system yellow and red. -->
+                <ResourceDictionary.ThemeDictionaries>
+                    <ResourceDictionary x:Key="Light">
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityBackgroundBrush" Color="#F7EDD8" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityBackgroundBrush" Color="#F8E4DF" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#FFFFFF" />
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityIconBackground" Color="#8A5A00" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityIconBackground" Color="#B0402C" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityIconBackground" Color="#B55536" />
+                        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#E8E6DC" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Dark">
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityBackgroundBrush" Color="#362D1C" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityBackgroundBrush" Color="#3A2521" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#2B2A27" />
+                        <SolidColorBrush x:Key="InfoBarWarningSeverityIconBackground" Color="#E0B062" />
+                        <SolidColorBrush x:Key="InfoBarErrorSeverityIconBackground" Color="#EE8A78" />
+                        <SolidColorBrush x:Key="InfoBarInformationalSeverityIconBackground" Color="#D97757" />
+                        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#3A3935" />
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="HighContrast" />
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="51" />
+            <RowDefinition Height="56" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="34" />
+            <RowDefinition Height="36" />
         </Grid.RowDefinitions>
 
         <TitleBar
@@ -24,18 +50,13 @@
             IsPaneToggleButtonVisible="False"
             AutomationProperties.Name="Codex Presence title bar">
             <TitleBar.LeftHeader>
-                <Grid Width="18" Height="18" Margin="4,0,0,0">
-                    <Grid.Clip>
-                        <RectangleGeometry Rect="0,0,18,18" />
-                    </Grid.Clip>
-                    <Image
-                        Width="24"
-                        Height="24"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Source="codex-app-icon.png"
-                        Stretch="Uniform" />
-                </Grid>
+                <Image
+                    Width="18"
+                    Height="18"
+                    Margin="4,0,0,0"
+                    Source="presence-mark.png"
+                    Stretch="Uniform"
+                    AutomationProperties.AccessibilityView="Raw" />
             </TitleBar.LeftHeader>
         </TitleBar>
 
@@ -49,16 +70,69 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Text="Presence" />
-                    <TextBlock Foreground="{ThemeResource TextMutedBrush}" Text="/" />
-                    <TextBlock
-                        x:Name="ActivityContext"
-                        MaxWidth="200"
-                        FontSize="12"
-                        Foreground="{ThemeResource TextSecondaryBrush}"
-                        Text="Session monitor · Local desktop"
-                        TextTrimming="CharacterEllipsis" />
+                <!-- Agents followed by the service; the filled chip owns the Discord card. -->
+                <StackPanel
+                    x:Name="AgentSwitcher"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    AutomationProperties.Name="Followed agents">
+                    <Border x:Name="CodexChip" Style="{StaticResource ChipBorderStyle}">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="7">
+                            <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                <Grid.Clip>
+                                    <RectangleGeometry Rect="0,0,16,16" />
+                                </Grid.Clip>
+                                <Image
+                                    Width="21"
+                                    Height="21"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Source="codex-app-icon.png"
+                                    Stretch="Uniform" />
+                            </Grid>
+                            <TextBlock
+                                x:Name="CodexChipLabel"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="Codex" />
+                            <Ellipse
+                                x:Name="CodexChipDot"
+                                Width="6"
+                                Height="6"
+                                VerticalAlignment="Center"
+                                Fill="{ThemeResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="ClaudeChip" Style="{StaticResource ChipBorderStyle}">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="7">
+                            <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                <Grid.Clip>
+                                    <RectangleGeometry Rect="0,0,16,16" />
+                                </Grid.Clip>
+                                <Image
+                                    Width="21"
+                                    Height="21"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Source="claude-code-icon.png"
+                                    Stretch="Uniform" />
+                            </Grid>
+                            <TextBlock
+                                x:Name="ClaudeChipLabel"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="Claude Code" />
+                            <Ellipse
+                                x:Name="ClaudeChipDot"
+                                Width="6"
+                                Height="6"
+                                VerticalAlignment="Center"
+                                Fill="{ThemeResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
@@ -66,7 +140,7 @@
                         x:Name="DiagnosticsButton"
                         Style="{StaticResource CompactIconButtonStyle}"
                         Click="DiagnosticsButton_Click"
-                        AutomationProperties.HelpText="Checks the local service, Discord, Codex hooks, and SSH workspaces"
+                        AutomationProperties.HelpText="Checks the local service, Discord, Codex and Claude Code hooks, and SSH workspaces"
                         AutomationProperties.Name="Run diagnostics"
                         ToolTipService.ToolTip="Run diagnostics">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="13" Glyph="&#xE9D9;" />
@@ -75,7 +149,7 @@
                         x:Name="SettingsButton"
                         Style="{StaticResource CompactIconButtonStyle}"
                         Click="SettingsButton_Click"
-                        AutomationProperties.HelpText="Changes activity name, privacy, startup, language, and SSH workspaces"
+                        AutomationProperties.HelpText="Changes agents, activity names, privacy, startup, appearance, and SSH workspaces"
                         AutomationProperties.Name="Open settings"
                         ToolTipService.ToolTip="Open settings">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="13" Glyph="&#xE713;" />
@@ -99,7 +173,7 @@
             Grid.Row="2"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <Grid Padding="24,20,24,20">
+            <Grid Padding="28,22,28,22">
                 <StackPanel>
 
                     <Grid>
@@ -110,8 +184,8 @@
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Ellipse
                                 x:Name="ConnectionDot"
-                                Width="7"
-                                Height="7"
+                                Width="8"
+                                Height="8"
                                 VerticalAlignment="Center"
                                 Fill="{ThemeResource TextMutedBrush}" />
                             <TextBlock
@@ -131,15 +205,11 @@
                             Text="Sharing project · file · timer" />
                     </Grid>
 
-                    <StackPanel Margin="0,18,0,0" Spacing="6">
+                    <StackPanel Margin="0,12,0,0" Spacing="4">
                         <TextBlock
                             x:Name="ProjectName"
-                            MaxLines="1"
-                            FontFamily="Segoe UI Variable Display"
-                            FontSize="26"
-                            FontWeight="SemiBold"
-                            Text="Waiting for Codex"
-                            TextTrimming="CharacterEllipsis"
+                            Style="{StaticResource DisplayTitleTextStyle}"
+                            Text="Waiting for an agent"
                             AutomationProperties.LiveSetting="Polite" />
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -151,7 +221,7 @@
                                 x:Name="CurrentFile"
                                 VerticalAlignment="Center"
                                 MaxLines="1"
-                                FontFamily="Cascadia Mono, Consolas"
+                                FontFamily="{StaticResource MonoFontFamily}"
                                 FontSize="12"
                                 Foreground="{ThemeResource TextSecondaryBrush}"
                                 Text="No activity yet"
@@ -161,12 +231,11 @@
                                 Opacity="0"
                                 IsHitTestVisible="False"
                                 Grid.Column="1"
-                                Margin="10,0,5,0"
+                                Margin="10,0,6,0"
                                 VerticalAlignment="Center"
                                 FontSize="11"
                                 Foreground="{ThemeResource SuccessBrush}"
                                 Text="Copied"
-
                                 AutomationProperties.LiveSetting="Polite" />
                             <Button
                                 x:Name="CopyPathButton"
@@ -186,53 +255,69 @@
                         </Grid>
                     </StackPanel>
 
-
-                    <Grid Margin="0,16,0,0">
+                    <Grid Margin="0,20,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock FontSize="12" FontWeight="SemiBold" Text="Discord preview" />
-                        <TextBlock Grid.Column="1" FontSize="11" Foreground="{ThemeResource TextMutedBrush}" x:Name="PreviewLabel" Text="Not published" />
+                        <TextBlock Style="{StaticResource EyebrowTextStyle}" Text="DISCORD PREVIEW" />
+                        <TextBlock
+                            x:Name="PreviewLabel"
+                            Grid.Column="1"
+                            FontSize="11"
+                            Foreground="{ThemeResource TextMutedBrush}"
+                            Text="Not published" />
                     </Grid>
 
                     <Border
                         x:Name="DiscordPreview"
-                        MinHeight="108"
-                        Margin="0,8,0,0"
-                        Padding="16"
+                        MinHeight="112"
+                        Margin="0,10,0,0"
+                        Padding="18,16"
                         Background="{ThemeResource DiscordCanvasBrush}"
                         BorderBrush="{ThemeResource DiscordDividerBrush}"
                         BorderThickness="1"
-                        CornerRadius="12"
+                        CornerRadius="14"
                         AutomationProperties.Name="Discord activity preview">
-                        <Grid ColumnSpacing="12">
+                        <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="44" />
+                                <ColumnDefinition Width="54" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <Grid Width="42" Height="42" VerticalAlignment="Center">
-                                <Border Background="{ThemeResource DiscordSurfaceBrush}" CornerRadius="9" />
-                                <Grid x:Name="PreviewIconViewport" Width="42" Height="42">
+                            <Grid Width="52" Height="52" VerticalAlignment="Center">
+                                <Border Background="{ThemeResource DiscordSurfaceBrush}" CornerRadius="10" />
+                                <!-- Both artworks share a 544 px grid, so one overscan fits either agent. -->
+                                <Grid x:Name="PreviewIconViewport" Width="52" Height="52">
                                     <Grid.Clip>
-                                        <RectangleGeometry Rect="0,0,42,42" />
+                                        <RectangleGeometry Rect="0,0,52,52" />
                                     </Grid.Clip>
                                     <Image
-                                        Width="54"
-                                        Height="54"
+                                        x:Name="PreviewCodexIcon"
+                                        Width="68"
+                                        Height="68"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Source="codex-app-icon.png"
                                         Stretch="Uniform"
                                         AutomationProperties.Name="Official Codex app icon" />
+                                    <Image
+                                        x:Name="PreviewClaudeIcon"
+                                        Width="68"
+                                        Height="68"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Source="claude-code-icon.png"
+                                        Stretch="Uniform"
+                                        Visibility="Collapsed"
+                                        AutomationProperties.Name="Claude Code icon" />
                                 </Grid>
                                 <Ellipse
                                     x:Name="PreviewStatusDot"
-                                    Width="11"
-                                    Height="11"
-                                    Margin="0,0,-1,-1"
+                                    Width="13"
+                                    Height="13"
+                                    Margin="0,0,-2,-2"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Bottom"
                                     Fill="{ThemeResource TextMutedBrush}"
@@ -240,11 +325,11 @@
                                     StrokeThickness="3" />
                             </Grid>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                 <TextBlock
                                     x:Name="PreviewTitle"
                                     MaxLines="1"
-                                    FontSize="13"
+                                    FontSize="14"
                                     FontWeight="SemiBold"
                                     Foreground="{ThemeResource DiscordTextBrush}"
                                     Text="Coding with Codex"
@@ -259,52 +344,60 @@
                                 <TextBlock
                                     x:Name="PreviewSecondaryLine"
                                     MaxLines="1"
-                                    FontSize="11"
+                                    FontSize="12"
                                     Foreground="{ThemeResource DiscordMutedBrush}"
                                     Text="Active Codex session"
                                     TextTrimming="CharacterEllipsis" />
                             </StackPanel>
 
-                            <StackPanel
+                            <Border
                                 x:Name="PreviewTimerRow"
                                 Grid.Column="2"
+                                Padding="9,4"
                                 VerticalAlignment="Center"
-                                Orientation="Horizontal"
-                                Spacing="6">
-                                <Ellipse Width="6" Height="6" VerticalAlignment="Center" Fill="{ThemeResource SuccessBrush}" />
-                                <TextBlock
-                                    x:Name="PreviewElapsed"
-                                    VerticalAlignment="Center"
-                                    FontFamily="Cascadia Mono, Consolas"
-                                    FontSize="11"
-                                    Foreground="{ThemeResource SuccessBrush}"
-                                    Text="00:00:00" />
-                            </StackPanel>
+                                Background="{ThemeResource DiscordSurfaceBrush}"
+                                CornerRadius="11">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse Width="6" Height="6" VerticalAlignment="Center" Fill="#7CC49A" />
+                                    <TextBlock
+                                        x:Name="PreviewElapsed"
+                                        VerticalAlignment="Center"
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="11"
+                                        Foreground="{ThemeResource DiscordTextBrush}"
+                                        Text="00:00:00" />
+                                </StackPanel>
+                            </Border>
                         </Grid>
                     </Border>
 
-                    <Grid Margin="0,20,0,0" ColumnSpacing="20">
+                    <Grid Margin="0,22,0,0" ColumnSpacing="18">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Spacing="5">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Agent" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Name="AgentValue" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis" Text="—" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
                             <TextBlock Text="Activity source" Style="{StaticResource CaptionTextStyle}" />
-                            <TextBlock x:Name="SourceValue" FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="SourceValue" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="5">
+                        <StackPanel Grid.Column="2" Spacing="4">
                             <TextBlock Text="Workspace" Style="{StaticResource CaptionTextStyle}" />
-                            <TextBlock x:Name="WorkspaceValue" FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="WorkspaceValue" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="5">
+                        <StackPanel Grid.Column="3" Spacing="4">
                             <TextBlock Text="Session" Style="{StaticResource CaptionTextStyle}" />
-                            <TextBlock x:Name="SessionValue" FontSize="12" FontFamily="Cascadia Mono, Consolas" />
+                            <TextBlock x:Name="SessionValue" Margin="0,1,0,0" FontSize="12" FontFamily="{StaticResource MonoFontFamily}" />
                         </StackPanel>
                     </Grid>
                     <InfoBar
                         x:Name="WarningBar"
-                        Margin="0,11,0,0"
+                        Margin="0,16,0,0"
                         IsClosable="False"
                         IsOpen="False"
                         Severity="Warning"
@@ -328,6 +421,7 @@
 
         <Border
             Grid.Row="3"
+            Background="{ThemeResource CanvasBrush}"
             BorderBrush="{ThemeResource BorderBrush}"
             BorderThickness="0,1,0,0">
             <Grid Padding="24,0">
@@ -344,10 +438,10 @@
                     x:Name="FooterVersion"
                     Grid.Column="1"
                     VerticalAlignment="Center"
-                    FontFamily="Cascadia Mono, Consolas"
+                    FontFamily="{StaticResource MonoFontFamily}"
                     FontSize="10"
                     Foreground="{ThemeResource TextMutedBrush}"
-                    Text="v2.5.3" />
+                    Text="v2.6.0" />
             </Grid>
         </Border>
     </Grid>

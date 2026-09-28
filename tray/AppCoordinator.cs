@@ -36,7 +36,7 @@ public sealed class AppCoordinator : IDisposable
 
     public static string Version => Assembly.GetExecutingAssembly().GetName().Version is { } version
         ? $"{version.Major}.{version.Minor}.{Math.Max(0, version.Build)}"
-        : "2.5.3";
+        : "2.6.0";
 
     /// <summary>Raised after all app-owned resources and the daemon are stopped.</summary>
     public event EventHandler? ExitCompleted;
@@ -54,6 +54,7 @@ public sealed class AppCoordinator : IDisposable
         var initialConfig = configStore.Load();
         initialConfig.Privacy ??= new PrivacyConfig();
         dashboard.UpdatePrivacy(initialConfig.Privacy);
+        dashboard.ApplyAppearance(initialConfig.Appearance);
         trayIcon = new TrayIcon();
 
         WireEvents();
@@ -103,6 +104,7 @@ public sealed class AppCoordinator : IDisposable
                 trayIcon.ShowBalloon("Codex Presence could not start", error.Message, isError: true);
             }
 
+            SyncClaudeHooks(configStore.Load());
             await RefreshAsync();
             if (exiting) return;
 
@@ -187,9 +189,12 @@ public sealed class AppCoordinator : IDisposable
         var status = snapshot.PresenceEnabled
             ? snapshot.RpcReady ? "Discord connected" : "Waiting for Discord"
             : "Presence paused";
-        var activity = $"{snapshot.Project ?? "Project not detected"}  ·  {Shorten(snapshot.File, 48)}";
+        var agent = snapshot.AgentLabel ?? (snapshot.Agents is null && snapshot.CodexRunning ? "Codex" : null);
+        var activity = agent is null
+            ? "No active agent"
+            : $"{agent}  ·  {snapshot.Project ?? "Project not detected"}  ·  {Shorten(snapshot.File, 40)}";
         trayIcon.UpdateStatus(
-            $"Codex Presence — {snapshot.Project ?? "waiting"}",
+            agent is null ? "Codex Presence — waiting" : $"Codex Presence — {agent}: {snapshot.Project ?? "working"}",
             status,
             activity,
             snapshot.PresenceEnabled);
@@ -239,7 +244,10 @@ public sealed class AppCoordinator : IDisposable
     private async void OnSettingsSaved(object? sender, EventArgs args)
     {
         if (exiting) return;
-        dashboard.UpdatePrivacy(configStore.Load().Privacy);
+        var config = configStore.Load();
+        dashboard.UpdatePrivacy(config.Privacy ?? new PrivacyConfig());
+        dashboard.ApplyAppearance(config.Appearance);
+        SyncClaudeHooks(config);
         try
         {
             await daemon.RestartAsync();
@@ -260,13 +268,29 @@ public sealed class AppCoordinator : IDisposable
             return;
         }
 
-        var window = new DiagnosticsWindow(diagnostics);
+        var window = new DiagnosticsWindow(diagnostics, configStore.Load().Appearance);
         diagnosticsWindow = window;
         window.Closed += (_, _) =>
         {
             if (ReferenceEquals(diagnosticsWindow, window)) diagnosticsWindow = null;
         };
         window.ShowWindow();
+    }
+
+    /// <summary>Keeps Claude Code hook registrations in line with Settings; failures never block the app.</summary>
+    private void SyncClaudeHooks(PresenceConfig config)
+    {
+        try
+        {
+            var claude = config.Agents?.Claude ?? new ClaudeAgentConfig();
+            if (claude.Enabled && claude.Hooks) ClaudeCodeHooks.Install();
+            else ClaudeCodeHooks.Remove();
+        }
+        catch (Exception error)
+        {
+            if (!exiting)
+                trayIcon.ShowBalloon("Claude Code hooks were not updated", error.Message, isError: true);
+        }
     }
 
     private async Task CheckUpdatesAsync(bool interactive)
